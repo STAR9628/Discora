@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f7f7f8;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  --primary: #2563eb;
+  --primary-foreground: #f8fafc;
+  --secondary: #e4e4e7;
+  --secondary-foreground: #18181b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e2e8f0;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --destructive-foreground: #fef2f2;
+  --border: #d4d4d8;
+  --input: #d4d4d8;
+  --ring: #3b82f6;
+  --radius: 0.5rem;
+
+  --discora-claim: #3b82f6;
+  --discora-evidence: #22c55e;
+  --discora-question: #eab308;
+  --discora-source: #a855f7;
+  --discora-debate: #ef4444;
+  --discora-moderation: #f97316;
+}
+
+.dark {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --card: #111113;
+  --card-foreground: #f4f4f5;
+  --popover: #111113;
+  --popover-foreground: #f4f4f5;
+  --primary: #60a5fa;
+  --primary-foreground: #07111f;
+  --secondary: #27272a;
+  --secondary-foreground: #f4f4f5;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #f4f4f5;
+  --destructive: #f87171;
+  --destructive-foreground: #450a0a;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #60a5fa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-discora-claim: var(--discora-claim);
+  --color-discora-evidence: var(--discora-evidence);
+  --color-discora-question: var(--discora-question);
+  --color-discora-source: var(--discora-source);
+  --color-discora-debate: var(--discora-debate);
+  --color-discora-moderation: var(--discora-moderation);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
