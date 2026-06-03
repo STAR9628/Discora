@@ -1,39 +1,99 @@
-import { Bell, Home, MessageSquare, Scale, User } from "lucide-react";
+"use client";
 
-const sidebarItems = [
-  { label: "Home", icon: Home },
-  { label: "Discussions", icon: MessageSquare },
-  { label: "Debates", icon: Scale },
-  { label: "Notifications", icon: Bell },
-  { label: "Profile", icon: User },
-] as const;
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
+import { Bell, Home, MessageSquare, Scale, User, Settings } from "lucide-react";
 
 export function Sidebar() {
+  const pathname = usePathname();
+  const { status } = useAuth();
+  const { data: profile } = useCurrentProfile();
+
+  // Resolve Profile URL dynamically
+  const profileHref = (() => {
+    if (status === "loading") return "#";
+    if (status !== "authenticated") return "/login";
+    return profile?.username ? `/u/${profile.username}` : "/settings/profile";
+  })();
+
+  const sidebarItems: readonly {
+    label: string;
+    icon: React.ElementType;
+    href: string;
+    disabled?: boolean;
+  }[] = [
+    { label: "Home", icon: Home, href: "/" },
+    { label: "Discussions", icon: MessageSquare, href: "#", disabled: true },
+    { label: "Debates", icon: Scale, href: "#", disabled: true },
+    { label: "Notifications", icon: Bell, href: "#", disabled: true },
+    { label: "Profile", icon: User, href: profileHref },
+  ];
+
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-card/40 px-3 py-4 md:block">
       <div className="px-3 py-2">
-        <p className="text-lg font-semibold">Discora</p>
+        <p className="text-lg font-semibold tracking-tight">Discora</p>
         <p className="text-xs text-muted-foreground">Understanding over engagement</p>
       </div>
-      <nav aria-label="Primary navigation" className="mt-6">
+      
+      <nav aria-label="Primary navigation" className="mt-6 flex flex-col justify-between h-[calc(100%-4rem)]">
         <ul className="space-y-1">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
+            const isProfileActive = item.label === "Profile" && profile?.username && pathname === `/u/${profile.username}`;
+            const isActive = pathname === item.href || isProfileActive;
+
+            if (item.disabled) {
+              return (
+                <li key={item.label}>
+                  <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-muted-foreground/45 cursor-not-allowed">
+                    <div className="flex items-center gap-3">
+                      <Icon aria-hidden="true" className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </div>
+                    <span className="text-[9px] font-semibold tracking-wide uppercase px-1.5 py-0.5 bg-muted rounded">Soon</span>
+                  </div>
+                </li>
+              );
+            }
 
             return (
               <li key={item.label}>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                  }`}
                 >
                   <Icon aria-hidden="true" className="h-4 w-4" />
                   <span>{item.label}</span>
-                </button>
+                </Link>
               </li>
             );
           })}
         </ul>
+
+        {status === "authenticated" && (
+          <div className="border-t border-border pt-4">
+            <Link
+              href="/settings/profile"
+              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                pathname === "/settings/profile"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </Link>
+          </div>
+        )}
       </nav>
     </aside>
   );
 }
+

@@ -31,6 +31,13 @@ Sprint 1 follows:
 docs/15_SPRINT_1_IMPLEMENTATION_CHECKLIST.md
 ```
 
+Sprint 2 authentication setup follows:
+
+```text
+docs/17_SPRINT_2_AUTH_PLAN.md
+docs/18_SUPABASE_AUTH_SETUP.md
+```
+
 ## Environment
 
 Create a local `.env.local` file for real values. Do not commit secrets.
@@ -42,6 +49,13 @@ GEMINI_API_KEY=
 ```
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are browser-exposed Supabase values. `GEMINI_API_KEY` is server-only and must not use a `NEXT_PUBLIC_` prefix.
+
+For local authentication redirects, configure Supabase with:
+
+```text
+http://localhost:3000/auth/callback
+http://localhost:3000/reset-password
+```
 
 ## Development
 

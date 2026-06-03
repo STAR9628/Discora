@@ -83,10 +83,12 @@ export type BaseEntity = {
 
 export type UserProfile = BaseEntity & {
   username: string;
-  bio?: string;
-  profileImage?: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  defaultIdentityMode: IdentityMode;
+  lastUsernameChange: string | null;
   joinedAt: string;
-  role: UserRole;
+  role?: UserRole;
 };
 
 export type Topic = BaseEntity & {
