@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useHasRole } from "@/features/auth/hooks/use-role";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { Bell, Home, MessageSquare, Scale, User, Settings } from "lucide-react";
+import { Bell, Home, MessageSquare, Scale, User, Settings, Shield } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { status } = useAuth();
   const { data: profile } = useCurrentProfile();
+  const { data: isModerator } = useHasRole("moderator");
 
   // Resolve Profile URL dynamically
   const profileHref = (() => {
@@ -25,7 +27,7 @@ export function Sidebar() {
     disabled?: boolean;
   }[] = [
     { label: "Home", icon: Home, href: "/" },
-    { label: "Discussions", icon: MessageSquare, href: "#", disabled: true },
+    { label: "Discussions", icon: MessageSquare, href: "/discussions" },
     { label: "Debates", icon: Scale, href: "#", disabled: true },
     { label: "Notifications", icon: Bell, href: "#", disabled: true },
     { label: "Profile", icon: User, href: profileHref },
@@ -78,7 +80,7 @@ export function Sidebar() {
         </ul>
 
         {status === "authenticated" && (
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-border pt-4 space-y-1">
             <Link
               href="/settings/profile"
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -90,6 +92,20 @@ export function Sidebar() {
               <Settings className="h-4 w-4" />
               <span>Settings</span>
             </Link>
+
+            {isModerator && (
+              <Link
+                href="/settings/moderation"
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  pathname === "/settings/moderation"
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                }`}
+              >
+                <Shield className="h-4 w-4 text-destructive/80" />
+                <span>Moderation</span>
+              </Link>
+            )}
           </div>
         )}
       </nav>

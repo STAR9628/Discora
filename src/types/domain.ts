@@ -8,7 +8,9 @@ export type RoomVisibility = "public" | "private";
 
 export type RoomStatus = "open" | "inactive" | "archived";
 
-export type DebatePosition = "pro" | "con" | "neutral";
+/**
+ * Implemented domain types — used by current sprints (discussions, profiles, auth).
+ */
 
 export type ClaimType =
   | "fact"
@@ -17,8 +19,10 @@ export type ClaimType =
   | "proposal"
   | "observation";
 
-export type EvidenceType = "supporting" | "contradicting" | "contextual";
-
+/**
+ * Evidence categories enforced in DB (`evidence_type_check`) and
+ * `src/features/discussions`. Not the legacy `EvidenceType` union below.
+ */
 export type EvidenceCategory =
   | "scientific"
   | "statistical"
@@ -30,50 +34,6 @@ export type EvidenceCategory =
   | "logical"
   | "ethical"
   | "cultural";
-
-export type SourceType = "url" | "pdf" | "image" | "video";
-
-export type QuestionType =
-  | "information"
-  | "clarification"
-  | "perspective"
-  | "evidence"
-  | "directional"
-  | "reflective";
-
-export type VoteTargetType = "message" | "claim" | "question" | "evidence";
-
-export type VoteType = "agree" | "disagree";
-
-export type PinTargetType = "message" | "claim" | "question" | "evidence";
-
-export type PinType = "personal" | "public";
-
-export type PinStatus = "active" | "pending_vote" | "rejected";
-
-export type PinVoteType = "support" | "reject";
-
-export type ReportTargetType =
-  | "message"
-  | "claim"
-  | "evidence"
-  | "source"
-  | "question";
-
-export type ReportStatus =
-  | "pending"
-  | "ai_review"
-  | "human_review"
-  | "resolved"
-  | "dismissed";
-
-export type NotificationType =
-  | "reply_received"
-  | "debate_invitation"
-  | "debate_request"
-  | "pin_suggestion"
-  | "mention"
-  | "report_update";
 
 export type BaseEntity = {
   id: string;
@@ -102,9 +62,83 @@ export type Topic = BaseEntity & {
 export type Room = BaseEntity & {
   title: string;
   description?: string;
+  slug: string;
   roomType: RoomType;
   visibility: RoomVisibility;
   status: RoomStatus;
   createdBy: string;
   topicId?: string;
 };
+
+/**
+ * FUTURE ROADMAP TYPES
+ * Reserved for Sprint 7+ features. Not referenced by runtime code today.
+ * See docs/23_KNOWLEDGE_MODEL.md and docs/37_QUESTION_ARCHITECTURE_ADR_DRAFT.md.
+ */
+
+/** @future Sprint 7+ — structured debates (separate from discussion rooms). */
+export type DebatePosition = "pro" | "con" | "neutral";
+
+/**
+ * @future Superseded at runtime by `EvidenceCategory` and DB `evidence_type`.
+ * Kept for early architecture sketches only.
+ */
+export type EvidenceType = "supporting" | "contradicting" | "contextual";
+
+/** @future Sprint 7+ — first-class Question entity taxonomy. */
+export type QuestionType =
+  | "information"
+  | "clarification"
+  | "perspective"
+  | "evidence"
+  | "directional"
+  | "reflective";
+
+/**
+ * @future Polymorphic voting was rejected (ADR Sprint 6).
+ * Production voting: `claim_votes` and `evidence_votes` only.
+ */
+export type VoteTargetType = "message" | "claim" | "question" | "evidence";
+
+/** @future Shared agree/disagree enum for vote tables when extended. */
+export type VoteType = "agree" | "disagree";
+
+/** @future Pins / highlights — not implemented. */
+export type PinTargetType = "message" | "claim" | "question" | "evidence";
+
+/** @future Pins — not implemented. */
+export type PinType = "personal" | "public";
+
+/** @future Pins — not implemented. */
+export type PinStatus = "active" | "pending_vote" | "rejected";
+
+/** @future Pin voting — not implemented. */
+export type PinVoteType = "support" | "reject";
+
+/** @future Moderation reports — not implemented. */
+export type ReportTargetType =
+  | "message"
+  | "claim"
+  | "evidence"
+  | "source"
+  | "question";
+
+/** @future Moderation workflow — not implemented. */
+export type ReportStatus =
+  | "pending"
+  | "ai_review"
+  | "human_review"
+  | "resolved"
+  | "dismissed";
+
+/** @future Notifications center — not implemented. */
+export type NotificationType =
+  | "reply_received"
+  | "debate_invitation"
+  | "debate_request"
+  | "pin_suggestion"
+  | "mention"
+  | "report_update";
+
+/** @future Source uploads beyond URL citations — not implemented. */
+export type SourceType = "url" | "pdf" | "image" | "video";

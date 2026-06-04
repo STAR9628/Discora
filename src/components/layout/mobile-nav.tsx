@@ -26,7 +26,7 @@ export function MobileNav() {
   }[] = [
     { label: "Home", icon: Home, href: "/" },
     { label: "Search", icon: Search, href: "#", disabled: true },
-    { label: "Create", icon: CirclePlus, href: "#", disabled: true },
+    { label: "Create", icon: CirclePlus, href: "/discussions/create" },
     { label: "Notifications", icon: Bell, href: "#", disabled: true },
     { label: "Profile", icon: User, href: profileHref },
   ];

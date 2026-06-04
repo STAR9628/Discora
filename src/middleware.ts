@@ -6,5 +6,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/protected/:path*", "/settings/:path*"],
+  matcher: ["/protected/:path*", "/settings/:path*", "/discussions/create"],
 };
