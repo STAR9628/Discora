@@ -10,8 +10,8 @@ import { Bell, Home, MessageSquare, Scale, Search as SearchIcon, User, Settings,
 export function Sidebar() {
   const pathname = usePathname();
   const { status } = useAuth();
-  const { data: profile } = useCurrentProfile();
-  const { data: isModerator } = useHasRole("moderator");
+  const { data: profile, isLoading: isProfileLoading, error: profileError } = useCurrentProfile();
+  const { data: isModerator, isLoading: isRoleLoading } = useHasRole("moderator");
 
   // Resolve Profile URL dynamically
   // Unauthenticated users go to /settings/profile so middleware
@@ -47,7 +47,8 @@ export function Sidebar() {
         <ul className="space-y-1">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
-            const isProfileActive = item.label === "Profile" && profile?.username && pathname === `/u/${profile.username}`;
+            const isProfileItem = item.label === "Profile";
+            const isProfileActive = isProfileItem && profile?.username && pathname === `/u/${profile.username}`;
             const isActive = pathname === item.href || isProfileActive;
 
             if (item.disabled) {
@@ -72,10 +73,13 @@ export function Sidebar() {
                     isActive
                       ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                  }`}
+                  }${isProfileItem && isProfileLoading ? " animate-pulse" : ""}`}
                 >
                   <Icon aria-hidden="true" className="h-4 w-4" />
                   <span>{item.label}</span>
+                  {isProfileItem && profileError && (
+                    <span className="ml-auto text-[9px] font-semibold text-destructive uppercase">Error</span>
+                  )}
                 </Link>
               </li>
             );
@@ -96,7 +100,12 @@ export function Sidebar() {
               <span>Settings</span>
             </Link>
 
-            {isModerator && (
+            {isRoleLoading ? (
+              <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground/50 animate-pulse">
+                <Shield className="h-4 w-4" />
+                <span>Moderation</span>
+              </div>
+            ) : isModerator ? (
               <Link
                 href="/settings/moderation"
                 className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -108,7 +117,7 @@ export function Sidebar() {
                 <Shield className="h-4 w-4 text-destructive/80" />
                 <span>Moderation</span>
               </Link>
-            )}
+            ) : null}
           </div>
         )}
       </nav>

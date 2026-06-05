@@ -176,6 +176,29 @@ export function ProfileForm() {
     );
   }
 
+  if (profileError) {
+    return (
+      <div className="mx-auto max-w-xl rounded-xl border border-destructive/20 bg-destructive/5 p-6">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div>
+            <h3 className="text-sm font-semibold text-destructive">Unable to load profile</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {profileError instanceof Error ? profileError.message : "An unexpected error occurred."}
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-3 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-xl rounded-xl border border-border bg-card/50 p-6 backdrop-blur-md md:p-8">
       <div className="mb-6">

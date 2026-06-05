@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { Bell, CirclePlus, Home, Search, User } from "lucide-react";
+import { Bell, CirclePlus, Home, Search, User, Loader2 } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
   const { status } = useAuth();
-  const { data: profile } = useCurrentProfile();
+  const { data: profile, isLoading: isProfileLoading, error: profileError } = useCurrentProfile();
 
   // Resolve Profile URL dynamically
   // Unauthenticated users go to /settings/profile so middleware
@@ -41,7 +41,8 @@ export function MobileNav() {
       <ul className="grid grid-cols-5">
         {mobileItems.map((item) => {
           const Icon = item.icon;
-          const isProfileActive = item.label === "Profile" && profile?.username && pathname === `/u/${profile.username}`;
+          const isProfileItem = item.label === "Profile";
+          const isProfileActive = isProfileItem && profile?.username && pathname === `/u/${profile.username}`;
           const isActive = pathname === item.href || isProfileActive;
 
           if (item.disabled) {
@@ -61,10 +62,16 @@ export function MobileNav() {
                 href={item.href}
                 className={`flex h-16 w-full flex-col items-center justify-center gap-1 transition-colors ${
                   isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                }`}
+                }${isProfileItem && isProfileLoading ? " animate-pulse" : ""}`}
               >
-                <Icon aria-hidden="true" className="h-5 w-5" />
-                <span className="text-[10px] leading-none font-medium">{item.label}</span>
+                {isProfileItem && isProfileLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Icon aria-hidden="true" className="h-5 w-5" />
+                )}
+                <span className="text-[10px] leading-none font-medium">
+                  {isProfileItem && profileError ? "Error" : item.label}
+                </span>
               </Link>
             </li>
           );

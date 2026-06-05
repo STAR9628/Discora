@@ -13,6 +13,7 @@ import type { ModerationFlag, ModerationStatus } from "@/features/discussions/ty
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
+  AlertCircle,
   AlertTriangle,
   Award,
   CheckCircle2,
@@ -37,7 +38,7 @@ type DashboardTab = "pending" | "history";
 
 export function ModerationDashboard() {
   const { status: authStatus } = useAuth();
-  const { isLoading: isRoleLoading } = useHasRole("moderator");
+  const { isLoading: isRoleLoading, error: roleError } = useHasRole("moderator");
   const [activeTab, setActiveTab] = useState<DashboardTab>("pending");
   const [confirmAction, setConfirmAction] = useState<{
     flag: ModerationFlag;
@@ -56,6 +57,22 @@ export function ModerationDashboard() {
           <span className="text-sm text-muted-foreground">
             Loading moderation data...
           </span>
+        </div>
+      </main>
+    );
+  }
+
+  if (roleError) {
+    return (
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex h-64 flex-col items-center justify-center gap-3">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+          <span className="text-sm font-medium text-destructive">
+            Unable to verify moderator permissions.
+          </span>
+          <p className="max-w-md text-center text-xs text-muted-foreground">
+            {roleError instanceof Error ? roleError.message : "An unexpected error occurred."}
+          </p>
         </div>
       </main>
     );
