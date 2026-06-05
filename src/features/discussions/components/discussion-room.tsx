@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useMessages, usePostMessage, useUpdateMessage, useRoomEvidence, useRetractQuestion } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
@@ -10,9 +10,12 @@ import { ClaimList } from "./claim-list";
 import { ExtractClaimModal } from "./extract-claim-modal";
 import { QuestionList } from "./question-list";
 import { ReportDialog } from "./report-dialog";
+import { toast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface DiscussionRoomProps {
   initialData: DiscussionFeedItem;
+  highlightId?: string | null;
 }
 
 interface CommentNode {
@@ -44,17 +47,57 @@ function buildCommentTree(messages: DiscussionMessage[]): CommentNode[] {
   return roots;
 }
 
-export function DiscussionRoom({ initialData }: DiscussionRoomProps) {
+export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps) {
   const { room, topic, discussion } = initialData;
   const { user } = useAuth();
-  const { data: messages, isLoading: isMessagesLoading, error: messagesError, refetch } = useMessages(room.id);
+  const { data: messages, isLoading: isMessagesLoading, error: messagesError } = useMessages(room.id);
   const postMutation = usePostMessage();
   const updateMutation = useUpdateMessage(room.id);
   const retractQuestionMutation = useRetractQuestion(room.id);
 
   // Tab switching state
   const [activeTab, setActiveTab] = useState<"discussion" | "questions" | "claims" | "evidence" | "sources">("discussion");
+
+  const [showRetractConfirm, setShowRetractConfirm] = useState(false);
+
+  // Scroll-to-highlight: parse highlightId to determine tab and entity id
   const [selectedQuestion, setSelectedQuestion] = useState<DiscussionQuestion | null>(null);
+  const highlightHandled = useRef(false);
+
+  useEffect(() => {
+    if (!highlightId || highlightHandled.current) return;
+
+    const prefixMap: Record<string, "discussion" | "claims" | "evidence" | "questions"> = {
+      msg: "discussion",
+      claim: "claims",
+      ev: "evidence",
+      q: "questions",
+    };
+
+    const sepIndex = highlightId.indexOf("-");
+    const prefix = sepIndex > 0 ? highlightId.slice(0, sepIndex) : "";
+    const tab = prefixMap[prefix];
+
+    if (tab) {
+      setActiveTab(tab);
+    }
+
+    const tryHighlight = (retries: number) => {
+      const el = document.getElementById(highlightId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary", "rounded-lg", "transition-all", "duration-1000");
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "rounded-lg");
+        }, 4000);
+        highlightHandled.current = true;
+      } else if (retries > 0) {
+        setTimeout(() => tryHighlight(retries - 1), 300);
+      }
+    };
+
+    tryHighlight(10);
+  }, [highlightId, messages]);
 
   // Claim Extraction modal state
   const [extractComment, setExtractComment] = useState<DiscussionMessage | null>(null);
@@ -101,14 +144,13 @@ export function DiscussionRoom({ initialData }: DiscussionRoomProps) {
     }
 
     try {
-      await postMutation.mutateAsync({
-        roomId: room.id,
-        content: trimmed,
-        identityMode: mainAnonymous ? "anonymous" : "public",
-      });
-      setMainContent("");
-      setMainAnonymous(false);
-      refetch();
+    await postMutation.mutateAsync({
+      roomId: room.id,
+      content: trimmed,
+      identityMode: mainAnonymous ? "anonymous" : "public",
+    });
+    setMainContent("");
+    setMainAnonymous(false);
     } catch (err) {
       setMainError(err instanceof Error ? err.message : "Failed to post message.");
     }
@@ -127,7 +169,6 @@ export function DiscussionRoom({ initialData }: DiscussionRoomProps) {
       identityMode: anonymous ? "anonymous" : "public",
     });
     setActiveReplyId(null);
-    refetch();
   };
 
   // Edit existing message
@@ -141,7 +182,6 @@ export function DiscussionRoom({ initialData }: DiscussionRoomProps) {
       content: trimmed,
     });
     setActiveEditId(null);
-    refetch();
   };
 
   const commentTree = messages ? buildCommentTree(messages) : [];
@@ -387,17 +427,7 @@ export function DiscussionRoom({ initialData }: DiscussionRoomProps) {
                 {/* Retraction option inside detail view */}
                 {selectedQuestion.createdBy === user?.id && !selectedQuestion.isRetracted && (
                   <button
-                    onClick={async () => {
-                      if (confirm("Are you sure you want to retract this question? This action is immutable and cannot be undone.")) {
-                        try {
-                          await retractQuestionMutation.mutateAsync(selectedQuestion.id);
-                          // Update local state isRetracted
-                          setSelectedQuestion((prev) => prev ? { ...prev, isRetracted: true } : null);
-                        } catch (err) {
-                          alert(err instanceof Error ? err.message : "Failed to retract question.");
-                        }
-                      }
-                    }}
+                    onClick={() => setShowRetractConfirm(true)}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-destructive hover:opacity-85 transition-opacity cursor-pointer"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
@@ -500,6 +530,28 @@ export function DiscussionRoom({ initialData }: DiscussionRoomProps) {
         <RoomSourcesTab roomId={room.id} />
       )}
 
+      <ConfirmDialog
+        open={showRetractConfirm}
+        title="Retract question?"
+        description="This action is irreversible. The question will be permanently retracted along with all associated answers."
+        confirmLabel="Retract"
+        variant="danger"
+        onConfirm={async () => {
+          if (!selectedQuestion) return;
+          try {
+            await retractQuestionMutation.mutateAsync(selectedQuestion.id);
+            setSelectedQuestion((prev) => prev ? { ...prev, isRetracted: true } : null);
+          } catch (err) {
+            toast.error("Failed to retract question.", {
+              description: err instanceof Error ? err.message : "Please try again.",
+            });
+          } finally {
+            setShowRetractConfirm(false);
+          }
+        }}
+        onCancel={() => setShowRetractConfirm(false)}
+      />
+
       <ExtractClaimModal
         isOpen={isExtractOpen}
         onClose={() => {
@@ -593,6 +645,7 @@ function RoomEvidenceTab({ roomId }: RoomEvidenceTabProps) {
 
           return (
             <div
+              id={`ev-${ev.id}`}
               key={ev.id}
               className={`rounded-2xl border border-border/50 bg-card/30 p-5 space-y-3 transition-colors hover:bg-card/40 relative ${
                 ev.isRetracted ? "opacity-60 grayscale-[15%]" : ""
@@ -908,7 +961,7 @@ function CommentItem({
   const indentLevel = Math.min(level, 3);
 
   return (
-    <div className="space-y-3" style={{ paddingLeft: `${indentLevel * 1.25}rem` }}>
+    <div id={`msg-${message.id}`} className="space-y-3" style={{ paddingLeft: `${indentLevel * 1.25}rem` }}>
       <div className="group relative flex gap-4 rounded-2xl border border-border/50 bg-card/30 p-5 transition-colors hover:bg-card/40">
         
         {/* Left vertical timeline line to visually link nested comments */}

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useHasRole } from "@/features/auth/hooks/use-role";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { Bell, Home, MessageSquare, Scale, User, Settings, Shield } from "lucide-react";
+import { Bell, Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -14,9 +14,11 @@ export function Sidebar() {
   const { data: isModerator } = useHasRole("moderator");
 
   // Resolve Profile URL dynamically
+  // Unauthenticated users go to /settings/profile so middleware
+  // can intercept and redirect to /login?redirectedFrom=/settings/profile.
   const profileHref = (() => {
     if (status === "loading") return "#";
-    if (status !== "authenticated") return "/login";
+    if (status !== "authenticated") return "/settings/profile";
     return profile?.username ? `/u/${profile.username}` : "/settings/profile";
   })();
 
@@ -28,6 +30,7 @@ export function Sidebar() {
   }[] = [
     { label: "Home", icon: Home, href: "/" },
     { label: "Discussions", icon: MessageSquare, href: "/discussions" },
+    { label: "Search", icon: SearchIcon, href: "/search" },
     { label: "Debates", icon: Scale, href: "#", disabled: true },
     { label: "Notifications", icon: Bell, href: "#", disabled: true },
     { label: "Profile", icon: User, href: profileHref },

@@ -1,4 +1,5 @@
 import { AuthStatus } from "@/features/auth/components/auth-status";
+import { SearchTrigger } from "@/features/discussions/components/search/search-trigger";
 
 export function Header() {
   return (
@@ -8,7 +9,10 @@ export function Header() {
           <p className="text-sm font-semibold">Discora</p>
           <p className="text-xs text-muted-foreground">Authentication foundation</p>
         </div>
-        <AuthStatus />
+        <div className="flex items-center gap-3">
+          <SearchTrigger />
+          <AuthStatus />
+        </div>
       </div>
     </header>
   );

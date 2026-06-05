@@ -9,6 +9,8 @@ import { questionSchema, type QuestionFormValues } from "@/features/discussions/
 import { AlertCircle, HelpCircle, Loader2, User, Send, RotateCcw, ArrowRight, Flag } from "lucide-react";
 import type { DiscussionQuestion } from "../types";
 import type { QuestionType } from "@/types/domain";
+import { toast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface QuestionListProps {
   roomId: string;
@@ -23,6 +25,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
   const retractMutation = useRetractQuestion(roomId);
 
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
 
   // Form setup
   const {
@@ -57,15 +60,21 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
     }
   };
 
-  const handleRetract = async (e: React.MouseEvent, questionId: string) => {
-    e.stopPropagation(); // Prevent triggering selection
-    if (!confirm("Are you sure you want to retract this question? This action is immutable and cannot be undone.")) {
-      return;
-    }
+  const handleRetract = (e: React.MouseEvent, questionId: string) => {
+    e.stopPropagation();
+    setPendingRetractId(questionId);
+  };
+
+  const executeRetract = async () => {
+    if (!pendingRetractId) return;
     try {
-      await retractMutation.mutateAsync(questionId);
+      await retractMutation.mutateAsync(pendingRetractId);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to retract question.");
+      toast.error("Failed to retract question.", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setPendingRetractId(null);
     }
   };
 
@@ -246,6 +255,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
 
               return (
                 <div
+                  id={`q-${question.id}`}
                   key={question.id}
                   onClick={() => onSelectQuestion(question)}
                   className={`rounded-2xl border border-border/50 bg-card/30 p-5 space-y-3 transition-all hover:bg-card/45 hover:border-primary/30 relative cursor-pointer ${question.isRetracted ? "opacity-60 grayscale-[15%]" : ""
@@ -342,6 +352,16 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!pendingRetractId}
+        title="Retract question?"
+        description="This action is irreversible. The question will be permanently retracted."
+        confirmLabel="Retract"
+        variant="danger"
+        onConfirm={executeRetract}
+        onCancel={() => setPendingRetractId(null)}
+      />
     </div>
   );
 }

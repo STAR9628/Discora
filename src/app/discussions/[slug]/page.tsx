@@ -8,6 +8,9 @@ type PageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<{
+    highlight?: string;
+  }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -29,8 +32,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function DiscussionRoomPage({ params }: PageProps) {
+export default async function DiscussionRoomPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const highlightId = resolvedSearchParams.highlight || null;
+
   const supabase = await createServerSupabaseClient();
   let discussionItem = null;
 
@@ -46,7 +52,7 @@ export default async function DiscussionRoomPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <DiscussionRoom initialData={discussionItem} />
+      <DiscussionRoom initialData={discussionItem} highlightId={highlightId} />
     </main>
   );
 }

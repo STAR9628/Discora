@@ -12,9 +12,11 @@ export function MobileNav() {
   const { data: profile } = useCurrentProfile();
 
   // Resolve Profile URL dynamically
+  // Unauthenticated users go to /settings/profile so middleware
+  // can intercept and redirect to /login?redirectedFrom=/settings/profile.
   const profileHref = (() => {
     if (status === "loading") return "#";
-    if (status !== "authenticated") return "/login";
+    if (status !== "authenticated") return "/settings/profile";
     return profile?.username ? `/u/${profile.username}` : "/settings/profile";
   })();
 
@@ -25,7 +27,7 @@ export function MobileNav() {
     disabled?: boolean;
   }[] = [
     { label: "Home", icon: Home, href: "/" },
-    { label: "Search", icon: Search, href: "#", disabled: true },
+    { label: "Search", icon: Search, href: "/search" },
     { label: "Create", icon: CirclePlus, href: "/discussions/create" },
     { label: "Notifications", icon: Bell, href: "#", disabled: true },
     { label: "Profile", icon: User, href: profileHref },

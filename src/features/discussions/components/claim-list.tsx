@@ -9,6 +9,8 @@ import { claimSchema, type ClaimFormValues } from "@/features/discussions/valida
 import { AlertCircle, Plus, Loader2, User, HelpCircle, Send, RotateCcw, MessageSquare, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
 import { EvidenceSection } from "./evidence-section";
 import type { DiscussionClaim, DiscussionEvidence } from "../types";
+import { toast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ClaimListProps {
   roomId: string;
@@ -25,6 +27,7 @@ export function ClaimList({ roomId, questionId, onReportClaim, onReportEvidence 
 
   const [formError, setFormError] = useState<string | null>(null);
   const [expandedClaims, setExpandedClaims] = useState<Record<string, boolean>>({});
+  const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
 
   const toggleExpand = (claimId: string) => {
     setExpandedClaims((prev) => ({
@@ -68,13 +71,19 @@ export function ClaimList({ roomId, questionId, onReportClaim, onReportEvidence 
   };
 
   const handleRetract = async (claimId: string) => {
-    if (!confirm("Are you sure you want to retract this claim? This action is immutable and cannot be undone.")) {
-      return;
-    }
+    setPendingRetractId(claimId);
+  };
+
+  const executeRetract = async () => {
+    if (!pendingRetractId) return;
     try {
-      await retractMutation.mutateAsync(claimId);
+      await retractMutation.mutateAsync(pendingRetractId);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to retract claim.");
+      toast.error("Failed to retract claim.", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setPendingRetractId(null);
     }
   };
 
@@ -255,6 +264,7 @@ export function ClaimList({ roomId, questionId, onReportClaim, onReportEvidence 
 
               return (
                 <div
+                  id={`claim-${claim.id}`}
                   key={claim.id}
                   className={`rounded-2xl border border-border/50 bg-card/30 p-5 space-y-3 transition-colors hover:bg-card/40 relative ${
                     claim.isRetracted ? "opacity-60 grayscale-[15%]" : ""
@@ -381,6 +391,16 @@ export function ClaimList({ roomId, questionId, onReportClaim, onReportEvidence 
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!pendingRetractId}
+        title="Retract claim?"
+        description="This action is irreversible. The claim and all associated evidence will be permanently retracted."
+        confirmLabel="Retract"
+        variant="danger"
+        onConfirm={executeRetract}
+        onCancel={() => setPendingRetractId(null)}
+      />
     </div>
   );
 }
@@ -396,14 +416,16 @@ function ClaimVoting({ roomId, claim }: ClaimVotingProps) {
 
   const handleVote = async (type: "agree" | "disagree") => {
     if (!user) {
-      alert("Please log in to vote.");
+      toast.warning("You must be logged in to vote.");
       return;
     }
     const nextVote = claim.userVote === type ? null : type;
     try {
       await voteMutation.mutateAsync(nextVote);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to cast vote.");
+      toast.error("Failed to cast vote.", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
     }
   };
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, castEvidenceVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag } from "@/features/discussions/services/discussion-service";
+import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, castEvidenceVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag } from "@/features/discussions/services/discussion-service";
 import type { QuestionType } from "@/types/domain";
 
 
@@ -221,6 +221,26 @@ export function useCreateEvidence(roomId: string, claimId: string) {
       queryClient.invalidateQueries({ queryKey: ["claims", roomId] });
       queryClient.invalidateQueries({ queryKey: ["evidence", claimId] });
       queryClient.invalidateQueries({ queryKey: ["roomEvidence", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to retract evidence.
+ * Invalidates all caches that display evidence state:
+ * - room-wide evidence bibliography
+ * - per-claim evidence list
+ * - claim list (evidence counts / retraction badges)
+ */
+export function useRetractEvidence(roomId: string, claimId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => retractEvidence(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roomEvidence", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["evidence", claimId] });
+      queryClient.invalidateQueries({ queryKey: ["claims", roomId] });
     },
   });
 }

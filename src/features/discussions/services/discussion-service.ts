@@ -1,6 +1,7 @@
   import type { SupabaseClient } from "@supabase/supabase-js";
   import { createBrowserSupabaseClient } from "@/services/supabase/client";
-  import type { Topic, Room, Discussion, Message, DiscussionMessage, Claim, DiscussionClaim, DiscussionEvidence, Question, DiscussionQuestion, QuestionType, ModerationFlag } from "../types";
+  import { mapSupabaseError } from "@/lib/errors";
+  import type { Topic, Room, Discussion, Message, DiscussionMessage, Claim, DiscussionClaim, DiscussionEvidence, Question, DiscussionQuestion, QuestionType, ModerationFlag, SearchResult, SearchResultType } from "../types";
 
   export interface DbTopicRow {
     id: string;
@@ -183,7 +184,7 @@
       .order("name", { ascending: true });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load topics"));
     }
 
     return (data || []).map(mapTopicRow);
@@ -230,7 +231,7 @@
     const { data, error } = await query;
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load discussions"));
     }
 
     const rows = (data || []) as unknown as DbJoinedRoomRow[];
@@ -262,7 +263,7 @@
       .maybeSingle();
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load discussion"));
     }
 
     if (!data) return null;
@@ -304,7 +305,7 @@
     );
 
     if (rpcError || !roomId) {
-      throw new Error(rpcError?.message || "Failed to create discussion room");
+      throw new Error(mapSupabaseError(rpcError, "Failed to create discussion room"));
     }
 
     // 2. Query back the complete discussion feed item
@@ -319,7 +320,7 @@
       .single();
 
     if (readError || !roomResult) {
-      throw new Error(readError?.message || "Failed to retrieve the created discussion details");
+      throw new Error(mapSupabaseError(readError, "Failed to retrieve the created discussion details"));
     }
 
     const joinedRow = roomResult as unknown as DbJoinedRoomRow;
@@ -347,7 +348,7 @@
       .order("created_at", { ascending: true });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load messages"));
     }
 
     const rows = (data || []) as DbDiscussionMessageRow[];
@@ -382,7 +383,7 @@
       .single();
 
     if (error || !inserted) {
-      throw new Error(error?.message || "Failed to post message");
+      throw new Error(mapSupabaseError(error, "Failed to post message"));
     }
 
     return { id: inserted.id };
@@ -406,7 +407,7 @@
       .single();
 
     if (error || !updated) {
-      throw new Error(error?.message || "Failed to update message");
+      throw new Error(mapSupabaseError(error, "Failed to update message"));
     }
 
     return { id: updated.id };
@@ -563,7 +564,7 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load questions"));
     }
 
     const rows = (data || []) as DbDiscussionQuestionRow[];
@@ -595,7 +596,7 @@
       .single();
 
     if (error || !inserted) {
-      throw new Error(error?.message || "Failed to create question");
+      throw new Error(mapSupabaseError(error, "Failed to create question"));
     }
 
     return { id: inserted.id };
@@ -617,7 +618,7 @@
       .single();
 
     if (error || !updated) {
-      throw new Error(error?.message || "Failed to retract question");
+      throw new Error(mapSupabaseError(error, "Failed to retract question"));
     }
 
     return { id: updated.id };
@@ -644,7 +645,7 @@
     const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load claims"));
     }
 
     const rows = (data || []) as DbDiscussionClaimRow[];
@@ -680,10 +681,32 @@
       .single();
 
     if (error || !inserted) {
-      throw new Error(error?.message || "Failed to create claim");
+      throw new Error(mapSupabaseError(error, "Failed to create claim"));
     }
 
     return { id: inserted.id };
+  }
+
+  /**
+   * Retract an existing evidence entry (flags is_retracted, does not delete)
+   */
+  export async function retractEvidence(
+    id: string,
+    overrideClient?: SupabaseClient,
+  ): Promise<MutationIdResult> {
+    const supabase = getClient(overrideClient);
+    const { data: updated, error } = await supabase
+      .from("evidence")
+      .update({ is_retracted: true })
+      .eq("id", id)
+      .select("id")
+      .single();
+
+    if (error || !updated) {
+      throw new Error(mapSupabaseError(error, "Failed to retract evidence"));
+    }
+
+    return { id: updated.id };
   }
 
   /**
@@ -702,7 +725,7 @@
       .single();
 
     if (error || !updated) {
-      throw new Error(error?.message || "Failed to retract claim");
+      throw new Error(mapSupabaseError(error, "Failed to retract claim"));
     }
 
     return { id: updated.id };
@@ -775,7 +798,7 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load evidence"));
     }
 
     const rows = (data || []) as DbDiscussionEvidenceRow[];
@@ -811,7 +834,7 @@
     );
 
     if (sourceError || !sourceId) {
-      throw new Error(sourceError?.message || "Failed to resolve source citation.");
+      throw new Error(mapSupabaseError(sourceError, "Failed to resolve source citation."));
     }
 
     // 2. Create evidence record
@@ -827,7 +850,7 @@
         .select("id")
         .single();
     if (evidenceError || !newEvidence) {
-      throw new Error(evidenceError?.message || "Failed to create evidence card.");
+      throw new Error(mapSupabaseError(evidenceError, "Failed to create evidence card."));
     }
 
     // 3. Create claim_evidence junction record (RLS + definer trigger enforce room + evidence ownership)
@@ -840,7 +863,7 @@
       });
 
     if (junctionError) {
-      throw new Error(junctionError.message || "Failed to link evidence to claim.");
+      throw new Error(mapSupabaseError(junctionError, "Failed to link evidence to claim."));
     }
   }
 
@@ -860,12 +883,13 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load evidence"));
     }
 
     const rows = (data || []) as DbDiscussionEvidenceRow[];
     return rows.map(mapDiscussionEvidenceRow);
-  }
+}
+
 
   /**
    * Cast or toggle a vote on a claim
@@ -888,7 +912,7 @@
         .eq("claim_id", claimId)
         .eq("user_id", user.id);
       if (error) {
-        throw new Error(error.message);
+        throw new Error(mapSupabaseError(error, "Failed to cast vote"));
       }
     } else {
       const { error } = await supabase
@@ -901,7 +925,7 @@
           onConflict: "user_id,claim_id"
         });
       if (error) {
-        throw new Error(error.message);
+        throw new Error(mapSupabaseError(error, "Failed to cast vote"));
       }
     }
   }
@@ -927,7 +951,7 @@
         .eq("evidence_id", evidenceId)
         .eq("user_id", user.id);
       if (error) {
-        throw new Error(error.message);
+        throw new Error(mapSupabaseError(error, "Failed to cast vote"));
       }
     } else {
       const { error } = await supabase
@@ -940,7 +964,7 @@
           onConflict: "user_id,evidence_id"
         });
       if (error) {
-        throw new Error(error.message);
+        throw new Error(mapSupabaseError(error, "Failed to cast vote"));
       }
     }
   }
@@ -1024,7 +1048,7 @@
       if (error.code === "23505") {
         throw new Error("You have already submitted a report for this item. It is currently under review.");
       }
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to submit report."));
     }
 
     if (!insertedId) {
@@ -1049,7 +1073,7 @@
       .order("created_at", { ascending: false });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load pending flags"));
     }
 
     const rows = (data || []) as unknown as DbModerationFlagRow[];
@@ -1072,7 +1096,7 @@
       .order("resolved_at", { ascending: false });
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(mapSupabaseError(error, "Failed to load moderation history"));
     }
 
     const rows = (data || []) as DbModerationFlagRow[];
@@ -1095,8 +1119,77 @@
     });
 
     if (error || !updatedId) {
-      throw new Error(error?.message || "Failed to resolve report.");
+      throw new Error(mapSupabaseError(error, "Failed to resolve report."));
     }
 
     return { id: updatedId };
+  }
+
+  /** Row shape returned by the search_content RPC. */
+  export interface DbSearchResultRow {
+    entity_id: string;
+    result_type: SearchResultType;
+    room_id: string;
+    room_slug: string;
+    room_title: string;
+    content: string | null;
+    excerpt: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+    created_at: string;
+    rank: number;
+    total_count: number;
+  }
+
+  function mapSearchResultRow(row: DbSearchResultRow): SearchResult {
+    return {
+      entityId: row.entity_id,
+      resultType: row.result_type,
+      roomId: row.room_id,
+      roomSlug: row.room_slug,
+      roomTitle: row.room_title,
+      content: row.content,
+      excerpt: row.excerpt,
+      authorUsername: row.author_username,
+      authorAvatarUrl: row.author_avatar_url,
+      createdAt: row.created_at,
+      rank: row.rank,
+    };
+  }
+
+  /**
+   * Full-text search across rooms, messages, claims, evidence, and questions.
+   */
+  export async function searchContent(
+    query: string,
+    options?: { limit?: number; offset?: number },
+    overrideClient?: SupabaseClient,
+  ): Promise<{ results: SearchResult[]; totalCount: number; query: string; hasMore: boolean }> {
+    const supabase = getClient(overrideClient);
+
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery || trimmedQuery.length < 2) {
+      return { results: [], totalCount: 0, query: trimmedQuery, hasMore: false };
+    }
+
+    const limit = options?.limit ?? 20;
+    const offset = options?.offset ?? 0;
+
+    const { data, error } = await supabase.rpc("search_content", {
+      p_query: trimmedQuery,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (error) {
+      throw new Error(mapSupabaseError(error, "Search failed"));
+    }
+
+    const rows = (data || []) as DbSearchResultRow[];
+    const results = rows.map(mapSearchResultRow);
+
+    const totalCount = rows.length > 0 ? rows[0].total_count : 0;
+    const hasMore = offset + limit < totalCount;
+
+    return { results, totalCount, query: trimmedQuery, hasMore };
   }

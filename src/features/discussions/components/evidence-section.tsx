@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useEvidence, useCreateEvidence, useVoteEvidence } from "@/features/discussions/hooks/use-discussions";
+import { useEvidence, useCreateEvidence, useRetractEvidence, useVoteEvidence } from "@/features/discussions/hooks/use-discussions";
 import { evidenceSchema, type EvidenceFormValues } from "@/features/discussions/validation";
-import { AlertCircle, Loader2, User, Send, Plus, Link as LinkIcon, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
 import type { DiscussionEvidence } from "../types";
+import { toast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface EvidenceSectionProps {
   claimId: string;
@@ -20,9 +22,11 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   const { user } = useAuth();
   const { data: evidenceList, isLoading, error } = useEvidence(claimId);
   const createMutation = useCreateEvidence(roomId, claimId);
+  const retractMutation = useRetractEvidence(roomId, claimId);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
 
   const {
     register,
@@ -296,6 +300,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
 
             return (
               <div
+                id={`ev-${ev.id}`}
                 key={ev.id}
                 className={`bg-card/20 border border-border/40 rounded-xl p-4 space-y-2.5 transition-colors hover:bg-card/30 relative ${
                   ev.isRetracted ? "opacity-60 grayscale-[15%]" : ""
@@ -323,13 +328,25 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                   </div>
 
                   {user && (
-                    <button
-                      onClick={() => onReportEvidence(ev)}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                    >
-                      <Flag className="h-3.5 w-3.5 text-destructive/75" />
-                      <span>Report</span>
-                    </button>
+                    <>
+                      {ev.createdBy === user.id && !ev.isRetracted && (
+                        <button
+                          onClick={() => setPendingRetractId(ev.id)}
+                          disabled={retractMutation.isPending}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-destructive hover:opacity-85 transition-opacity cursor-pointer disabled:opacity-50"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          <span>Retract</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onReportEvidence(ev)}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      >
+                        <Flag className="h-3.5 w-3.5 text-destructive/75" />
+                        <span>Report</span>
+                      </button>
+                    </>
                   )}
                 </div>
 
@@ -401,6 +418,27 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingRetractId}
+        title="Retract evidence?"
+        description="This action is irreversible. The evidence card and its votes will be permanently retracted."
+        confirmLabel="Retract"
+        variant="danger"
+        onConfirm={async () => {
+          if (!pendingRetractId) return;
+          try {
+            await retractMutation.mutateAsync(pendingRetractId);
+          } catch (err) {
+            toast.error("Failed to retract evidence.", {
+              description: err instanceof Error ? err.message : "Please try again.",
+            });
+          } finally {
+            setPendingRetractId(null);
+          }
+        }}
+        onCancel={() => setPendingRetractId(null)}
+      />
     </div>
   );
 }
@@ -417,14 +455,16 @@ function EvidenceVoting({ roomId, claimId, evidence }: EvidenceVotingProps) {
 
   const handleVote = async (type: "agree" | "disagree") => {
     if (!user) {
-      alert("Please log in to vote.");
+      toast.warning("You must be logged in to vote.");
       return;
     }
     const nextVote = evidence.userVote === type ? null : type;
     try {
       await voteMutation.mutateAsync(nextVote);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to cast vote.");
+      toast.error("Failed to cast vote.", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
     }
   };
 

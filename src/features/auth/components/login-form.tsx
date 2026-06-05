@@ -33,8 +33,7 @@ export function LoginForm() {
       setMessage(result.message);
 
       if (result.success) {
-        router.push(searchParams.get("redirectedFrom") ?? "/");
-        router.refresh();
+        router.replace(searchParams.get("redirectedFrom") ?? "/");
       }
     } catch (error) {
       setMessage(

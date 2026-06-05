@@ -245,6 +245,7 @@ for each row
 execute function public.enforce_claim_immutability();
 
 -- 15. Recreate public.discussion_claims view to include c.question_id and preserve Sprint 6.5 voting/consensus logic
+drop view if exists public.discussion_claims;
 create or replace view public.discussion_claims
 with (security_invoker = false)
 as

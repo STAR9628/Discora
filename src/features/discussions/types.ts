@@ -154,6 +154,29 @@ export interface DiscussionEvidence {
   userVote?: "agree" | "disagree" | null;
 }
 
+export type SearchResultType = "room" | "message" | "claim" | "evidence" | "question";
+
+export interface SearchResult {
+  entityId: string;
+  resultType: SearchResultType;
+  roomId: string;
+  roomSlug: string;
+  roomTitle: string;
+  content: string | null;
+  excerpt: string | null;
+  authorUsername: string | null;
+  authorAvatarUrl: string | null;
+  createdAt: string;
+  rank: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  totalCount: number;
+  query: string;
+  hasMore: boolean;
+}
+
 export type ModerationStatus = "pending" | "resolved_hidden" | "resolved_dismissed" | "resolved_restored";
 
 export interface ModerationFlag {

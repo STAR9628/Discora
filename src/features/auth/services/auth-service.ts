@@ -1,4 +1,5 @@
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
+import { mapSupabaseError } from "@/lib/errors";
 import type {
   ForgotPasswordFormValues,
   LoginFormValues,
@@ -19,10 +20,9 @@ function toAuthResult(error: { message: string } | null, successMessage: string)
   if (error) {
     return {
       success: false,
-      message: error.message,
+      message: mapSupabaseError(error, successMessage),
     };
   }
-
   return {
     success: true,
     message: successMessage,

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTopics, useInfiniteDiscussions } from "@/features/discussions/hooks/use-discussions";
-import { MessageSquare, Calendar, SlidersHorizontal, Plus, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { MessageSquare, Calendar, SlidersHorizontal, Plus, Loader2, Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 
 export function DiscussionFeed() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>(undefined);
-  const { data: topics, isLoading: isTopicsLoading } = useTopics();
+  const { data: topics, isLoading: isTopicsLoading, error: topicsError } = useTopics();
   const {
     data: feedData,
     isLoading: isFeedLoading,
@@ -46,8 +46,13 @@ export function DiscussionFeed() {
           <SlidersHorizontal className="h-3.5 w-3.5" />
           <span>Filter by Topic</span>
         </div>
-        
-        {isTopicsLoading ? (
+
+        {topicsError ? (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Unable to load topics.</span>
+          </div>
+        ) : isTopicsLoading ? (
           <div className="flex flex-wrap gap-2 animate-pulse">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="h-8 w-20 rounded-full bg-muted/30 border border-border/50" />

@@ -17,7 +17,7 @@ import { Camera, AlertTriangle, CheckCircle, Info, Loader2 } from "lucide-react"
 export function ProfileForm() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data: profile, isLoading: isProfileLoading, refetch } = useCurrentProfile();
+  const { data: profile, isLoading: isProfileLoading, error: profileError, refetch } = useCurrentProfile();
   const createProfileMutation = useCreateProfile();
   const updateProfileMutation = useUpdateProfile();
 

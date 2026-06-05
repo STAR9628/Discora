@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
+import { mapSupabaseError } from "@/lib/errors";
 import type { UserProfile } from "@/types/domain";
 
 export interface DbProfileRow {
@@ -48,7 +49,7 @@ export async function getProfileByUsername(
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(mapSupabaseError(error, "Failed to load profile"));
   }
 
   return data ? mapProfileRow(data) : null;
@@ -69,7 +70,7 @@ export async function getProfileByUserId(
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(mapSupabaseError(error, "Failed to load profile"));
   }
 
   return data ? mapProfileRow(data) : null;
@@ -102,7 +103,7 @@ export async function createProfile(
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(mapSupabaseError(error, "Failed to create profile"));
   }
 
   return mapProfileRow(inserted);
@@ -150,7 +151,7 @@ export async function updateProfile(
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(mapSupabaseError(error, "Failed to update profile"));
   }
 
   return mapProfileRow(updated);
@@ -208,7 +209,7 @@ export async function uploadAvatar(
     });
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(mapSupabaseError(error, "Failed to upload avatar"));
   }
 
   // Get and return public URL
