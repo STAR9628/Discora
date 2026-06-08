@@ -35,10 +35,13 @@ export const messageSchema = z.object({
 export const claimSchema = z.object({
   content: z
     .string()
-    .min(25, "Claim content must be at least 25 characters")
+    .min(10, "Claim content must be at least 10 characters")
     .max(500, "Claim content must be at most 500 characters"),
   claimType: z.enum(["fact", "opinion", "prediction", "proposal", "observation"], {
     required_error: "Claim type is required",
+  }),
+  contextType: z.enum(["supporting_idea", "counterpoint", "observation", "open_question"], {
+    required_error: "Contribution type is required",
   }),
   identityMode: z.enum(["public", "anonymous"], {
     required_error: "Identity mode is required",
@@ -48,7 +51,7 @@ export const claimSchema = z.object({
 export const evidenceSchema = z.object({
   content: z
     .string()
-    .min(50, "Evidence content must be at least 50 characters")
+    .min(20, "Evidence content must be at least 20 characters")
     .max(1000, "Evidence content must be at most 1000 characters"),
   evidenceType: z.enum(
     ["scientific", "statistical", "documentary", "visual", "experiential", "expert", "historical", "logical", "ethical", "cultural"],
@@ -66,18 +69,14 @@ export const evidenceSchema = z.object({
     .max(150, "Source title must be at most 150 characters"),
   sourceUrl: z
     .string()
-    .url("Please enter a valid URL")
-    .optional()
-    .or(z.literal("")),
-}).refine((data) => data.sourceUrl && data.sourceUrl.trim().length > 0, {
-  message: "A source URL is required",
-  path: ["sourceUrl"],
+    .min(1, "A source URL is required.")
+    .url("Please enter a valid URL."),
 });
 
 export const questionSchema = z.object({
   content: z
     .string()
-    .min(10, "Question content must be at least 10 characters")
+    .min(5, "Question content must be at least 5 characters")
     .max(500, "Question content must be at most 500 characters"),
   questionType: z.enum(["information", "clarification", "perspective", "evidence", "directional", "reflective"], {
     required_error: "Question type is required",

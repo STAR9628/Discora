@@ -15,22 +15,23 @@ const ERROR_CODE_MAP: Record<string, string> = {
 };
 
 function matchMessagePattern(message: string): string | null {
-  if (/duplicate key|already exists/.test(message)) {
+  const normalized = message.toLowerCase();
+  if (/duplicate key|already exists/.test(normalized)) {
     return "This record already exists.";
   }
-  if (/foreign key|not present|violates foreign/.test(message)) {
+  if (/foreign key|not present|violates foreign/.test(normalized)) {
     return "A required related record was not found.";
   }
-  if (/permission|policy|violates row-level security/.test(message)) {
+  if (/permission|policy|violates row-level security/.test(normalized)) {
     return "You do not have permission to perform this action.";
   }
-  if (/JWT|auth|invalid login credentials/.test(message)) {
+  if (/JWT|auth|invalid login credentials/.test(normalized)) {
     return "Authentication error. Please try logging in again.";
   }
-  if (/fetch|network|Failed to fetch/.test(message)) {
+  if (/fetch|network|failed to fetch/.test(normalized)) {
     return "A network error occurred. Please check your connection and try again.";
   }
-  if (/not-found|No rows/.test(message)) {
+  if (/not-found|no rows/.test(normalized)) {
     return "The requested resource was not found.";
   }
   return null;

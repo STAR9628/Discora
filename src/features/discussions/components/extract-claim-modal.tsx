@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { DiscussionMessage } from "@/features/discussions/types";
 import { useCreateClaim } from "@/features/discussions/hooks/use-discussions";
 import { claimSchema, type ClaimFormValues } from "@/features/discussions/validation";
+import { toast } from "@/components/ui/toast";
 import { X, AlertCircle, Loader2, Award, Send } from "lucide-react";
 
 interface ExtractClaimModalProps {
@@ -32,6 +33,7 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
     defaultValues: {
       content: "",
       claimType: "fact",
+      contextType: "observation",
       identityMode: "public",
     },
   });
@@ -44,6 +46,7 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
       const initialText = comment.content.slice(0, 500);
       setValue("content", initialText);
       setValue("claimType", "fact");
+      setValue("contextType", "observation");
       setValue("identityMode", "public");
       setSubmitError(null);
     }
@@ -58,14 +61,18 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
         roomId,
         content: data.content,
         claimType: data.claimType,
+        contextType: data.contextType || "observation",
         identityMode: data.identityMode,
         originMessageId: comment.id,
-        questionId: questionId || null, // added
+        questionId: questionId || null,
       });
       reset();
       onClose();
+      toast.success("Claim created successfully", {
+        description: "Switch to the Claims tab to view it.",
+      });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to extract claim.");
+      setSubmitError(err instanceof Error ? err.message : "Failed to create claim.");
     }
   };
 
@@ -89,9 +96,9 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
             <Award className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-foreground">Extract Comment as Claim</h3>
+            <h3 className="text-lg font-bold text-foreground">Create Claim from Comment</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Promote this comment to a room claim. Trimming is encouraged.
+              Turn this comment into a structured claim. Edit the text as needed.
             </p>
           </div>
         </div>
@@ -129,7 +136,7 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
                 {...register("content")}
               />
               <span className={`absolute bottom-3 right-3 text-[10px] font-semibold ${
-                contentText.length > 500 || contentText.length < 25 ? "text-muted-foreground" : "text-primary/75"
+                contentText.length > 500 || contentText.length < 10 ? "text-muted-foreground" : "text-primary/75"
               }`}>
                 {contentText.length} / 500
               </span>
@@ -166,6 +173,37 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
             )}
           </div>
 
+          {/* Contribution Type Selector */}
+          <div className="space-y-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Contribution Type
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(["supporting_idea", "counterpoint", "observation", "open_question"] as const).map((type) => (
+                <label
+                  key={type}
+                  className="flex flex-col items-center justify-center p-2 rounded-xl border border-border bg-card/45 cursor-pointer select-none transition-all hover:bg-card/75 hover:border-muted-foreground/30 has-[:checked]:border-primary has-[:checked]:bg-primary/[0.04]"
+                >
+                  <input
+                    type="radio"
+                    value={type}
+                    className="sr-only"
+                    disabled={createMutation.isPending}
+                    {...register("contextType")}
+                  />
+                  <span className="text-[10px] font-bold capitalize text-foreground leading-tight text-center">
+                    {type === "supporting_idea" ? "Supporting Idea" :
+                     type === "open_question" ? "Open Question" :
+                     type}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {errors.contextType && (
+              <p className="text-xs font-semibold text-destructive mt-1">{errors.contextType.message}</p>
+            )}
+          </div>
+
           {/* Footer Action Bar */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border/40 pt-4 mt-6">
             {/* Identity mode check */}
@@ -196,7 +234,7 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
               </button>
               <button
                 type="submit"
-                disabled={createMutation.isPending || contentText.trim().length < 25}
+                disabled={createMutation.isPending || contentText.trim().length < 10}
                 className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createMutation.isPending ? (
@@ -204,7 +242,7 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
                 ) : (
                   <Send className="h-3.5 w-3.5" />
                 )}
-                <span>Extract Claim</span>
+                <span>Create Claim</span>
               </button>
             </div>
           </div>

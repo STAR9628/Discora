@@ -9,6 +9,7 @@ import {
   registerSchema,
   type RegisterFormValues,
 } from "@/features/auth/validation";
+import { GoogleOneTap } from "@/features/auth/components/google-one-tap";
 
 export function RegisterForm() {
   const [message, setMessage] = useState<string | null>(null);
@@ -41,7 +42,19 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <div className="space-y-6">
+      <GoogleOneTap redirectTo="/" />
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium">
           Email
@@ -91,5 +104,6 @@ export function RegisterForm() {
         </Link>
       </p>
     </form>
+    </div>
   );
 }

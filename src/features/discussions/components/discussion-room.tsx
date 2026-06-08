@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useMessages, usePostMessage, useUpdateMessage, useRoomEvidence, useRetractQuestion } from "@/features/discussions/hooks/use-discussions";
+import { useMessages, usePostMessage, useUpdateMessage, useRoomEvidence, useRetractQuestion, useClaims, useQuestions } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
-import type { DiscussionMessage, DiscussionQuestion } from "@/features/discussions/types";
+import type { DiscussionMessage, DiscussionQuestion, DiscussionClaim } from "@/features/discussions/types";
 import { MessageSquare, Calendar, User, Quote, AlertCircle, Compass, Reply, Edit3, Check, Loader2, Send, Clock, Award, Link2, FileText, ArrowLeft, RotateCcw, Flag } from "lucide-react";
 import { ClaimList } from "./claim-list";
 import { ExtractClaimModal } from "./extract-claim-modal";
 import { QuestionList } from "./question-list";
+import { MapTab } from "./map-tab";
 import { ReportDialog } from "./report-dialog";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -51,12 +52,70 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
   const { room, topic, discussion } = initialData;
   const { user } = useAuth();
   const { data: messages, isLoading: isMessagesLoading, error: messagesError } = useMessages(room.id);
+  const { data: claims } = useClaims(room.id);
   const postMutation = usePostMessage();
   const updateMutation = useUpdateMessage(room.id);
   const retractQuestionMutation = useRetractQuestion(room.id);
 
+  const claimedMessageIds = new Set(claims?.map((c) => c.originMessageId).filter(Boolean) as string[]);
+  const { data: roomEvidence } = useRoomEvidence(room.id);
+  const { data: questions } = useQuestions(room.id);
+
+  const claimQuestionMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (claims && questions) {
+      const questionMap = new Map(questions.map((q) => [q.id, q.content]));
+      for (const c of claims) {
+        if (c.questionId && questionMap.has(c.questionId)) {
+          map.set(c.id, questionMap.get(c.questionId)!);
+        }
+      }
+    }
+    return map;
+  }, [claims, questions]);
+
+  const messageToClaimMap = useMemo(() => {
+    const map = new Map<string, DiscussionClaim>();
+    if (claims) {
+      for (const c of claims) {
+        if (c.originMessageId) {
+          map.set(c.originMessageId, c);
+        }
+      }
+    }
+    return map;
+  }, [claims]);
+
+  const messageEvidenceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (roomEvidence && claims) {
+      for (const c of claims) {
+        if (c.originMessageId) {
+          const count = roomEvidence.filter((ev) => ev.claimId === c.id).length;
+          if (count > 0) {
+            map.set(c.originMessageId, count);
+          }
+        }
+      }
+    }
+    return map;
+  }, [roomEvidence, claims]);
+
   // Tab switching state
-  const [activeTab, setActiveTab] = useState<"discussion" | "questions" | "claims" | "evidence" | "sources">("discussion");
+  const [activeTab, setActiveTab] = useState<"discussion" | "questions" | "claims" | "evidence" | "sources" | "map">("discussion");
+  const [scrollToClaimId, setScrollToClaimId] = useState<string | null>(null);
+  const [scrollToEvidenceId, setScrollToEvidenceId] = useState<string | null>(null);
+  const [pendingEvidenceClaimId, setPendingEvidenceClaimId] = useState<string | null>(null);
+
+  const handleNavigateToClaim = (claimId: string) => {
+    setScrollToClaimId(claimId);
+    setActiveTab("claims");
+  };
+
+  const handleNavigateToEvidence = (claimId: string) => {
+    setPendingEvidenceClaimId(claimId);
+    setActiveTab("evidence");
+  };
 
   const [showRetractConfirm, setShowRetractConfirm] = useState(false);
 
@@ -248,7 +307,7 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
       {/* Tab Switcher */}
       <div className="border-b border-border/60 mt-6">
         <div className="flex gap-6">
-          {(["discussion", "questions", "claims", "evidence", "sources"] as const).map((tab) => {
+          {(["discussion", "questions", "claims", "evidence", "sources", "map"] as const).map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
@@ -273,7 +332,7 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
       </div>
 
       {activeTab === "discussion" && (
-        <>
+        <div key="discussion" className="animate-in fade-in duration-200">
           {/* 3. Contributions thread and list */}
           <div className="space-y-4 pt-4">
             <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
@@ -306,7 +365,7 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
                 <div>
                   <p className="text-sm font-semibold text-foreground">No contributions yet</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Be the first to contribute to this discussion.
+                    Start the conversation — share your perspective, ask a question, or offer a thoughtful reflection.
                   </p>
                 </div>
               </div>
@@ -322,6 +381,9 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
                     setActiveReplyId={setActiveReplyId}
                     activeEditId={activeEditId}
                     setActiveEditId={setActiveEditId}
+                    claimedMessageIds={claimedMessageIds}
+                    messageToClaimMap={messageToClaimMap}
+                    messageEvidenceMap={messageEvidenceMap}
                     onReply={handlePostReply}
                     onEdit={handleUpdateMessage}
                     onExtractClaim={(msg) => {
@@ -335,6 +397,9 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
                         entityTypeLabel: "Message",
                       });
                     }}
+                    onNavigateToClaims={() => setActiveTab("claims")}
+                    onNavigateToClaim={handleNavigateToClaim}
+                    onNavigateToEvidence={handleNavigateToEvidence}
                   />
                 ))}
               </div>
@@ -407,11 +472,12 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
               </form>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {activeTab === "questions" && (
-        selectedQuestion ? (
+        <div key="questions" className="animate-in fade-in duration-200">
+        {selectedQuestion ? (
           <div className="space-y-6">
             {/* Question detail header */}
             <div className="rounded-2xl border border-border bg-card/30 p-6 space-y-4 shadow-md backdrop-blur-md relative">
@@ -500,6 +566,7 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
               <ClaimList
                 roomId={room.id}
                 questionId={selectedQuestion.id}
+                claimQuestionMap={claimQuestionMap}
                 onReportClaim={(c) => setReportState({ claimId: c.id, contentPreview: c.content, entityTypeLabel: "Claim" })}
                 onReportEvidence={(ev) => setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" })}
               />
@@ -511,24 +578,43 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
             onSelectQuestion={setSelectedQuestion}
             onReportQuestion={(q) => setReportState({ questionId: q.id, contentPreview: q.content, entityTypeLabel: "Question" })}
           />
-        )
+        )}
+      </div>
       )}
 
       {activeTab === "claims" && (
+        <div key="claims" className="animate-in fade-in duration-200">
         <ClaimList
           roomId={room.id}
+          scrollToClaimId={scrollToClaimId}
+          onScrollComplete={() => setScrollToClaimId(null)}
+          claimQuestionMap={claimQuestionMap}
           onReportClaim={(c) => setReportState({ claimId: c.id, contentPreview: c.content, entityTypeLabel: "Claim" })}
           onReportEvidence={(ev) => setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" })}
         />
-      )}
+      </div>)}
 
       {activeTab === "evidence" && (
-        <RoomEvidenceTab roomId={room.id} />
-      )}
+        <div key="evidence" className="animate-in fade-in duration-200">
+        <RoomEvidenceTab
+          roomId={room.id}
+          scrollToEvidenceId={scrollToEvidenceId}
+          onScrollComplete={() => setScrollToEvidenceId(null)}
+          onGoToClaims={() => setActiveTab("claims")}
+          pendingClaimId={pendingEvidenceClaimId}
+          onPendingClaimComplete={() => setPendingEvidenceClaimId(null)}
+        />
+      </div>)}
 
       {activeTab === "sources" && (
+        <div key="sources" className="animate-in fade-in duration-200">
         <RoomSourcesTab roomId={room.id} />
-      )}
+      </div>)}
+
+      {activeTab === "map" && (
+        <div key="map" className="animate-in fade-in duration-200">
+        <MapTab roomId={room.id} />
+      </div>)}
 
       <ConfirmDialog
         open={showRetractConfirm}
@@ -572,6 +658,7 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
         evidenceId={reportState?.evidenceId}
         contentPreview={reportState?.contentPreview || ""}
         entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={room.id}
       />
     </div>
   );
@@ -579,11 +666,63 @@ export function DiscussionRoom({ initialData, highlightId }: DiscussionRoomProps
 
 interface RoomEvidenceTabProps {
   roomId: string;
+  scrollToEvidenceId?: string | null;
+  onScrollComplete?: () => void;
+  onGoToClaims: () => void;
+  pendingClaimId?: string | null;
+  onPendingClaimComplete?: () => void;
 }
 
-function RoomEvidenceTab({ roomId }: RoomEvidenceTabProps) {
+function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, onGoToClaims, pendingClaimId, onPendingClaimComplete }: RoomEvidenceTabProps) {
   const { data: evidence, isLoading, error } = useRoomEvidence(roomId);
-  
+  const scrollHandled = useRef(false);
+  const pendingClaimHandled = useRef(false);
+
+  useEffect(() => {
+    if (!scrollToEvidenceId || scrollHandled.current) return;
+
+    const tryHighlight = (retries: number) => {
+      const el = document.getElementById(`ev-${scrollToEvidenceId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-primary", "shadow-lg", "shadow-primary/20", "transition-all", "duration-300");
+        setTimeout(() => {
+          el.classList.add("animate-pulse");
+        }, 1500);
+        setTimeout(() => {
+          el.classList.remove("ring-2", "ring-primary", "shadow-lg", "shadow-primary/20", "animate-pulse");
+        }, 4000);
+        scrollHandled.current = true;
+        onScrollComplete?.();
+      } else if (retries > 0) {
+        setTimeout(() => tryHighlight(retries - 1), 300);
+      }
+    };
+
+    tryHighlight(10);
+  }, [scrollToEvidenceId, evidence, onScrollComplete]);
+
+  useEffect(() => {
+    if (!pendingClaimId || !evidence || pendingClaimHandled.current) return;
+
+    const match = evidence.find((ev) => ev.claimId === pendingClaimId);
+    if (!match) return;
+
+    const el = document.getElementById(`ev-${match.id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary", "shadow-lg", "shadow-primary/20", "transition-all", "duration-300");
+      setTimeout(() => {
+        el.classList.add("animate-pulse");
+      }, 1500);
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-primary", "shadow-lg", "shadow-primary/20", "animate-pulse");
+      }, 4000);
+      pendingClaimHandled.current = true;
+      onPendingClaimComplete?.();
+    }
+  }, [pendingClaimId, evidence, onPendingClaimComplete]);
+
   const getDirectionStyles = (direction: string) => {
     switch (direction) {
       case "support":
@@ -621,15 +760,27 @@ function RoomEvidenceTab({ roomId }: RoomEvidenceTabProps) {
 
   if (!evidence || evidence.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border/80 bg-card/10 p-12 text-center max-w-md mx-auto space-y-3 mt-4">
+      <div className="rounded-2xl border border-dashed border-border/80 bg-card/10 p-12 text-center max-w-md mx-auto space-y-4 mt-4">
         <div className="mx-auto rounded-full bg-muted/40 p-3 w-fit text-muted-foreground">
           <FileText className="h-6 w-6" />
         </div>
-        <div>
-          <p className="text-sm font-semibold text-foreground">No evidence cards asserted yet</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Evidence asserted on claims will appear here as a room-wide bibliography.
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-foreground">No evidence added yet</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Evidence supports specific claims. To add evidence:
           </p>
+          <ol className="text-xs text-muted-foreground text-left list-decimal list-inside space-y-1">
+            <li>Open the <span className="font-semibold text-foreground/80">Claims</span> tab</li>
+            <li>Select or create a claim</li>
+            <li>Add evidence to support that claim</li>
+          </ol>
+          <button
+            type="button"
+            onClick={onGoToClaims}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 cursor-pointer"
+          >
+            Go to Claims
+          </button>
         </div>
       </div>
     );
@@ -859,10 +1010,16 @@ interface CommentItemProps {
   setActiveReplyId: (id: string | null) => void;
   activeEditId: string | null;
   setActiveEditId: (id: string | null) => void;
+  claimedMessageIds: Set<string>;
+  messageToClaimMap: Map<string, DiscussionClaim>;
+  messageEvidenceMap: Map<string, number>;
   onReply: (parentId: string, content: string, anonymous: boolean) => Promise<void>;
   onEdit: (messageId: string, content: string) => Promise<void>;
   onExtractClaim: (comment: DiscussionMessage) => void;
   onReport: (message: DiscussionMessage) => void;
+  onNavigateToClaims: () => void;
+  onNavigateToClaim: (claimId: string) => void;
+  onNavigateToEvidence: (claimId: string) => void;
 }
 
 function CommentItem({
@@ -874,10 +1031,16 @@ function CommentItem({
   setActiveReplyId,
   activeEditId,
   setActiveEditId,
+  claimedMessageIds,
+  messageToClaimMap,
+  messageEvidenceMap,
   onReply,
   onEdit,
   onExtractClaim,
   onReport,
+  onNavigateToClaims,
+  onNavigateToClaim,
+  onNavigateToEvidence,
 }: CommentItemProps) {
   const { message, children } = node;
   const isAnonymous = message.identityMode === "anonymous";
@@ -996,6 +1159,26 @@ function CommentItem({
               }`}>
                 {isAnonymous ? "Anonymous" : message.username || "Unknown User"}
               </span>
+              {claimedMessageIds.has(message.id) && messageToClaimMap.has(message.id) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const claim = messageToClaimMap.get(message.id)!;
+                    onNavigateToClaim(claim.id);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 transition-colors hover:bg-emerald-500/20 cursor-pointer"
+                  title="View this claim in the Claims tab"
+                >
+                  <Award className="h-3 w-3" />
+                  Claim
+                </button>
+              )}
+              {claimedMessageIds.has(message.id) && messageToClaimMap.has(message.id) && (
+                <span className="text-[10px] text-muted-foreground/60 font-medium">
+                  {(messageToClaimMap.get(message.id)!.agreeCount ?? 0) + (messageToClaimMap.get(message.id)!.disagreeCount ?? 0)} votes · {messageEvidenceMap.get(message.id) ?? 0} evidence
+                </span>
+              )}
               
               {/* Indentation nesting visual risk mitigation text */}
               {level >= 3 && parentUsername && (
@@ -1059,7 +1242,7 @@ function CommentItem({
             </p>
           )}
 
-          {/* Action Row (Reply / Edit / Extract Claim) */}
+          {/* Action Row (Reply / Edit / Create Claim) */}
           {!isEditing && currentUserId && (
             <div className="flex items-center gap-4 pt-2">
               {!message.isModerated && (
@@ -1078,12 +1261,40 @@ function CommentItem({
               )}
 
               {!message.isModerated && (
+                claimedMessageIds.has(message.id) && messageToClaimMap.has(message.id) ? (
+                  <button
+                    onClick={() => {
+                      const claim = messageToClaimMap.get(message.id)!;
+                      onNavigateToClaim(claim.id);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 transition-colors hover:bg-emerald-500/20 cursor-pointer"
+                    title="View this claim in the Claims tab"
+                  >
+                    <Award className="h-3 w-3" />
+                    Claim Created
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onExtractClaim(message)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <Award className="h-3.5 w-3.5 text-primary/75" />
+                    <span>Create Claim</span>
+                  </button>
+                )
+              )}
+
+              {!message.isModerated && claimedMessageIds.has(message.id) && messageToClaimMap.has(message.id) && messageEvidenceMap.has(message.id) && (
                 <button
-                  onClick={() => onExtractClaim(message)}
+                  onClick={() => {
+                    const claim = messageToClaimMap.get(message.id)!;
+                    onNavigateToEvidence(claim.id);
+                  }}
                   className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  title="View evidence for this claim in the Evidence tab"
                 >
-                  <Award className="h-3.5 w-3.5 text-primary/75" />
-                  <span>Extract Claim</span>
+                  <FileText className="h-3.5 w-3.5 text-primary/75" />
+                  <span>View Evidence</span>
                 </button>
               )}
 
@@ -1202,10 +1413,16 @@ function CommentItem({
               setActiveReplyId={setActiveReplyId}
               activeEditId={activeEditId}
               setActiveEditId={setActiveEditId}
+              claimedMessageIds={claimedMessageIds}
+              messageToClaimMap={messageToClaimMap}
+              messageEvidenceMap={messageEvidenceMap}
               onReply={onReply}
               onEdit={onEdit}
               onExtractClaim={onExtractClaim}
               onReport={onReport}
+              onNavigateToClaims={onNavigateToClaims}
+              onNavigateToClaim={onNavigateToClaim}
+              onNavigateToEvidence={onNavigateToEvidence}
             />
           ))}
         </div>

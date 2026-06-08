@@ -40,17 +40,44 @@ export async function updateSupabaseSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const pathname = request.nextUrl.pathname;
+
   const isProtectedPath =
-    request.nextUrl.pathname.startsWith("/protected") ||
-    request.nextUrl.pathname.startsWith("/settings") ||
-    request.nextUrl.pathname.startsWith("/discussions/create");
+    pathname.startsWith("/protected") ||
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/discussions/create");
 
   if (!user && isProtectedPath) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
+    redirectUrl.searchParams.set("redirectedFrom", pathname);
 
     return NextResponse.redirect(redirectUrl);
+  }
+
+  // Redirect new users without a profile to the profile setup page
+  if (user && !pathname.startsWith("/settings/profile")) {
+    const skipProfileCheck =
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/register") ||
+      pathname.startsWith("/auth/") ||
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/_next/") ||
+      pathname === "/favicon.ico";
+
+    if (!skipProfileCheck) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/settings/profile";
+        return NextResponse.redirect(redirectUrl);
+      }
+    }
   }
 
   return response;

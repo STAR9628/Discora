@@ -13,6 +13,7 @@ interface ReportDialogProps {
   evidenceId?: string | null;
   contentPreview: string;
   entityTypeLabel: string;
+  roomId?: string;
 }
 
 export function ReportDialog({
@@ -24,6 +25,7 @@ export function ReportDialog({
   evidenceId = null,
   contentPreview,
   entityTypeLabel,
+  roomId,
 }: ReportDialogProps) {
   const flagMutation = useFlagEntity();
   const [reason, setReason] = useState("");
@@ -129,6 +131,7 @@ export function ReportDialog({
         claimId,
         evidenceId,
         reason: trimmedReason,
+        roomId: roomId || undefined,
       });
 
       setSuccessMsg("Thank you. The content has been reported and is under review.");

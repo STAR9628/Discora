@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 function getSafeRedirect(path: string | null) {
-  if (!path) return "/login";
+  if (!path) return "/";
 
   if (path.startsWith("//")) return "/";
 

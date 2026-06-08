@@ -131,7 +131,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
                   disabled={createMutation.isPending}
                   {...register("content")}
                 />
-                <span className={`absolute bottom-3 right-3 text-[10px] font-semibold ${contentText.length > 500 || contentText.length < 10 ? "text-muted-foreground" : "text-primary/75"
+                <span className={`absolute bottom-3 right-3 text-[10px] font-semibold ${contentText.length > 500 || contentText.length < 5 ? "text-muted-foreground" : "text-primary/75"
                   }`}>
                   {contentText.length} / 500
                 </span>
@@ -189,7 +189,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={createMutation.isPending || contentText.trim().length < 10}
+                disabled={createMutation.isPending || contentText.trim().length < 5}
                 className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 self-end sm:self-auto"
               >
                 {createMutation.isPending ? (
@@ -258,12 +258,15 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
                   id={`q-${question.id}`}
                   key={question.id}
                   onClick={() => onSelectQuestion(question)}
-                  className={`rounded-2xl border border-border/50 bg-card/30 p-5 space-y-3 transition-all hover:bg-card/45 hover:border-primary/30 relative cursor-pointer ${question.isRetracted ? "opacity-60 grayscale-[15%]" : ""
+                  className={`rounded-2xl border border-border/50 bg-card/30 p-5 space-y-3 transition-all hover:bg-card/45 hover:shadow-md relative cursor-pointer border-l-4 border-l-violet-500/60 shadow-sm backdrop-blur-sm ${question.isRetracted ? "opacity-60 grayscale-[15%]" : ""
                     }`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     {/* Top Row: Type Badge & Retracted tag */}
                     <div className="flex items-center gap-2">
+                      <span className="rounded-lg bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-violet-400 border border-violet-500/20">
+                        Question
+                      </span>
                       <span className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${getBadgeStyles(question.questionType)
                         }`}>
                         {question.questionType}

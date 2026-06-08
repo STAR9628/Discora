@@ -19,6 +19,12 @@ export type ClaimType =
   | "proposal"
   | "observation";
 
+export type ClaimContextType =
+  | "supporting_idea"
+  | "counterpoint"
+  | "observation"
+  | "open_question";
+
 /**
  * Evidence categories enforced in DB (`evidence_type_check`) and
  * `src/features/discussions`. Not the legacy `EvidenceType` union below.

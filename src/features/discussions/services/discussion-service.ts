@@ -1,7 +1,7 @@
   import type { SupabaseClient } from "@supabase/supabase-js";
   import { createBrowserSupabaseClient } from "@/services/supabase/client";
   import { mapSupabaseError } from "@/lib/errors";
-  import type { Topic, Room, Discussion, Message, DiscussionMessage, Claim, DiscussionClaim, DiscussionEvidence, Question, DiscussionQuestion, QuestionType, ModerationFlag, SearchResult, SearchResultType } from "../types";
+  import type { Topic, Room, Discussion, Message, DiscussionMessage, Claim, DiscussionClaim, DiscussionEvidence, Question, DiscussionQuestion, QuestionType, ModerationFlag, SearchResult, SearchResultType, DiscussionClaimRelation, ClaimRelationType, ClaimContextType } from "../types";
 
   export interface DbTopicRow {
     id: string;
@@ -444,9 +444,10 @@
     room_id: string;
     created_by: string | null;
     origin_message_id: string | null;
-    question_id: string | null; // added
+    question_id: string | null;
     content: string;
     claim_type: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+    context_type: ClaimContextType;
     identity_mode: "public" | "anonymous";
     is_retracted: boolean;
     created_at: string;
@@ -461,9 +462,10 @@
     id: string;
     room_id: string;
     origin_message_id: string | null;
-    question_id: string | null; // added
+    question_id: string | null;
     content: string;
     claim_type: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+    context_type: ClaimContextType;
     identity_mode: "public" | "anonymous";
     is_retracted: boolean;
     created_at: string;
@@ -513,9 +515,10 @@
       roomId: row.room_id,
       createdBy: row.created_by,
       originMessageId: row.origin_message_id,
-      questionId: row.question_id, // added
+      questionId: row.question_id,
       content: row.content,
       claimType: row.claim_type,
+      contextType: row.context_type,
       identityMode: row.identity_mode,
       isRetracted: row.is_retracted,
       createdAt: row.created_at,
@@ -532,9 +535,10 @@
       id: row.id,
       roomId: row.room_id,
       originMessageId: row.origin_message_id,
-      questionId: row.question_id, // added
+      questionId: row.question_id,
       content: row.content,
       claimType: row.claim_type,
+      contextType: row.context_type,
       identityMode: row.identity_mode,
       isRetracted: row.is_retracted,
       createdAt: row.created_at,
@@ -660,6 +664,7 @@
       roomId: string;
       content: string;
       claimType: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+      contextType: ClaimContextType;
       identityMode: "public" | "anonymous";
       originMessageId?: string | null;
       questionId?: string | null;
@@ -673,6 +678,7 @@
         room_id: data.roomId,
         content: data.content,
         claim_type: data.claimType,
+        context_type: data.contextType,
         identity_mode: data.identityMode,
         origin_message_id: data.originMessageId || null,
         question_id: data.questionId || null,
@@ -783,6 +789,22 @@
     };
   }
 
+  export function mapDiscussionClaimRelationRow(row: DbDiscussionClaimRelationRow): DiscussionClaimRelation {
+    return {
+      id: row.id,
+      roomId: row.room_id,
+      sourceClaimId: row.source_claim_id,
+      targetClaimId: row.target_claim_id,
+      relationType: row.relation_type,
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      sourceClaimContent: row.source_claim_content,
+      sourceClaimType: row.source_claim_type,
+      targetClaimContent: row.target_claim_content,
+      targetClaimType: row.target_claim_type,
+    };
+  }
+
   /**
    * Fetch evidence for a claim using the dynamic redacted view
    */
@@ -890,6 +912,74 @@
     return rows.map(mapDiscussionEvidenceRow);
 }
 
+  /**
+   * Fetch all claim relations for a room, including source and target claim content
+   */
+  export async function getClaimRelations(
+    roomId: string,
+    overrideClient?: SupabaseClient,
+  ): Promise<DiscussionClaimRelation[]> {
+    const supabase = getClient(overrideClient);
+    const { data, error } = await supabase
+      .from("discussion_claim_relations")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(mapSupabaseError(error, "Failed to load claim relations"));
+    }
+
+    const rows = (data || []) as DbDiscussionClaimRelationRow[];
+    return rows.map(mapDiscussionClaimRelationRow);
+  }
+
+  /**
+   * Create a new relation between two claims in the same room
+   */
+  export async function createClaimRelation(
+    roomId: string,
+    sourceClaimId: string,
+    targetClaimId: string,
+    relationType: ClaimRelationType,
+    overrideClient?: SupabaseClient,
+  ): Promise<{ id: string }> {
+    const supabase = getClient(overrideClient);
+    const { data, error } = await supabase
+      .from("claim_relations")
+      .insert({
+        room_id: roomId,
+        source_claim_id: sourceClaimId,
+        target_claim_id: targetClaimId,
+        relation_type: relationType,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      throw new Error(mapSupabaseError(error, "Failed to create claim relation"));
+    }
+
+    return { id: data.id };
+  }
+
+  /**
+   * Delete a claim relation (only the creator may delete)
+   */
+  export async function deleteClaimRelation(
+    id: string,
+    overrideClient?: SupabaseClient,
+  ): Promise<void> {
+    const supabase = getClient(overrideClient);
+    const { error } = await supabase
+      .from("claim_relations")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      throw new Error(mapSupabaseError(error, "Failed to delete claim relation"));
+    }
+  }
 
   /**
    * Cast or toggle a vote on a claim
@@ -903,6 +993,19 @@
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error("Must be authenticated to vote.");
+    }
+
+    const { data: claimCheck } = await supabase
+      .from("discussion_claims")
+      .select("is_retracted")
+      .eq("id", claimId)
+      .maybeSingle();
+
+    if (!claimCheck) {
+      throw new Error("This claim is no longer accessible. The discussion room may have been archived.");
+    }
+    if (claimCheck.is_retracted) {
+      throw new Error("This claim has been retracted. Voting is no longer available.");
     }
 
     if (voteType === null) {
@@ -942,6 +1045,19 @@
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error("Must be authenticated to vote.");
+    }
+
+    const { data: evidenceCheck } = await supabase
+      .from("discussion_evidence")
+      .select("is_retracted")
+      .eq("id", evidenceId)
+      .maybeSingle();
+
+    if (!evidenceCheck) {
+      throw new Error("This evidence is no longer accessible. The discussion room may have been archived.");
+    }
+    if (evidenceCheck.is_retracted) {
+      throw new Error("This evidence has been retracted. Voting is no longer available.");
     }
 
     if (voteType === null) {
@@ -1139,6 +1255,30 @@
     created_at: string;
     rank: number;
     total_count: number;
+  }
+
+  export interface DbClaimRelationRow {
+    id: string;
+    room_id: string;
+    source_claim_id: string;
+    target_claim_id: string;
+    relation_type: ClaimRelationType;
+    created_by: string | null;
+    created_at: string;
+  }
+
+  export interface DbDiscussionClaimRelationRow {
+    id: string;
+    room_id: string;
+    source_claim_id: string;
+    target_claim_id: string;
+    relation_type: ClaimRelationType;
+    created_by: string | null;
+    created_at: string;
+    source_claim_content: string;
+    source_claim_type: string;
+    target_claim_content: string;
+    target_claim_type: string;
   }
 
   function mapSearchResultRow(row: DbSearchResultRow): SearchResult {

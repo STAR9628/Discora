@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, castEvidenceVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag } from "@/features/discussions/services/discussion-service";
-import type { QuestionType } from "@/types/domain";
+import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, castEvidenceVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag, getClaimRelations, createClaimRelation, deleteClaimRelation } from "@/features/discussions/services/discussion-service";
+import type { QuestionType, ClaimContextType } from "@/types/domain";
+import type { ClaimRelationType } from "@/features/discussions/types";
 
 
 /**
@@ -164,6 +165,7 @@ export function useCreateClaim(roomId: string) {
       roomId: string;
       content: string;
       claimType: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+      contextType: ClaimContextType;
       identityMode: "public" | "anonymous";
       originMessageId?: string | null;
       questionId?: string | null;
@@ -300,13 +302,15 @@ export function useFlagEntity() {
       claimId?: string | null;
       evidenceId?: string | null;
       reason: string;
+      roomId?: string;
     }) => flagEntity(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
-      queryClient.invalidateQueries({ queryKey: ["questions"] });
-      queryClient.invalidateQueries({ queryKey: ["claims"] });
-      queryClient.invalidateQueries({ queryKey: ["evidence"] });
-      queryClient.invalidateQueries({ queryKey: ["roomEvidence"] });
+    onSuccess: (_, variables) => {
+      if (variables.roomId) {
+        queryClient.invalidateQueries({ queryKey: ["messages", variables.roomId] });
+        queryClient.invalidateQueries({ queryKey: ["questions", variables.roomId] });
+        queryClient.invalidateQueries({ queryKey: ["claims", variables.roomId] });
+        queryClient.invalidateQueries({ queryKey: ["roomEvidence", variables.roomId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["pendingFlags"] });
     },
   });
@@ -351,6 +355,51 @@ export function useResolveFlag() {
       queryClient.invalidateQueries({ queryKey: ["roomEvidence"] });
       queryClient.invalidateQueries({ queryKey: ["pendingFlags"] });
       queryClient.invalidateQueries({ queryKey: ["moderationHistory"] });
+    },
+  });
+}
+
+/**
+ * Hook to retrieve all claim relations for a room
+ */
+export function useClaimRelations(roomId: string) {
+  return useQuery({
+    queryKey: ["claimRelations", roomId],
+    queryFn: () => getClaimRelations(roomId),
+    enabled: !!roomId,
+  });
+}
+
+/**
+ * Mutation hook to create a new claim relation
+ */
+export function useCreateClaimRelation(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      sourceClaimId: string;
+      targetClaimId: string;
+      relationType: ClaimRelationType;
+    }) => createClaimRelation(roomId, data.sourceClaimId, data.targetClaimId, data.relationType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["claimRelations", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["claims", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to delete a claim relation
+ */
+export function useDeleteClaimRelation(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteClaimRelation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["claimRelations", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["claims", roomId] });
     },
   });
 }

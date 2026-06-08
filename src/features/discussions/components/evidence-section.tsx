@@ -16,15 +16,16 @@ interface EvidenceSectionProps {
   roomId: string;
   isClaimRetracted: boolean;
   onReportEvidence: (evidence: DiscussionEvidence) => void;
+  defaultOpen?: boolean;
 }
 
-export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvidence }: EvidenceSectionProps) {
+export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvidence, defaultOpen }: EvidenceSectionProps) {
   const { user } = useAuth();
   const { data: evidenceList, isLoading, error } = useEvidence(claimId);
   const createMutation = useCreateEvidence(roomId, claimId);
   const retractMutation = useRetractEvidence(roomId, claimId);
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(defaultOpen ?? false);
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
 
@@ -47,6 +48,17 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   });
 
   const contentText = watch("content") || "";
+  const sourceUrlText = watch("sourceUrl") || "";
+
+  const isValidUrl = (url: string): boolean => {
+    if (!url || url.trim().length === 0) return false;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const onSubmit = async (data: EvidenceFormValues) => {
     setFormError(null);
@@ -61,6 +73,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
       });
       reset();
       setIsFormOpen(false);
+      toast.success("Evidence added successfully", {
+        description: "The evidence has been attached to this claim.",
+      });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Failed to assert evidence.");
     }
@@ -82,9 +97,12 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   return (
     <div className="mt-4 pt-4 border-t border-border/40 space-y-4 pl-4 sm:pl-6 border-l-2 border-primary/20">
       <div className="flex items-center justify-between">
-        <h5 className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground/80">
-          Supporting & Contradicting Evidence ({evidenceList?.length ?? 0})
-        </h5>
+        <div>
+          <h5 className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground/80">
+            Evidence ({evidenceList?.length ?? 0})
+          </h5>
+          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Sources that support or challenge this claim</p>
+        </div>
         
         {user && !isClaimRetracted && !isFormOpen && (
           <button
@@ -104,7 +122,10 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           className="bg-card/40 border border-border/60 rounded-xl p-4 space-y-4 animate-in fade-in duration-150"
         >
           <div className="flex items-center justify-between border-b border-border/30 pb-2">
-            <span className="text-xs font-bold text-foreground">Assert Evidence Citation</span>
+            <div>
+              <span className="text-xs font-bold text-foreground">Add Supporting Evidence</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Cite a source that supports, contradicts, or provides context for this claim.</p>
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -134,7 +155,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
               <textarea
                 id="evidence-content"
                 rows={3}
-                placeholder="Detail what specific facts or findings are shown, and how they apply here (min 50 characters)..."
+                placeholder="Detail what specific facts or findings are shown, and how they apply here (min 20 characters)..."
                 className={`w-full rounded-lg border bg-background/40 px-3 py-2 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/10 ${
                   errors.content ? "border-destructive" : "border-input"
                 }`}
@@ -142,7 +163,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                 {...register("content")}
               />
               <span className={`absolute bottom-2 right-2 text-[9px] font-semibold ${
-                contentText.length > 1000 || contentText.length < 50 ? "text-muted-foreground" : "text-primary/75"
+                contentText.length > 1000 || contentText.length < 20 ? "text-muted-foreground" : "text-primary/75"
               }`}>
                 {contentText.length} / 1000
               </span>
@@ -196,9 +217,12 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
 
           {/* Source fields */}
           <div className="space-y-3 p-3 bg-background/20 rounded-lg border border-border/30">
-            <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
-              Source Citation (Required)
-            </span>
+            <div>
+              <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider block">
+                Source Citation
+              </span>
+              <p className="text-[9px] text-muted-foreground/70 mt-0.5">Evidence must cite a publicly accessible source.</p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -219,7 +243,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
               <div className="space-y-1">
                 <input
                   type="text"
-                  placeholder="Source URL (e.g. https://doi.org/...)"
+                  placeholder="https://example.com/article"
                   className={`w-full rounded-lg border bg-background/40 px-3 py-1.5 text-xs outline-none focus:border-primary ${
                     errors.sourceUrl ? "border-destructive" : "border-input"
                   }`}
@@ -228,6 +252,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                 />
                 {errors.sourceUrl && (
                   <p className="text-[10px] font-semibold text-destructive mt-0.5">{errors.sourceUrl.message}</p>
+                )}
+                {!errors.sourceUrl && sourceUrlText.trim().length > 0 && !isValidUrl(sourceUrlText.trim()) && (
+                  <p className="text-[10px] font-semibold text-amber-500 mt-0.5">Please enter a valid URL.</p>
                 )}
               </div>
             </div>
@@ -254,7 +281,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={createMutation.isPending || contentText.trim().length < 50}
+              disabled={createMutation.isPending || contentText.trim().length < 20 || !isValidUrl(sourceUrlText.trim())}
               className="flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 self-end sm:self-auto"
             >
               {createMutation.isPending ? (
@@ -289,8 +316,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           <span>Failed to load evidence: {(error as Error).message}</span>
         </div>
       ) : evidenceList?.length === 0 ? (
-        <div className="text-xs text-muted-foreground/60 italic pb-2">
-          No evidence cards attached to this claim yet.
+        <div className="text-xs text-muted-foreground/70 pb-2 space-y-1">
+          <p>No evidence attached to this claim yet.</p>
+          <p>Click <span className="font-semibold text-foreground/80">Add Evidence</span> above to cite a source that supports or contradicts this claim.</p>
         </div>
       ) : (
         <div className="space-y-3.5">
@@ -302,7 +330,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
               <div
                 id={`ev-${ev.id}`}
                 key={ev.id}
-                className={`bg-card/20 border border-border/40 rounded-xl p-4 space-y-2.5 transition-colors hover:bg-card/30 relative ${
+                className={`bg-card/20 border border-border/40 rounded-xl p-4 space-y-2.5 transition-all hover:bg-card/30 hover:shadow-sm relative border-l-[3px] ${
+                  ev.direction === "support" ? "border-l-emerald-500/50" : ev.direction === "contradict" ? "border-l-rose-500/50" : "border-l-slate-500/50"
+                } ${
                   ev.isRetracted ? "opacity-60 grayscale-[15%]" : ""
                 }`}
               >

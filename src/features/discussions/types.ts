@@ -69,9 +69,10 @@ export interface Claim {
   roomId: string;
   createdBy: string | null;
   originMessageId: string | null;
-  questionId: string | null; // added
+  questionId: string | null;
   content: string;
   claimType: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+  contextType: ClaimContextType;
   identityMode: IdentityMode;
   isRetracted: boolean;
   createdAt: string;
@@ -86,9 +87,10 @@ export interface DiscussionClaim {
   id: string;
   roomId: string;
   originMessageId: string | null;
-  questionId: string | null; // added
+  questionId: string | null;
   content: string;
   claimType: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+  contextType: ClaimContextType;
   identityMode: IdentityMode;
   isRetracted: boolean;
   createdAt: string;
@@ -152,6 +154,38 @@ export interface DiscussionEvidence {
   disagreeCount?: number;
   consensusRatio?: number | null;
   userVote?: "agree" | "disagree" | null;
+}
+
+export type ClaimContextType =
+  | "supporting_idea"
+  | "counterpoint"
+  | "observation"
+  | "open_question";
+
+export type ClaimRelationType = "supports" | "contradicts" | "refines";
+
+export interface ClaimRelation {
+  id: string;
+  roomId: string;
+  sourceClaimId: string;
+  targetClaimId: string;
+  relationType: ClaimRelationType;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface DiscussionClaimRelation {
+  id: string;
+  roomId: string;
+  sourceClaimId: string;
+  targetClaimId: string;
+  relationType: ClaimRelationType;
+  createdBy: string | null;
+  createdAt: string;
+  sourceClaimContent: string;
+  sourceClaimType: string;
+  targetClaimContent: string;
+  targetClaimType: string;
 }
 
 export type SearchResultType = "room" | "message" | "claim" | "evidence" | "question";

@@ -47,6 +47,23 @@ export async function registerWithEmail(
   );
 }
 
+export async function loginWithGoogle(options?: { redirectTo?: string }): Promise<void> {
+  const supabase = createBrowserSupabaseClient();
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: options?.redirectTo || `${getSiteUrl()}/auth/callback`,
+      queryParams: {
+        prompt: "select_account",
+      },
+    },
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to sign in with Google."));
+  }
+}
+
 export async function loginWithEmail(
   values: LoginFormValues,
 ): Promise<AuthActionResult> {
