@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 import { getProfileByUsername } from "@/features/profiles/services/profile-service";
-import { Calendar, User, MessageSquare, Scale, Award, FileText } from "lucide-react";
+import { getUserContributions } from "@/features/reputation/services/reputation-service";
+import type { LucideIcon } from "lucide-react";
+import { Calendar, User, MessageSquare, Scale, Award, FileText, Swords, Trophy, TrendingDown } from "lucide-react";
+import { formatDate } from "@/lib/date";
+import { ProfileReputationSection } from "@/features/reputation/components/profile-reputation-section";
 
 type ProfilePageProps = {
   params: Promise<{
@@ -25,10 +29,38 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
-  const joinDate = new Date(profile.joinedAt).toLocaleDateString("en-US", {
+  const joinDate = formatDate(profile.joinedAt, {
     month: "long",
     year: "numeric",
   });
+
+  let contributions: Awaited<ReturnType<typeof getUserContributions>> = { claims: [], evidence: [], questions: [], discussionCount: 0, debateCount: 0, debateParticipations: [], debateWins: 0, debateLosses: 0, evidenceAgreeCount: 0, evidenceDisagreeCount: 0 };
+  try {
+    contributions = await getUserContributions(profile.id, supabase);
+  } catch (error) {
+    console.error("Error fetching contributions:", error);
+  }
+
+  // Fetch user preferences for privacy gating
+  let showReputation = true;
+  let showExpertise = true;
+  let showSideSwitches = true;
+  try {
+    const { data: prefs } = await supabase.rpc("get_user_preferences", {
+      p_user_id: profile.id,
+    });
+    if (prefs && prefs.length > 0) {
+      showReputation = prefs[0].show_reputation;
+      showExpertise = prefs[0].show_expertise;
+      showSideSwitches = prefs[0].show_side_switches;
+    }
+  } catch {
+    // Default to showing everything if preferences can't be loaded
+  }
+
+  const activeClaims = contributions.claims.filter((c) => !c.isRetracted).length;
+  const activeEvidence = contributions.evidence.filter((e) => !e.isRetracted).length;
+
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -74,76 +106,53 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         </div>
       </div>
 
-      {/* Activity Statistics Placeholders */}
+      {/* Activity Statistics */}
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-4 tracking-tight">Activity Statistics</h2>
         
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Discussions Created */}
-          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <MessageSquare className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Discussions</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-2xl font-bold">--</span>
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-                Coming Soon
-              </span>
-            </div>
-          </div>
-
-          {/* Debates Created */}
-          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Scale className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Debates</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-2xl font-bold">--</span>
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-                Coming Soon
-              </span>
-            </div>
-          </div>
-
-          {/* Claims Created */}
-          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Award className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Claims</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-2xl font-bold">--</span>
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-                Coming Soon
-              </span>
-            </div>
-          </div>
-
-          {/* Evidence Added */}
-          <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <FileText className="h-4 w-4" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Evidence Added</p>
-            </div>
-            <div className="mt-4 flex items-baseline gap-2">
-              <span className="text-2xl font-bold">--</span>
-              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-                Coming Soon
-              </span>
-            </div>
-          </div>
+          <StatCard icon={MessageSquare} label="Discussions" value={contributions.discussionCount} />
+          <StatCard icon={Swords} label="Debates Joined" value={contributions.debateParticipations.length} />
+          <StatCard icon={Award} label="Claims" value={activeClaims} />
+          <StatCard icon={FileText} label="Evidence Added" value={activeEvidence} />
         </div>
+
+        {(contributions.debateWins > 0 || contributions.debateLosses > 0) && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard icon={Scale} label="Debates Created" value={contributions.debateCount} />
+            <StatCard icon={Trophy} label="Debates Won" value={contributions.debateWins} />
+            <StatCard icon={TrendingDown} label="Debates Lost" value={contributions.debateLosses} />
+            <StatCard icon={Swords} label="Win Rate" value={contributions.debateWins + contributions.debateLosses > 0
+              ? `${Math.round((contributions.debateWins / (contributions.debateWins + contributions.debateLosses)) * 100)}%`
+              : "0%"
+            } />
+          </div>
+        )}
       </div>
+
+      {/* Reputation & Contributions Section */}
+      <ProfileReputationSection
+        userId={profile.id}
+        showReputation={showReputation}
+        showExpertise={showExpertise}
+        showSideSwitches={showSideSwitches}
+      />
     </main>
+  );
+}
+
+function StatCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number | string }) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      </div>
+      <div className="mt-4 flex items-baseline gap-2">
+        <span className="text-2xl font-bold">{value}</span>
+      </div>
+    </div>
   );
 }

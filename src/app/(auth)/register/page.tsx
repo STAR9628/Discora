@@ -7,7 +7,7 @@ export default function RegisterPage() {
         <p className="text-sm font-medium text-primary">Account access</p>
         <h1 className="mt-3 text-2xl font-semibold tracking-normal">Register</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Create an account. Email verification is handled by Supabase Auth.
+          Create an account. You will receive a verification email — click the link to activate your account and get started.
         </p>
         <div className="mt-6">
           <RegisterForm />

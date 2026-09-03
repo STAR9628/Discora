@@ -14,12 +14,14 @@ interface ExtractClaimModalProps {
   onClose: () => void;
   roomId: string;
   comment: DiscussionMessage | null;
-  questionId?: string | null; // added
+  questionId?: string | null;
+  debateSide?: "proposition" | "opposition" | null;
 }
 
-export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId = null }: ExtractClaimModalProps) {
+export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId = null, debateSide = null }: ExtractClaimModalProps) {
   const createMutation = useCreateClaim(roomId);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [anonymousClaim, setAnonymousClaim] = useState(false);
 
   const {
     register,
@@ -48,6 +50,7 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
       setValue("claimType", "fact");
       setValue("contextType", "observation");
       setValue("identityMode", "public");
+      setAnonymousClaim(false);
       setSubmitError(null);
     }
   }, [isOpen, comment, setValue]);
@@ -62,9 +65,10 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
         content: data.content,
         claimType: data.claimType,
         contextType: data.contextType || "observation",
-        identityMode: data.identityMode,
+        identityMode: anonymousClaim ? "anonymous" : "public",
         originMessageId: comment.id,
         questionId: questionId || null,
+        debateSide: debateSide || null,
       });
       reset();
       onClose();
@@ -210,11 +214,13 @@ export function ExtractClaimModal({ isOpen, onClose, roomId, comment, questionId
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
+                checked={anonymousClaim}
+                onChange={(e) => {
+                  setAnonymousClaim(e.target.checked);
+                  setValue("identityMode", e.target.checked ? "anonymous" : "public");
+                }}
                 className="rounded border-input text-primary accent-primary h-4 w-4 cursor-pointer"
                 disabled={createMutation.isPending}
-                {...register("identityMode", {
-                  setValueAs: (val) => (val ? "anonymous" : "public"),
-                })}
               />
               <div className="text-left">
                 <span className="text-xs font-semibold text-foreground block">Assert Anonymously</span>

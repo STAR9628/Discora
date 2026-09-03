@@ -13,7 +13,7 @@ type SearchInputProps = {
 export function SearchInput({
   onValueChange,
   initialValue = "",
-  placeholder = "Search discussions, claims, evidence...",
+  placeholder = "Search discussions, debates, claims, evidence...",
 }: SearchInputProps) {
   const { value, setValue, inputRef, clear, debouncedValue } = useSearchInput(initialValue);
 

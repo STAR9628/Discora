@@ -24,25 +24,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let isMounted = true;
 
+    const refreshSession = () => {
+      try {
+        const supabase = createBrowserSupabaseClient();
+        supabase.auth.getSession().then(({ data, error }) => {
+          if (!isMounted) return;
+          setAuthState({
+            status: data.session ? "authenticated" : "guest",
+            session: data.session,
+            user: data.session?.user ?? null,
+            error: error?.message ?? null,
+          });
+        });
+      } catch {
+        // Silently ignore refresh errors
+      }
+    };
+
+    // Initial session fetch
+    refreshSession();
+
+    // Subscribe to auth state changes
     try {
       const supabase = createBrowserSupabaseClient();
-
-      supabase.auth.getSession().then(({ data, error }) => {
-        if (!isMounted) {
-          return;
-        }
-
-        setAuthState({
-          status: data.session ? "authenticated" : "guest",
-          session: data.session,
-          user: data.session?.user ?? null,
-          error: error?.message ?? null,
-        });
-      });
 
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!isMounted) return;
         setAuthState({
           status: session ? "authenticated" : "guest",
           session,
@@ -51,9 +60,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       });
 
+      // Refresh session on window focus to handle cross-tab changes
+      const handleFocus = () => {
+        refreshSession();
+      };
+      window.addEventListener("focus", handleFocus);
+
       return () => {
         isMounted = false;
         subscription.unsubscribe();
+        window.removeEventListener("focus", handleFocus);
       };
     } catch (error) {
       setAuthState({

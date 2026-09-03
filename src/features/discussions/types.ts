@@ -1,4 +1,4 @@
-import type { Topic, Room, IdentityMode, QuestionType } from "@/types/domain";
+import type { Topic, Room, IdentityMode, QuestionType, DebateSide, DebateStatus } from "@/types/domain";
 
 export type { Topic, Room, QuestionType };
 
@@ -13,11 +13,11 @@ export interface Discussion {
 export interface Message {
   id: string;
   roomId: string;
-  userId: string | null; // Null if deleted user
+  userId: string | null;
   parentMessageId: string | null;
   content: string;
   identityMode: IdentityMode;
-  messageType: "message" | "question";
+  messageType: "message" | "question" | "system";
   createdAt: string;
   updatedAt: string;
 }
@@ -29,7 +29,7 @@ export interface DiscussionMessage {
   parentMessageId: string | null;
   content: string;
   identityMode: IdentityMode;
-  messageType: "message" | "question";
+  messageType: "message" | "question" | "system";
   createdAt: string;
   updatedAt: string;
   userId: string | null; // Redacted (null) if identity_mode = 'anonymous'
@@ -64,6 +64,44 @@ export interface DiscussionQuestion {
   avatarUrl: string | null;
 }
 
+export interface Debate {
+  id: string;
+  propositionTitle: string;
+  oppositionTitle: string;
+  openingStatement: string | null;
+  status: DebateStatus;
+  resolution: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  propositionClaimCount: number;
+  oppositionClaimCount: number;
+  propositionParticipantCount: number;
+  oppositionParticipantCount: number;
+  neutralParticipantCount: number;
+  totalClaims: number;
+  totalParticipants: number;
+  totalEvidence: number;
+  lastActivityAt: string;
+}
+
+export interface DebateParticipant {
+  id: string;
+  roomId: string;
+  userId: string;
+  side: DebateSide;
+  joinedAt: string;
+}
+
+export interface DebateSideChange {
+  id: string;
+  roomId: string;
+  userId: string;
+  previousSide: "proposition" | "opposition";
+  newSide: "proposition" | "opposition";
+  reason: string;
+  createdAt: string;
+}
+
 export interface Claim {
   id: string;
   roomId: string;
@@ -75,6 +113,7 @@ export interface Claim {
   contextType: ClaimContextType;
   identityMode: IdentityMode;
   isRetracted: boolean;
+  debateSide?: DebateSide | null;
   createdAt: string;
   updatedAt: string;
   agreeCount?: number;
@@ -93,6 +132,7 @@ export interface DiscussionClaim {
   contextType: ClaimContextType;
   identityMode: IdentityMode;
   isRetracted: boolean;
+  debateSide?: DebateSide | null;
   createdAt: string;
   updatedAt: string;
   createdBy: string | null;
@@ -196,6 +236,7 @@ export interface SearchResult {
   roomId: string;
   roomSlug: string;
   roomTitle: string;
+  roomType?: "discussion" | "debate" | null;
   content: string | null;
   excerpt: string | null;
   authorUsername: string | null;

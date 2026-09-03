@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, MessageSquare, Scale, Search, HelpCircle } from "lucide-react";
+import { FileText, MessageSquare, Scale, Search, HelpCircle, Swords } from "lucide-react";
 import type { SearchResult, SearchResultType } from "@/features/discussions/types";
 
 const iconMap: Record<SearchResultType, React.ElementType> = {
@@ -33,7 +33,8 @@ type SearchResultCardProps = {
 };
 
 function getResultHref(result: SearchResult): string {
-  const base = `/discussions/${result.roomSlug}`;
+  const isDebate = result.roomType === "debate";
+  const base = isDebate ? `/debates/${result.roomSlug}` : `/discussions/${result.roomSlug}`;
   if (result.resultType === "room") return base;
   const prefix = highlightPrefixMap[result.resultType];
   return `${base}?highlight=${prefix}-${result.entityId}`;
@@ -52,8 +53,11 @@ function renderExcerpt(excerpt: string): React.ReactNode {
 
 export function SearchResultCard({ result }: SearchResultCardProps) {
   const Icon = iconMap[result.resultType];
-  const label = labelMap[result.resultType];
+  const label = result.resultType === "room"
+    ? result.roomType === "debate" ? "Debate Room" : "Discussion Room"
+    : labelMap[result.resultType];
   const href = getResultHref(result);
+  const isDebate = result.roomType === "debate";
 
   return (
     <Link
@@ -62,13 +66,29 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
-          <Icon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+          {result.resultType === "room" && isDebate ? (
+            <Swords aria-hidden="true" className="h-4 w-4 text-amber-400" />
+          ) : (
+            <Icon aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+          )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               {label}
             </span>
+
+            {/* Room type badge for claims, questions, evidence, messages */}
+            {result.resultType !== "room" && (
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border ${
+                isDebate
+                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                  : "bg-primary/10 text-primary border-primary/20"
+              }`}>
+                {isDebate ? "Debate" : "Discussion"}
+              </span>
+            )}
+
             <span className="text-[11px] text-muted-foreground/60">·</span>
             <span className="truncate text-[11px] text-muted-foreground/70">
               {result.roomTitle}

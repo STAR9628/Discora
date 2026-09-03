@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTopics, useInfiniteDiscussions } from "@/features/discussions/hooks/use-discussions";
-import { MessageSquare, Calendar, SlidersHorizontal, Plus, Loader2, Sparkles, ArrowRight, AlertCircle } from "lucide-react";
+import { MessageSquare, Calendar, SlidersHorizontal, Plus, Loader2, Sparkles, ArrowRight, AlertCircle, Swords } from "lucide-react";
+import { formatDate } from "@/lib/date";
 
 export function DiscussionFeed() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>(undefined);
@@ -28,16 +29,25 @@ export function DiscussionFeed() {
             Explore Discussions
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Join structured, open conversations under standard topics. Participate with evidence.
+            Open-exploration conversations with many viewpoints and no winner. Share perspectives and evidence.
           </p>
         </div>
-        <Link
-          href="/discussions/create"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Discussion</span>
-        </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/discussions/create"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Discussion</span>
+            </Link>
+            <Link
+              href="/debates/create"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-400 shadow-md transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Swords className="h-4 w-4" />
+              <span>New Debate</span>
+            </Link>
+          </div>
       </div>
 
       {/* Topic Filter Pills */}
@@ -127,11 +137,17 @@ export function DiscussionFeed() {
         </div>
       ) : (
         <div className="space-y-4">
-          {discussions.map(({ room, topic, discussion }) => {
-            // Summary display with fallback to opening statement preview
-            const hasSummary = !!discussion?.summary;
-            const previewText = hasSummary
-              ? discussion.summary
+          {discussions.map(({ room, topic, discussion, debate }) => {
+            const isDebate = room.roomType === "debate";
+            const hasSummary = !isDebate && !!discussion?.summary;
+            const previewText = isDebate
+              ? debate?.openingStatement
+                ? debate.openingStatement.length > 180
+                  ? `${debate.openingStatement.slice(0, 180)}...`
+                  : debate.openingStatement
+                : ""
+              : hasSummary
+              ? discussion!.summary
               : discussion?.openingStatement
               ? discussion.openingStatement.length > 180
                 ? `${discussion.openingStatement.slice(0, 180)}...`
@@ -146,6 +162,11 @@ export function DiscussionFeed() {
                 <div className="space-y-3">
                   {/* Topic and date tags */}
                   <div className="flex flex-wrap items-center gap-2">
+                    {isDebate && (
+                      <span className="rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/30">
+                        Debate
+                      </span>
+                    )}
                     {topic && (
                       <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                         {topic.name}
@@ -153,7 +174,7 @@ export function DiscussionFeed() {
                     )}
                     <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5" />
-                      <span>{new Date(room.createdAt).toLocaleDateString(undefined, {
+                      <span>{formatDate(room.createdAt, {
                         month: "short",
                         day: "numeric",
                         year: "numeric"
@@ -163,7 +184,7 @@ export function DiscussionFeed() {
 
                   {/* Title */}
                   <h2 className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
-                    <Link href={`/discussions/${room.slug}`} className="outline-none focus:underline">
+                    <Link href={isDebate ? `/debates/${room.slug}` : `/discussions/${room.slug}`} className="outline-none focus:underline">
                       {room.title}
                     </Link>
                   </h2>
@@ -193,10 +214,10 @@ export function DiscussionFeed() {
                 {/* Footer Join discussion action */}
                 <div className="mt-5 pt-4 border-t border-border/40 flex justify-end">
                   <Link
-                    href={`/discussions/${room.slug}`}
+                    href={isDebate ? `/debates/${room.slug}` : `/discussions/${room.slug}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:text-primary/80 transition-colors"
                   >
-                    <span>Join Discussion</span>
+                    <span>{isDebate ? "Enter Debate" : "Join Discussion"}</span>
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>

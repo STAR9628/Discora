@@ -8,8 +8,11 @@ import { useEvidence, useCreateEvidence, useRetractEvidence, useVoteEvidence } f
 import { evidenceSchema, type EvidenceFormValues } from "@/features/discussions/validation";
 import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
 import type { DiscussionEvidence } from "../types";
+import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
+import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-reputation";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatDate } from "@/lib/date";
 
 interface EvidenceSectionProps {
   claimId: string;
@@ -25,15 +28,20 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   const createMutation = useCreateEvidence(roomId, claimId);
   const retractMutation = useRetractEvidence(roomId, claimId);
 
+  const evidenceAuthorIds = evidenceList?.filter((e) => e.createdBy && e.identityMode !== "anonymous").map((e) => e.createdBy!) || [];
+  const { data: evAuthorRepScores } = useAuthorsReputation(evidenceAuthorIds);
+
   const [isFormOpen, setIsFormOpen] = useState(defaultOpen ?? false);
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
+  const [anonymousEvidence, setAnonymousEvidence] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<EvidenceFormValues>({
     resolver: zodResolver(evidenceSchema),
@@ -66,7 +74,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
       await createMutation.mutateAsync({
         content: data.content,
         evidenceType: data.evidenceType,
-        identityMode: data.identityMode,
+        identityMode: anonymousEvidence ? "anonymous" : "public",
         direction: data.direction,
         sourceTitle: data.sourceTitle,
         sourceUrl: data.sourceUrl || "",
@@ -265,12 +273,13 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                value="anonymous"
+                checked={anonymousEvidence}
+                onChange={(e) => {
+                  setAnonymousEvidence(e.target.checked);
+                  setValue("identityMode", e.target.checked ? "anonymous" : "public");
+                }}
                 className="rounded border-input text-primary accent-primary h-3.5 w-3.5"
                 disabled={createMutation.isPending}
-                {...register("identityMode", {
-                  setValueAs: (val) => (val ? "anonymous" : "public"),
-                })}
               />
               <div className="text-left">
                 <p className="text-[10px] font-bold text-foreground">Assert Anonymously</p>
@@ -433,9 +442,16 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                   }`}>
                     {isEvAnon ? "Anonymous" : ev.username || "Unknown User"}
                   </span>
+                  {!isEvAnon && !isEvDeleted && ev.createdBy && ev.username && (
+                    <AuthorTrustSignal
+                      userId={ev.createdBy}
+                      username={ev.username}
+                      reputationScore={evAuthorRepScores?.get(ev.createdBy)}
+                    />
+                  )}
                   <span>•</span>
                   <span>
-                    {new Date(ev.createdAt).toLocaleDateString(undefined, {
+                    {formatDate(ev.createdAt, {
                       month: "short",
                       day: "numeric",
                       hour: "2-digit",

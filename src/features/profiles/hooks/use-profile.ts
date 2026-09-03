@@ -44,6 +44,7 @@ export function useCreateProfile() {
   return useMutation({
     mutationFn: (data: {
       username: string;
+      displayName?: string | null;
       bio?: string | null;
       defaultIdentityMode: "public" | "anonymous";
       avatarUrl?: string | null;
@@ -70,6 +71,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (data: {
       username?: string;
+      displayName?: string | null;
       bio?: string | null;
       defaultIdentityMode?: "public" | "anonymous";
       avatarUrl?: string | null;

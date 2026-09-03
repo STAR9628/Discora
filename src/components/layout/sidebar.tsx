@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useHasRole } from "@/features/auth/hooks/use-role";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { Bell, Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield } from "lucide-react";
+import { Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -31,13 +31,12 @@ export function Sidebar() {
     { label: "Home", icon: Home, href: "/" },
     { label: "Discussions", icon: MessageSquare, href: "/discussions" },
     { label: "Search", icon: SearchIcon, href: "/search" },
-    { label: "Debates", icon: Scale, href: "#", disabled: true },
-    { label: "Notifications", icon: Bell, href: "#", disabled: true },
+    { label: "Debates", icon: Scale, href: "/debates" },
     { label: "Profile", icon: User, href: profileHref },
   ];
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border bg-card/40 px-3 py-4 md:block">
+    <aside className="hidden w-64 shrink-0 border-r border-border bg-card/40 px-3 py-4 md:block fixed top-0 left-0 h-screen overflow-y-auto z-40">
       <div className="px-3 py-2">
         <p className="text-lg font-semibold tracking-tight">Discora</p>
         <p className="text-xs text-muted-foreground">Understanding over engagement</p>
@@ -86,12 +85,16 @@ export function Sidebar() {
           })}
         </ul>
 
-        {status === "authenticated" && (
+          {status === "authenticated" && (
           <div className="border-t border-border pt-4 space-y-1">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              Settings
+            </p>
+
             <Link
-              href="/settings/profile"
+              href="/settings"
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                pathname === "/settings/profile"
+                pathname.startsWith("/settings") && !pathname.startsWith("/settings/moderation")
                   ? "bg-accent text-accent-foreground"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
               }`}

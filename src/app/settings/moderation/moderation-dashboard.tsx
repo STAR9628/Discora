@@ -12,6 +12,7 @@ import {
 import type { ModerationFlag, ModerationStatus } from "@/features/discussions/types";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatDate } from "@/lib/date";
 import {
   AlertCircle,
   AlertTriangle,
@@ -262,14 +263,15 @@ function ModerationFlagCard({
 }) {
   const badge = getEntityBadge(flag);
   const BadgeIcon = badge.icon;
-  const timestamp = new Date(
+  const timestamp = formatDate(
     mode === "pending" ? flag.createdAt : flag.resolvedAt ?? flag.createdAt,
-  ).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+    {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  );
 
   return (
     <div className="space-y-4 rounded-2xl border border-border/50 bg-card/30 p-5 shadow-sm backdrop-blur-md transition-colors hover:bg-card/40 md:p-6">

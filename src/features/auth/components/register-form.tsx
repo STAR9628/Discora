@@ -89,7 +89,29 @@ export function RegisterForm() {
           </p>
         ))}
       </div>
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      <div className="space-y-2">
+        <label htmlFor="confirmPassword" className="text-sm font-medium">
+          Confirm Password
+        </label>
+        <input
+          id="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+          {...register("confirmPassword")}
+        />
+        {fieldErrors.confirmPassword?.map((error) => (
+          <p key={error} className="text-xs text-destructive">
+            {error}
+          </p>
+        ))}
+      </div>
+      {message ? (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-2">
+          <p className="font-medium text-foreground">{message}</p>
+          <p>Please check your inbox and click the verification link to activate your account.</p>
+        </div>
+      ) : null}
       <button
         type="submit"
         disabled={formState.isSubmitting}

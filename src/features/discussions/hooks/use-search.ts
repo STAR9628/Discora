@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { searchContent } from "@/features/discussions/services/discussion-service";
@@ -13,6 +13,7 @@ export function useSearch(query: string, options?: { limit?: number }) {
     queryFn: () => searchContent(query, { ...options }),
     enabled: query.trim().length >= 2,
     staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
 }
 

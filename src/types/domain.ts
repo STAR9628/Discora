@@ -49,12 +49,19 @@ export type BaseEntity = {
 
 export type UserProfile = BaseEntity & {
   username: string;
+  displayName: string | null;
   bio: string | null;
   avatarUrl: string | null;
   defaultIdentityMode: IdentityMode;
   lastUsernameChange: string | null;
   joinedAt: string;
   role?: UserRole;
+};
+
+export type UserPreferences = {
+  showReputation: boolean;
+  showExpertise: boolean;
+  showSideSwitches: boolean;
 };
 
 export type Topic = BaseEntity & {
@@ -82,8 +89,9 @@ export type Room = BaseEntity & {
  * See docs/23_KNOWLEDGE_MODEL.md and docs/37_QUESTION_ARCHITECTURE_ADR_DRAFT.md.
  */
 
-/** @future Sprint 7+ — structured debates (separate from discussion rooms). */
-export type DebatePosition = "pro" | "con" | "neutral";
+export type DebateSide = "proposition" | "opposition" | "neutral";
+
+export type DebateStatus = "active" | "resolved" | "closed";
 
 /**
  * @future Superseded at runtime by `EvidenceCategory` and DB `evidence_type`.

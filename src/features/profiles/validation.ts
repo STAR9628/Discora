@@ -9,6 +9,11 @@ export const profileSchema = z.object({
       /^[a-z0-9][a-z0-9_-]{2,29}$/,
       "Username must start with a letter or number and contain only lowercase letters, numbers, underscores, or hyphens",
     ),
+  displayName: z
+    .string()
+    .max(100, "Display name must be at most 100 characters")
+    .nullable()
+    .or(z.literal("")),
   bio: z
     .string()
     .max(500, "Bio must be at most 500 characters")

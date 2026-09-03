@@ -5,6 +5,7 @@ import type {
   LoginFormValues,
   RegisterFormValues,
   ResetPasswordFormValues,
+  ChangePasswordFormValues,
 } from "@/features/auth/validation";
 import type { AuthActionResult } from "@/features/auth/types";
 
@@ -100,6 +101,47 @@ export async function updatePassword(
   const supabase = createBrowserSupabaseClient();
   const { error } = await supabase.auth.updateUser({
     password: values.password,
+  });
+
+  return toAuthResult(error, "Your password has been updated.");
+}
+
+export async function changeEmail(
+  values: { email: string },
+): Promise<AuthActionResult> {
+  const supabase = createBrowserSupabaseClient();
+  const { error } = await supabase.auth.updateUser({
+    email: values.email,
+  });
+
+  return toAuthResult(
+    error,
+    "Verification email sent to your new address. Please confirm to complete the change.",
+  );
+}
+
+export async function changePassword(
+  values: ChangePasswordFormValues,
+): Promise<AuthActionResult> {
+  const supabase = createBrowserSupabaseClient();
+
+  // Verify current password by attempting to re-authenticate
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) {
+    return { success: false, message: "Unable to verify your identity. Please log out and log in again." };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: values.currentPassword,
+  });
+
+  if (signInError) {
+    return { success: false, message: "Current password is incorrect." };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: values.newPassword,
   });
 
   return toAuthResult(error, "Your password has been updated.");

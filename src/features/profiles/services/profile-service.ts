@@ -6,6 +6,7 @@ import type { UserProfile } from "@/types/domain";
 export interface DbProfileRow {
   id: string;
   username: string;
+  display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
   default_identity_mode: "public" | "anonymous";
@@ -20,6 +21,7 @@ export function mapProfileRow(row: DbProfileRow): UserProfile {
   return {
     id: row.id,
     username: row.username,
+    displayName: row.display_name || null,
     bio: row.bio,
     avatarUrl: row.avatar_url,
     defaultIdentityMode: row.default_identity_mode,
@@ -83,6 +85,7 @@ export async function createProfile(
   userId: string,
   data: {
     username: string;
+    displayName?: string | null;
     bio?: string | null;
     defaultIdentityMode: "public" | "anonymous";
     avatarUrl?: string | null;
@@ -95,6 +98,7 @@ export async function createProfile(
     .insert({
       id: userId,
       username: data.username.toLowerCase(),
+      display_name: data.displayName || null,
       bio: data.bio || null,
       avatar_url: data.avatarUrl || null,
       default_identity_mode: data.defaultIdentityMode,
@@ -116,6 +120,7 @@ export async function updateProfile(
   userId: string,
   data: {
     username?: string;
+    displayName?: string | null;
     bio?: string | null;
     defaultIdentityMode?: "public" | "anonymous";
     avatarUrl?: string | null;
@@ -126,12 +131,16 @@ export async function updateProfile(
   
   const updateData: {
     username?: string;
+    display_name?: string | null;
     bio?: string | null;
     default_identity_mode?: "public" | "anonymous";
     avatar_url?: string | null;
   } = {};
   if (data.username !== undefined) {
     updateData.username = data.username.toLowerCase();
+  }
+  if (data.displayName !== undefined) {
+    updateData.display_name = data.displayName;
   }
   if (data.bio !== undefined) {
     updateData.bio = data.bio;

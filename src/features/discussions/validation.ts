@@ -35,7 +35,7 @@ export const messageSchema = z.object({
 export const claimSchema = z.object({
   content: z
     .string()
-    .min(10, "Claim content must be at least 10 characters")
+    .min(25, "Claim content must be at least 25 characters")
     .max(500, "Claim content must be at most 500 characters"),
   claimType: z.enum(["fact", "opinion", "prediction", "proposal", "observation"], {
     required_error: "Claim type is required",
@@ -86,7 +86,25 @@ export const questionSchema = z.object({
   }),
 });
 
+export const debateSchema = z.object({
+  title: z
+    .string()
+    .min(5, "Motion title must be at least 5 characters")
+    .max(100, "Motion title must be at most 100 characters"),
+  description: z
+    .string()
+    .max(300, "Description must be at most 300 characters")
+    .optional()
+    .or(z.literal("")),
+  topicId: z.string().uuid("Please select a valid topic"),
+  openingStatement: z
+    .string()
+    .min(100, "Opening statement must be at least 100 characters")
+    .max(5000, "Opening statement must be at most 5000 characters"),
+});
+
 export type DiscussionFormValues = z.infer<typeof discussionSchema>;
+export type DebateFormValues = z.infer<typeof debateSchema>;
 export type MessageFormValues = z.infer<typeof messageSchema>;
 export type ClaimFormValues = z.infer<typeof claimSchema>;
 export type EvidenceFormValues = z.infer<typeof evidenceSchema>;

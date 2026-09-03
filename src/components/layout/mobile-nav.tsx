@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { Bell, CirclePlus, Home, Search, User, Loader2 } from "lucide-react";
+import { CirclePlus, Home, Search, User, Loader2, MessageSquare, Scale, Settings } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -24,37 +24,30 @@ export function MobileNav() {
     label: string;
     icon: React.ElementType;
     href: string;
-    disabled?: boolean;
   }[] = [
     { label: "Home", icon: Home, href: "/" },
+    { label: "Discussions", icon: MessageSquare, href: "/discussions" },
     { label: "Search", icon: Search, href: "/search" },
+    { label: "Debates", icon: Scale, href: "/debates" },
     { label: "Create", icon: CirclePlus, href: "/discussions/create" },
-    { label: "Notifications", icon: Bell, href: "#", disabled: true },
     { label: "Profile", icon: User, href: profileHref },
+    { label: "Settings", icon: Settings, href: "/settings" },
   ];
+
+  const isSettingsActive = pathname.startsWith("/settings");
 
   return (
     <nav
       aria-label="Mobile navigation"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-7">
         {mobileItems.map((item) => {
           const Icon = item.icon;
           const isProfileItem = item.label === "Profile";
           const isProfileActive = isProfileItem && profile?.username && pathname === `/u/${profile.username}`;
-          const isActive = pathname === item.href || isProfileActive;
-
-          if (item.disabled) {
-            return (
-              <li key={item.label}>
-                <div className="flex h-16 w-full flex-col items-center justify-center gap-1 text-muted-foreground/35 cursor-not-allowed">
-                  <Icon aria-hidden="true" className="h-5 w-5" />
-                  <span className="text-[10px] leading-none">{item.label}</span>
-                </div>
-              </li>
-            );
-          }
+          const isSettingsItem = item.label === "Settings";
+          const isActive = pathname === item.href || isProfileActive || (isSettingsItem && isSettingsActive);
 
           return (
             <li key={item.label}>

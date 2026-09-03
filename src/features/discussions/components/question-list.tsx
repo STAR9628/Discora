@@ -11,16 +11,28 @@ import type { DiscussionQuestion } from "../types";
 import type { QuestionType } from "@/types/domain";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatDate } from "@/lib/date";
 
 interface QuestionListProps {
   roomId: string;
   onSelectQuestion: (question: DiscussionQuestion) => void;
   onReportQuestion: (question: DiscussionQuestion) => void;
+  questions?: DiscussionQuestion[] | undefined;
+  isLoading?: boolean;
 }
 
-export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: QuestionListProps) {
+export function QuestionList({
+  roomId,
+  onSelectQuestion,
+  onReportQuestion,
+  questions: externalQuestions,
+  isLoading: externalLoading,
+}: QuestionListProps) {
   const { user } = useAuth();
-  const { data: questions, isLoading: isQuestionsLoading, error: questionsError } = useQuestions(roomId);
+  const internalQuestions = useQuestions(roomId, externalQuestions === undefined);
+  const questions = externalQuestions !== undefined ? externalQuestions : internalQuestions.data;
+  const isQuestionsLoading = externalQuestions !== undefined ? (externalLoading ?? false) : internalQuestions.isLoading;
+  const questionsError = externalQuestions !== undefined ? null : (internalQuestions.error as Error | null);
   const createMutation = useCreateQuestion(roomId);
   const retractMutation = useRetractQuestion(roomId);
 
@@ -33,6 +45,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<QuestionFormValues>({
     resolver: zodResolver(questionSchema),
@@ -43,6 +56,8 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
     },
   });
 
+  const [anonymousQuestion, setAnonymousQuestion] = useState(false);
+
   const contentText = watch("content") || "";
 
   const onSubmit = async (data: QuestionFormValues) => {
@@ -52,7 +67,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
         roomId,
         content: data.content,
         questionType: data.questionType as QuestionType,
-        identityMode: data.identityMode,
+        identityMode: anonymousQuestion ? "anonymous" : "public",
       });
       reset();
     } catch (err) {
@@ -105,7 +120,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
         <div className="rounded-2xl border border-border bg-card/35 p-6 backdrop-blur-md shadow-lg space-y-4">
           <div className="flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-primary" />
-            <h3 className="text-base font-bold text-foreground">Ask a First-Class Question</h3>
+            <h3 className="text-base font-bold text-foreground">Ask a Question</h3>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -173,12 +188,13 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  value="anonymous"
+                  checked={anonymousQuestion}
+                  onChange={(e) => {
+                    setAnonymousQuestion(e.target.checked);
+                    setValue("identityMode", e.target.checked ? "anonymous" : "public");
+                  }}
                   className="rounded border-input text-primary accent-primary h-4 w-4 cursor-pointer"
                   disabled={createMutation.isPending}
-                  {...register("identityMode", {
-                    setValueAs: (val) => (val ? "anonymous" : "public"),
-                  })}
                 />
                 <div className="text-left">
                   <p className="text-xs font-semibold text-foreground">Ask Anonymously</p>
@@ -242,7 +258,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
             <div>
               <p className="text-sm font-semibold text-foreground">No questions asked yet</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Be the first to frame the room discussion with first-class questions.
+                Be the first to frame the room discussion with a question.
               </p>
             </div>
           </div>
@@ -335,7 +351,7 @@ export function QuestionList({ roomId, onSelectQuestion, onReportQuestion }: Que
                       </span>
                       <span className="text-[10px] text-muted-foreground/70">•</span>
                       <span className="text-[10px] text-muted-foreground/80">
-                        {new Date(question.createdAt).toLocaleDateString(undefined, {
+                        {formatDate(question.createdAt, {
                           month: "short",
                           day: "numeric",
                           hour: "2-digit",

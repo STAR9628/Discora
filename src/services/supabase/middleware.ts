@@ -56,7 +56,7 @@ export async function updateSupabaseSession(request: NextRequest) {
   }
 
   // Redirect new users without a profile to the profile setup page
-  if (user && !pathname.startsWith("/settings/profile")) {
+  if (user && !pathname.startsWith("/settings")) {
     const skipProfileCheck =
       pathname.startsWith("/login") ||
       pathname.startsWith("/register") ||
