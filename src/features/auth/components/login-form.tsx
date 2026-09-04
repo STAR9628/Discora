@@ -8,10 +8,12 @@ import { loginWithEmail } from "@/features/auth/services/auth-service";
 import { getFieldErrors } from "@/features/auth/utils/form-errors";
 import { loginSchema, type LoginFormValues } from "@/features/auth/validation";
 import { GoogleOneTap } from "@/features/auth/components/google-one-tap";
+import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const safeRedirect = getSafeRedirectUrl(searchParams.get("redirectedFrom"), "/");
   const [message, setMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof LoginFormValues, string[]>>
@@ -34,7 +36,7 @@ export function LoginForm() {
       setMessage(result.message);
 
       if (result.success) {
-        router.replace(searchParams.get("redirectedFrom") ?? "/");
+        router.replace(safeRedirect);
       }
     } catch (error) {
       setMessage(
@@ -45,7 +47,7 @@ export function LoginForm() {
 
   return (
     <div className="space-y-6">
-      <GoogleOneTap redirectTo={searchParams.get("redirectedFrom") ?? "/"} />
+      <GoogleOneTap redirectTo={safeRedirect} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import {
   getUserContributions,
   getReputationHistory,
@@ -19,14 +20,19 @@ import {
 import type { ContributionTimelineItem, ReputationOptions } from "../types";
 
 export function useReputation(userId: string | null, options?: ReputationOptions) {
+  const { user } = useAuth();
+  const isSelf = !!user?.id && user.id === userId;
+
   return useQuery({
-    queryKey: ["reputation", userId],
+    queryKey: ["reputation", userId, isSelf],
     queryFn: async () => {
       if (!userId) throw new Error("User ID required");
       const contributions = await getUserContributions(userId);
 
-      // Call the authoritative database RPC to ensure snapshot is up-to-date
-      await callRecalculateReputation(userId);
+      // Only the authenticated user themselves can trigger their own authoritative snapshot recalculation
+      if (isSelf) {
+        await callRecalculateReputation(userId);
+      }
 
       // Compute expertise from raw data (client-side for display, mirrors RPC logic)
       const expertise = computeExpertise(contributions);

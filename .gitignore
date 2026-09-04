@@ -25,3 +25,5 @@ dev-server.*.log
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+
+.discora-qa-credentials

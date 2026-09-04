@@ -141,7 +141,7 @@ export function useOnboardingStatus() {
       const supabase = createBrowserSupabaseClient();
       const [roomsRes, claimsRes, votesRes] = await Promise.all([
         supabase.from("rooms").select("id", { count: "exact", head: true }).eq("created_by", userId!),
-        supabase.from("claims").select("id", { count: "exact", head: true }).eq("created_by", userId!),
+        supabase.from("discussion_claims").select("id", { count: "exact", head: true }).eq("created_by", userId!),
         supabase.from("claim_votes").select("id", { count: "exact", head: true }).eq("user_id", userId!),
       ]);
       const roomCount = roomsRes.count ?? 0;

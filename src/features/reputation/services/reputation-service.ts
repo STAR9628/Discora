@@ -251,24 +251,14 @@ export async function getUserContributions(
     }
   }
 
-  // Fetch evidence vote counts (votes on evidence created by user)
-  const userEvidenceIds = (evidenceRes.data || []).map((e: { id: string }) => e.id);
-  let evidenceAgreeCount = 0;
-  let evidenceDisagreeCount = 0;
-  if (userEvidenceIds.length > 0) {
-    const { data: evVotes } = await supabase
-      .from("evidence_votes")
-      .select("vote_type")
-      .in("evidence_id", userEvidenceIds);
-    if (evVotes) {
-      evidenceAgreeCount = (evVotes as { vote_type: string }[]).filter((v) => v.vote_type === "agree").length;
-      evidenceDisagreeCount = (evVotes as { vote_type: string }[]).filter((v) => v.vote_type === "disagree").length;
-    }
-  }
+  // Calculate evidence vote counts from discussion_evidence (which includes authoritative aggregated agree/disagree counts)
+  const evidenceList = (evidenceRes.data || []).map(mapEvidenceRow);
+  const evidenceAgreeCount = evidenceList.reduce((sum, e) => sum + (e.agreeCount || 0), 0);
+  const evidenceDisagreeCount = evidenceList.reduce((sum, e) => sum + (e.disagreeCount || 0), 0);
 
   return {
     claims: (claimsRes.data || []).map(mapClaimRow),
-    evidence: (evidenceRes.data || []).map(mapEvidenceRow),
+    evidence: evidenceList,
     questions: (questionsRes.data || []).map(mapQuestionRow),
     discussionCount: discussionsRes.data?.length || 0,
     debateCount: debatesRes.data?.length || 0,
@@ -280,27 +270,17 @@ export async function getUserContributions(
   };
 }
 
+/**
+ * @deprecated Direct client snapshot creation is disabled. Snapshots are database-authoritative.
+ */
 export async function saveReputationSnapshot(
   userId: string,
   score: number,
   expertise: ExpertiseArea[],
   overrideClient?: SupabaseClient,
 ): Promise<ReputationSnapshot> {
-  const supabase = getClient(overrideClient);
-  const { data, error } = await supabase
-    .from("user_reputation_snapshots")
-    .insert({
-      user_id: userId,
-      score,
-      expertise: JSON.parse(JSON.stringify(expertise)),
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    throw new Error(mapSupabaseError(error, "Failed to save reputation snapshot"));
-  }
-  return mapSnapshotRow(data);
+  void userId; void score; void expertise; void overrideClient;
+  throw new Error("Direct client snapshot creation is disabled. Snapshots are database-authoritative.");
 }
 
 export async function callRecalculateReputation(
