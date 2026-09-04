@@ -26,8 +26,12 @@ export function DiscussionOverviewUnderstanding({
 
   const isLoading = isClaimsLoading || isEvidenceLoading || isQuestionsLoading;
 
-  const handleNavigateToClaim = (claimId: string) => {
-    router.push(`/discussions/${slug}/claims?highlight=${claimId}`);
+  const handleNavigateToClaim = (claimId: string, options?: { autoOpenEvidence?: boolean }) => {
+    if (options?.autoOpenEvidence) {
+      router.push(`/discussions/${slug}/claims?highlight=${claimId}&addEvidence=true`);
+    } else {
+      router.push(`/discussions/${slug}/claims?highlight=${claimId}`);
+    }
   };
 
   const handleNavigateToEvidence = (evidenceId?: string) => {

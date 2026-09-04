@@ -76,6 +76,7 @@ interface ClaimListProps {
   roomId: string;
   questionId?: string;
   scrollToClaimId?: string | null;
+  autoOpenEvidence?: boolean;
   onScrollComplete?: () => void;
   claimQuestionMap?: Map<string, string>;
   onReportClaim?: (claim: DiscussionClaim) => void;
@@ -89,6 +90,7 @@ export function ClaimList({
   roomId,
   questionId,
   scrollToClaimId,
+  autoOpenEvidence,
   onScrollComplete,
   claimQuestionMap,
   onReportClaim,
@@ -181,6 +183,16 @@ export function ClaimList({
   const [expandedClaims, setExpandedClaims] = useState<Record<string, boolean>>({});
   const [expandedRelations, setExpandedRelations] = useState<Record<string, boolean>>({});
   const [autoOpenEvidenceForm, setAutoOpenEvidenceForm] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (scrollToClaimId && autoOpenEvidence) {
+      setExpandedClaims((prev) => ({
+        ...prev,
+        [scrollToClaimId]: true,
+      }));
+      setAutoOpenEvidenceForm(scrollToClaimId);
+    }
+  }, [scrollToClaimId, autoOpenEvidence]);
   const [navigatedFrom, setNavigatedFrom] = useState<{ sourceClaimId: string; targetClaimId: string } | null>(null);
   const [inquiryDialogClaimId, setInquiryDialogClaimId] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);

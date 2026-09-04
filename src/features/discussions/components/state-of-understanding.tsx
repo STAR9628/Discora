@@ -32,7 +32,7 @@ interface StateOfUnderstandingProps {
   claimRelations?: DiscussionClaimRelation[] | undefined;
   inquiryCounts?: Record<string, number> | undefined;
   isLoading?: boolean;
-  onNavigateToClaim?: (claimId: string) => void;
+  onNavigateToClaim?: (claimId: string, options?: { autoOpenEvidence?: boolean }) => void;
   onNavigateToEvidence?: (evidenceId?: string) => void;
   onNavigateToQuestions?: (questionId?: string) => void;
 }
@@ -61,9 +61,9 @@ export function StateOfUnderstanding({
     });
   }, [claims, roomEvidence, questions, claimRelations, inquiryCounts]);
 
-  const handleClaimClick = (claimId: string) => {
+  const handleClaimClick = (claimId: string, options?: { autoOpenEvidence?: boolean }) => {
     if (onNavigateToClaim) {
-      onNavigateToClaim(claimId);
+      onNavigateToClaim(claimId, options);
     } else {
       const el = document.getElementById(`claim-${claimId}`);
       if (el) {
@@ -151,7 +151,7 @@ export function StateOfUnderstanding({
   return (
     <section
       aria-labelledby="understanding-heading"
-      className="rounded-2xl border border-border/80 bg-card/40 p-5 md:p-6 backdrop-blur-md shadow-md space-y-5 transition-all"
+      className="rounded-2xl border border-border/80 bg-card/40 p-4 sm:p-5 md:p-6 backdrop-blur-md shadow-md space-y-5 transition-all"
     >
       {/* 1. Header & Metric Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/40 pb-4">
@@ -178,9 +178,13 @@ export function StateOfUnderstanding({
                 : "bg-muted/40 border-border text-muted-foreground"
             }`}
             title={`${metrics.evidenceCoveragePercentage}% of claims have attached sources (${metrics.claimsWithEvidenceCount} of ${metrics.totalClaims})`}
+            aria-label={`Evidence coverage: ${metrics.evidenceCoveragePercentage}%, ${metrics.claimsWithEvidenceCount} of ${metrics.totalClaims} claims have attached sources`}
           >
-            <FileText className="h-3 w-3" />
+            <FileText className="h-3 w-3 shrink-0" />
             <span>{metrics.evidenceCoveragePercentage}% Evidence Coverage</span>
+            <span className="text-[10px] font-normal opacity-85">
+              ({metrics.claimsWithEvidenceCount} of {metrics.totalClaims} with sources)
+            </span>
           </span>
 
           <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold text-[11px] border border-border bg-card/60 text-foreground/85">
@@ -200,39 +204,48 @@ export function StateOfUnderstanding({
       </div>
 
       {/* 2. Mobile Segmented Control (< 1024px) */}
-      <div className="lg:hidden flex rounded-xl border border-border/60 bg-muted/20 p-1 text-xs font-semibold">
+      <div className="lg:hidden grid grid-cols-3 rounded-xl border border-border/60 bg-muted/20 p-1 text-xs font-semibold gap-1">
         <button
           type="button"
           onClick={() => setMobileTab("supported")}
-          className={`flex-1 rounded-lg py-1.5 text-center transition-all cursor-pointer ${
+          className={`min-h-[44px] min-w-0 w-full flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 rounded-lg px-1 py-1.5 text-center transition-all cursor-pointer ${
             mobileTab === "supported"
               ? "bg-card text-emerald-400 font-bold shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Supported ({metrics.supportedClaims.length})
+          <span className="text-[11px] sm:text-xs">Supported</span>
+          <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] font-mono shrink-0">
+            {metrics.supportedClaims.length}
+          </span>
         </button>
         <button
           type="button"
           onClick={() => setMobileTab("contested")}
-          className={`flex-1 rounded-lg py-1.5 text-center transition-all cursor-pointer ${
+          className={`min-h-[44px] min-w-0 w-full flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 rounded-lg px-1 py-1.5 text-center transition-all cursor-pointer ${
             mobileTab === "contested"
               ? "bg-card text-rose-400 font-bold shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Contested ({metrics.contestedClaims.length})
+          <span className="text-[11px] sm:text-xs">Contested</span>
+          <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] font-mono shrink-0">
+            {metrics.contestedClaims.length}
+          </span>
         </button>
         <button
           type="button"
           onClick={() => setMobileTab("unresolved")}
-          className={`flex-1 rounded-lg py-1.5 text-center transition-all cursor-pointer ${
+          className={`min-h-[44px] min-w-0 w-full flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 rounded-lg px-1 py-1.5 text-center transition-all cursor-pointer ${
             mobileTab === "unresolved"
               ? "bg-card text-sky-400 font-bold shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Unresolved ({unresolvedTotalCount})
+          <span className="text-[11px] sm:text-xs">Unresolved</span>
+          <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] font-mono shrink-0">
+            {unresolvedTotalCount}
+          </span>
         </button>
       </div>
 
@@ -244,14 +257,19 @@ export function StateOfUnderstanding({
             mobileTab !== "supported" ? "hidden lg:block" : "block"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 min-w-0">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-              <h3 className="text-xs md:text-sm font-bold text-foreground">
+              <h3 className="text-xs sm:text-sm font-bold text-foreground">
                 Supported by Current Evidence
               </h3>
             </div>
-            <span className="text-[10px] text-muted-foreground">0 contradictions</span>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{metrics.supportedClaims.length} verified claim{metrics.supportedClaims.length === 1 ? "" : "s"}</span>
+              <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-400/90">
+                0 contradictions
+              </span>
+            </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
@@ -313,14 +331,19 @@ export function StateOfUnderstanding({
             mobileTab !== "contested" ? "hidden lg:block" : "block"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 min-w-0">
               <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
-              <h3 className="text-xs md:text-sm font-bold text-foreground">
+              <h3 className="text-xs sm:text-sm font-bold text-foreground">
                 Contested / Mixed Evidence
               </h3>
             </div>
-            <span className="text-[10px] text-muted-foreground">Active dispute</span>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{metrics.contestedClaims.length} active dispute{metrics.contestedClaims.length === 1 ? "" : "s"}</span>
+              <span className="rounded bg-rose-500/10 px-1.5 py-0.5 font-medium text-rose-400/90">
+                Opposing citations
+              </span>
+            </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
@@ -378,14 +401,19 @@ export function StateOfUnderstanding({
             mobileTab !== "unresolved" ? "hidden lg:block" : "block"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 min-w-0">
               <HelpCircle className="h-4 w-4 text-sky-400 shrink-0" />
-              <h3 className="text-xs md:text-sm font-bold text-foreground">
+              <h3 className="text-xs sm:text-sm font-bold text-foreground">
                 Unresolved Front
               </h3>
             </div>
-            <span className="text-[10px] text-muted-foreground">Needs inquiry</span>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{unresolvedTotalCount} open item{unresolvedTotalCount === 1 ? "" : "s"}</span>
+              <span className="rounded bg-sky-500/10 px-1.5 py-0.5 font-medium text-sky-400/90">
+                Awaiting evidence
+              </span>
+            </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
@@ -425,7 +453,7 @@ export function StateOfUnderstanding({
               {renderedUnresolved.map((item) => (
                 <div
                   key={item.claim.id}
-                  onClick={() => handleClaimClick(item.claim.id)}
+                  onClick={() => handleClaimClick(item.claim.id, { autoOpenEvidence: true })}
                   className="group rounded-lg border border-border/60 bg-card/50 p-3 space-y-2 hover:border-sky-500/40 hover:bg-card/75 transition-all cursor-pointer"
                 >
                   <p className="text-xs text-foreground font-medium line-clamp-2 leading-snug">

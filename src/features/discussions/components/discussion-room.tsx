@@ -117,6 +117,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
   const retractQuestionMutation = useRetractQuestion(room.id);
 
   const [scrollToClaimId, setScrollToClaimId] = useState<string | null>(null);
+  const [autoOpenEvidence, setAutoOpenEvidence] = useState(false);
   const [showRetractConfirm, setShowRetractConfirm] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<DiscussionQuestion | null>(null);
   const [showPostFeedback, setShowPostFeedback] = useState(false);
@@ -270,8 +271,9 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
     [messages]
   );
 
-  const handleNavigateToClaim = useCallback((claimId: string) => {
+  const handleNavigateToClaim = useCallback((claimId: string, options?: { autoOpenEvidence?: boolean }) => {
     setScrollToClaimId(claimId);
+    setAutoOpenEvidence(!!options?.autoOpenEvidence);
     const claimsEl = document.getElementById("claims");
     if (claimsEl) claimsEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
@@ -420,7 +422,11 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
         <ClaimList
           roomId={room.id}
           scrollToClaimId={scrollToClaimId}
-          onScrollComplete={() => setScrollToClaimId(null)}
+          autoOpenEvidence={autoOpenEvidence}
+          onScrollComplete={() => {
+            setScrollToClaimId(null);
+            setAutoOpenEvidence(false);
+          }}
           claimQuestionMap={claimQuestionMap}
           onReportClaim={(c) =>
             setReportState({ claimId: c.id, contentPreview: c.content, entityTypeLabel: "Claim" })

@@ -44,7 +44,17 @@ function LoadMoreButton({
   );
 }
 
-export function DiscussionClaimsSection({ roomId, highlightId }: { roomId: string; highlightId?: string | null }) {
+export function DiscussionClaimsSection({
+  roomId,
+  highlightId,
+  autoOpenEvidence,
+}: {
+  roomId: string;
+  highlightId?: string | null;
+  autoOpenEvidence?: boolean;
+}) {
+  const searchParams = useSearchParams();
+  const shouldAutoOpenEvidence = autoOpenEvidence || searchParams.get("addEvidence") === "true";
   const {
     items: claims,
     isLoading,
@@ -76,7 +86,14 @@ export function DiscussionClaimsSection({ roomId, highlightId }: { roomId: strin
         </>
       )}
 
-      <ClaimList roomId={roomId} scrollToClaimId={highlightId} debateSide={null} claims={claims} isLoading={isLoading} />
+      <ClaimList
+        roomId={roomId}
+        scrollToClaimId={highlightId}
+        autoOpenEvidence={shouldAutoOpenEvidence}
+        debateSide={null}
+        claims={claims}
+        isLoading={isLoading}
+      />
 
       {error ? (
         <div className="text-xs text-destructive">Failed to load claims: {(error as Error).message}</div>

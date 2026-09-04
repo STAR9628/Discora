@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import NextLink from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useEvidence, useCreateEvidence, useRetractEvidence, useVoteEvidence } from "@/features/discussions/hooks/use-discussions";
 import { evidenceSchema, type EvidenceFormValues } from "@/features/discussions/validation";
-import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, ThumbsUp, ThumbsDown, Flag, LogIn, FileText } from "lucide-react";
 import type { DiscussionEvidence } from "../types";
 import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
 import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-reputation";
@@ -121,10 +122,55 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
             <span>Add Evidence</span>
           </button>
         )}
+        {!user && !isClaimRetracted && !defaultOpen && (
+          <NextLink
+            href={`/login?redirectedFrom=${encodeURIComponent(
+              typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+            )}`}
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+          >
+            <LogIn className="h-3 w-3" />
+            <span>Sign in to add evidence</span>
+          </NextLink>
+        )}
       </div>
 
-      {/* Evidence Creation Form */}
-      {isFormOpen && (
+      {/* Guest Evidence Prompt when navigated with autoOpen intent */}
+      {!user && defaultOpen && (
+        <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-2.5 animate-in fade-in duration-150">
+          <div className="flex items-start gap-2.5">
+            <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h6 className="text-xs font-bold text-foreground">Sign in to attach evidence to this claim</h6>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Adding citations moves claims from unresolved to supported or contested. You must be signed in to submit empirical sources.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <NextLink
+              href={`/login?redirectedFrom=${encodeURIComponent(
+                typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+              )}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              <LogIn className="h-3 w-3" />
+              <span>Sign In to Add Evidence</span>
+            </NextLink>
+            <NextLink
+              href={`/register?redirectedFrom=${encodeURIComponent(
+                typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+              )}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
+            >
+              Create Account
+            </NextLink>
+          </div>
+        </div>
+      )}
+
+      {/* Evidence Creation Form (Authenticated only) */}
+      {user && isFormOpen && (
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="bg-card/40 border border-border/60 rounded-xl p-4 space-y-4 animate-in fade-in duration-150"
