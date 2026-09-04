@@ -30,6 +30,25 @@ export interface InquiriesOnMyClaim {
   createdAt: string;
 }
 
+export interface NewEvidenceOnVotedClaim {
+  evidenceId: string;
+  evidenceContent: string;
+  evidenceType: string;
+  evidenceCreatedAt: string;
+  direction: "support" | "contradict" | "context";
+  sourceTitle: string | null;
+  sourceUrl: string | null;
+  claimId: string;
+  claimContent: string;
+  userVote: "agree" | "disagree";
+  roomId: string;
+  roomTitle: string;
+  roomSlug: string;
+  roomType: string;
+  authorUsername: string;
+  authorAvatarUrl: string | null;
+}
+
 export interface InquiryResponse {
   inquiryId: string;
   inquiryContent: string;
@@ -91,6 +110,13 @@ export async function getInquiriesOnMyClaims(limit: number = 5): Promise<Inquiri
   return ((data || []) as Record<string, unknown>[]).map(mapInquiryOnMyClaim);
 }
 
+export async function getNewEvidenceOnVotedClaims(limit: number = 5): Promise<NewEvidenceOnVotedClaim[]> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase.rpc("get_new_evidence_on_voted_claims", { p_limit: limit });
+  if (error) throw new Error(mapSupabaseError(error, "Failed to load new evidence on voted claims"));
+  return ((data || []) as Record<string, unknown>[]).map(mapNewEvidenceOnVotedClaim);
+}
+
 export async function getMyInquiryResponses(): Promise<InquiryResponse[]> {
   const supabase = createBrowserSupabaseClient();
   const { data, error } = await supabase.rpc("get_my_inquiry_responses");
@@ -149,6 +175,27 @@ function mapInquiryOnMyClaim(row: Record<string, unknown>): InquiriesOnMyClaim {
     inquiryAvatarUrl: row.inquiry_avatar_url ? String(row.inquiry_avatar_url) : null,
     responseCount: Number(row.response_count ?? 0),
     createdAt: String(row.created_at ?? ""),
+  };
+}
+
+function mapNewEvidenceOnVotedClaim(row: Record<string, unknown>): NewEvidenceOnVotedClaim {
+  return {
+    evidenceId: String(row.evidence_id ?? ""),
+    evidenceContent: String(row.evidence_content ?? ""),
+    evidenceType: String(row.evidence_type ?? ""),
+    evidenceCreatedAt: String(row.evidence_created_at ?? ""),
+    direction: (row.direction as "support" | "contradict" | "context") ?? "context",
+    sourceTitle: row.source_title ? String(row.source_title) : null,
+    sourceUrl: row.source_url ? String(row.source_url) : null,
+    claimId: String(row.claim_id ?? ""),
+    claimContent: String(row.claim_content ?? ""),
+    userVote: (row.user_vote as "agree" | "disagree") ?? "agree",
+    roomId: String(row.room_id ?? ""),
+    roomTitle: String(row.room_title ?? ""),
+    roomSlug: String(row.room_slug ?? ""),
+    roomType: String(row.room_type ?? "discussion"),
+    authorUsername: String(row.author_username ?? "Contributor"),
+    authorAvatarUrl: row.author_avatar_url ? String(row.author_avatar_url) : null,
   };
 }
 

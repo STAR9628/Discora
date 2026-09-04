@@ -7,6 +7,7 @@ import { getHomepageMetrics, getFeaturedInquiries } from "../services/homepage-s
 import {
   getMyOpenInquiries,
   getInquiriesOnMyClaims,
+  getNewEvidenceOnVotedClaims,
   getMyInquiryResponses,
   getMyDebatesAttention,
   getMyTopicEvidence,
@@ -58,6 +59,16 @@ export function useRecentDebates(limit = 5) {
     queryKey: ["homepage", "recent-debates", limit],
     queryFn: () => getDebates("active", "newest", null, limit),
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useNewEvidenceOnVotedClaims(limit = 5) {
+  const { status } = useAuth();
+  return useQuery({
+    queryKey: ["homepage", "new-evidence-on-voted-claims", limit],
+    queryFn: () => getNewEvidenceOnVotedClaims(limit),
+    enabled: status === "authenticated",
+    staleTime: 30_000,
   });
 }
 

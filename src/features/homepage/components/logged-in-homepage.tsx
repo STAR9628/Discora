@@ -14,12 +14,14 @@ import {
   Plus,
   Search,
   Lightbulb,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
 import {
   useMyOpenInquiries,
   useInquiriesOnMyClaims,
+  useNewEvidenceOnVotedClaims,
   useMyInquiryResponses,
   useMyDebatesAttention,
   useMyTopicEvidence,
@@ -28,7 +30,7 @@ import {
   useRecentDebates,
   useOnboardingStatus,
 } from "../hooks/use-homepage";
-import type { InquiriesOnMyClaim } from "../services/homepage-personal-service";
+import type { InquiriesOnMyClaim, NewEvidenceOnVotedClaim } from "../services/homepage-personal-service";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
 import type { DebateFeedItem } from "@/features/debates/services/debate-service";
 import type { UnderstandingEvolved } from "../services/homepage-personal-service";
@@ -443,6 +445,148 @@ function InquiriesOnMyClaims() {
   );
 }
 
+
+function getEvidenceSignalInfo(
+  userVote: "agree" | "disagree",
+  direction: "support" | "contradict" | "context"
+) {
+  if (direction === "context") {
+    return {
+      badgeLabel: "Context",
+      headline: "New context added to a claim you evaluated",
+      badgeClass: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      cardBorder: "border-blue-500/30 bg-blue-950/10 hover:border-blue-500/60",
+      accentText: "text-blue-400/90 group-hover:text-blue-300",
+    };
+  }
+  if (userVote === "agree") {
+    if (direction === "contradict") {
+      return {
+        badgeLabel: "Counter-Evidence",
+        headline: "Counter-evidence added to a claim you supported",
+        badgeClass: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+        cardBorder: "border-rose-500/30 bg-rose-950/10 hover:border-rose-500/60",
+        accentText: "text-rose-400/90 group-hover:text-rose-300",
+      };
+    } else {
+      return {
+        badgeLabel: "Supporting Evidence",
+        headline: "Supporting evidence added to a claim you supported",
+        badgeClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        cardBorder: "border-emerald-500/30 bg-emerald-950/10 hover:border-emerald-500/60",
+        accentText: "text-emerald-400/90 group-hover:text-emerald-300",
+      };
+    }
+  } else {
+    // userVote === "disagree"
+    if (direction === "support") {
+      return {
+        badgeLabel: "Supporting Evidence",
+        headline: "Supporting evidence added to a claim you contested",
+        badgeClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        cardBorder: "border-amber-500/30 bg-amber-950/10 hover:border-amber-500/60",
+        accentText: "text-amber-400/90 group-hover:text-amber-300",
+      };
+    } else {
+      return {
+        badgeLabel: "Counter-Evidence",
+        headline: "Counter-evidence added to a claim you contested",
+        badgeClass: "bg-teal-500/10 text-teal-400 border-teal-500/20",
+        cardBorder: "border-teal-500/30 bg-teal-950/10 hover:border-teal-500/60",
+        accentText: "text-teal-400/90 group-hover:text-teal-300",
+      };
+    }
+  }
+}
+
+function NewEvidenceOnVotedClaims() {
+  const { data, isLoading, error } = useNewEvidenceOnVotedClaims();
+  const items = data ?? [];
+
+  if (!isLoading && !error && items.length === 0) return null;
+
+  return (
+    <section className="space-y-3">
+      <SectionHeader title="New Evidence on Claims You Evaluated" icon={FileText} />
+      {isLoading ? (
+        <div className="space-y-3">
+          <LoadingCard />
+          <LoadingCard />
+        </div>
+      ) : error ? (
+        <ErrorMessage message="Could not load new evidence on evaluated claims." />
+      ) : (
+        <div className="space-y-3">
+          {items.map((item: NewEvidenceOnVotedClaim) => {
+            const signal = getEvidenceSignalInfo(item.userVote, item.direction);
+            const destinationUrl = item.roomType === "debate"
+              ? `/debates/${item.roomSlug}/evidence?highlight=${item.evidenceId}#ev-${item.evidenceId}`
+              : `/discussions/${item.roomSlug}/evidence?highlight=${item.evidenceId}#ev-${item.evidenceId}`;
+
+            return (
+              <Link
+                key={item.evidenceId}
+                href={destinationUrl}
+                className={`group flex flex-col gap-2.5 rounded-xl border p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${signal.cardBorder}`}
+              >
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${signal.badgeClass}`}>
+                      {signal.badgeLabel}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span className="truncate max-w-[160px] sm:max-w-[260px] font-medium text-foreground/80">
+                      {item.roomTitle}
+                    </span>
+                  </div>
+                  <span className={`shrink-0 text-xs font-medium transition-colors flex items-center gap-1 ${signal.accentText}`}>
+                    Inspect Evidence
+                    <ArrowRight className="h-3 w-3" />
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                    {signal.headline}
+                  </p>
+                  <p className="mt-1 text-xs text-foreground/85 leading-relaxed line-clamp-2 italic">
+                    &ldquo;{item.evidenceContent}&rdquo;
+                  </p>
+                  {item.sourceTitle && (
+                    <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                      <span className="truncate max-w-[320px] sm:max-w-[480px]">
+                        Source: {item.sourceTitle}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg bg-card/60 border border-border/50 px-3 py-2 text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground/80">
+                    On claim you {item.userVote === "agree" ? "supported" : "contested"}:{" "}
+                  </span>
+                  <span className="line-clamp-1 italic text-foreground/70">
+                    &ldquo;{item.claimContent}&rdquo;
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <span>Added by {item.authorUsername}</span>
+                  </div>
+                  <span>{timeAgo(item.evidenceCreatedAt)}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MyInquiryResponses() {
   const { data, isLoading, error } = useMyInquiryResponses();
   const responses = data ?? [];
@@ -751,6 +895,7 @@ function UnderstandingEvolved() {
 
 function PersonalizedUpdates() {
   const inquiriesOnClaims = useInquiriesOnMyClaims();
+  const newEvidenceOnClaims = useNewEvidenceOnVotedClaims();
   const openInquiries = useMyOpenInquiries();
   const inquiryResponses = useMyInquiryResponses();
   const debatesAttention = useMyDebatesAttention();
@@ -760,6 +905,7 @@ function PersonalizedUpdates() {
 
   const hasActivity =
     (inquiriesOnClaims.data?.length ?? 0) > 0 ||
+    (newEvidenceOnClaims.data?.length ?? 0) > 0 ||
     (openInquiries.data?.length ?? 0) > 0 ||
     (inquiryResponses.data?.length ?? 0) > 0 ||
     (debatesAttention.data?.length ?? 0) > 0 ||
@@ -768,6 +914,7 @@ function PersonalizedUpdates() {
 
   const isLoading =
     inquiriesOnClaims.isLoading ||
+    newEvidenceOnClaims.isLoading ||
     openInquiries.isLoading ||
     inquiryResponses.isLoading ||
     debatesAttention.isLoading ||
@@ -825,6 +972,7 @@ function PersonalizedUpdates() {
         </span>
       </div>
       <InquiriesOnMyClaims />
+      <NewEvidenceOnVotedClaims />
       <MyInquiryResponses />
       <MyOpenInquiries />
       <UnderstandingEvolved />
