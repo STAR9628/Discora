@@ -12,6 +12,7 @@ import type { QuestionType } from "@/types/domain";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate } from "@/lib/date";
+import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
 
 interface QuestionListProps {
   roomId: string;
@@ -382,6 +383,15 @@ export function QuestionList({
           </div>
         )}
       </div>
+
+      {/* Guest prompt: visible only when not authenticated */}
+      {!user && (
+        <GuestContributionPrompt
+          roomType="discussion"
+          customTitle="Want to ask a question about this topic?"
+          customDescription="Sign in to post a structured question and help define what this discussion is exploring."
+        />
+      )}
 
       <ConfirmDialog
         open={!!pendingRetractId}

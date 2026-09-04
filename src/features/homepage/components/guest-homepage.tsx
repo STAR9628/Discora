@@ -31,13 +31,16 @@ const CTA_LINKS = [
 function HeroSection() {
   return (
     <div className="space-y-8 text-center">
-      <div className="space-y-3">
+      <div className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           Structured Discussion &amp; Debate
         </h1>
         <p className="mx-auto max-w-2xl text-base text-muted-foreground">
           A platform for evidence-based dialogue. Explore discussions, follow
           debates, and build understanding — one claim at a time.
+        </p>
+        <p className="mx-auto max-w-2xl text-sm text-muted-foreground/70 leading-relaxed">
+          Where arguments are structured as claims, claims are backed by evidence, and changing your mind based on evidence is a feature — not a weakness.
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">

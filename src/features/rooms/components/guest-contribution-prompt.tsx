@@ -7,11 +7,15 @@ import { LogIn, UserPlus, MessageSquare, Swords } from "lucide-react";
 interface GuestContributionPromptProps {
   roomType?: "discussion" | "debate";
   customReturnUrl?: string;
+  customTitle?: string;
+  customDescription?: string;
 }
 
 export function GuestContributionPrompt({
   roomType = "discussion",
   customReturnUrl,
+  customTitle,
+  customDescription,
 }: GuestContributionPromptProps) {
   const pathname = usePathname();
   const returnUrl = customReturnUrl || pathname;
@@ -29,12 +33,13 @@ export function GuestContributionPrompt({
       <div className="space-y-1 sm:max-w-xl">
         <div className="flex items-center justify-center sm:justify-start gap-2 text-foreground font-bold text-sm">
           <Icon className="h-4 w-4 text-primary" />
-          <span>Want to contribute to this {isDebate ? "debate" : "discussion"}?</span>
+          <span>{customTitle || `Want to contribute to this ${isDebate ? "debate" : "discussion"}?`}</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          {isDebate
-            ? "Sign in to state your argument, support a side with evidence, or participate in the thread."
-            : "Sign in to share your perspective, help answer questions, or contribute evidence."}
+          {customDescription ||
+            (isDebate
+              ? "Sign in to state your argument, support a side with evidence, or participate in the thread."
+              : "Sign in to share your perspective, help answer questions, or contribute evidence.")}
         </p>
       </div>
 

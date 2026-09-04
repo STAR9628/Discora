@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Shield, AlertCircle, Loader2, ArrowRightLeft, X, Info } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 import { useDebateContext } from "./debate-data-provider";
 import { useJoinDebate, useSwitchSide } from "@/features/debates/hooks/use-debates";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { toast } from "@/components/ui/toast";
 
 export function DebateSidePickerModal() {
@@ -23,6 +25,9 @@ export function DebateSidePickerModal() {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const joinMutation = useJoinDebate(room.id);
   const switchMutation = useSwitchSide(room.id);
 
@@ -40,6 +45,13 @@ export function DebateSidePickerModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Guest: redirect to registration instead of calling mutation
+    if (!user) {
+      setIsSideModalOpen(false);
+      router.push(`/register?redirectedFrom=${encodeURIComponent(pathname ?? "/")}`);
+      return;
+    }
 
     if (userParticipation && userParticipation.side === selectedSide) {
       setIsSideModalOpen(false);
