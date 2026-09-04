@@ -11,6 +11,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Hash,
+  GitBranch,
 } from "lucide-react";
 import {
   useHomepageMetrics,
@@ -104,6 +105,88 @@ function DiscussionCard({
         </p>
       )}
     </Link>
+  );
+}
+
+
+function HowItWorks() {
+  const steps = [
+    {
+      step: "1",
+      title: "Questions",
+      prompt: "What are we trying to understand?",
+      description: "Open inquiries frame key facets and define what the discussion is exploring.",
+      icon: HelpCircle,
+      color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+    },
+    {
+      step: "2",
+      title: "Claims",
+      prompt: "What positions are being taken?",
+      description: "Arguments are broken down into discrete claims rather than unwieldy wall-of-text threads.",
+      icon: GitBranch,
+      color: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+    },
+    {
+      step: "3",
+      title: "Evidence",
+      prompt: "What supports or challenges them?",
+      description: "Verifiable sources, data, and counterpoints are attached directly to each specific claim.",
+      icon: FileText,
+      color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    },
+    {
+      step: "4",
+      title: "Understanding",
+      prompt: "What becomes clearer over time?",
+      description: "Transparent disagreement maps track consensus and show positions evolving based on evidence.",
+      icon: Scale,
+      color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    },
+  ];
+
+  return (
+    <section className="space-y-4">
+      <div className="text-center sm:text-left space-y-1">
+        <h2 className="text-lg font-semibold text-foreground">
+          How Discora Works
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          A structured progression for exploring disagreements with clarity.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map((s) => {
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.step}
+              className="rounded-xl border border-border/70 bg-card/30 p-4 space-y-2.5 transition-all hover:bg-card/45 hover:border-border"
+            >
+              <div className="flex items-center justify-between">
+                <div className={`rounded-lg p-2 border ${s.color}`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                  Step {s.step}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {s.title}
+                </h3>
+                <p className="text-xs font-medium text-primary/90">
+                  {s.prompt}
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {s.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -247,10 +330,13 @@ function InquirySpotlight() {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="space-y-1">
         <h2 className="text-lg font-semibold text-foreground">
-          Inquiry Spotlight
+          Structured Inquiries
         </h2>
+        <p className="text-xs text-muted-foreground">
+          Focused questions attached to specific claims — asking for clarification, evidence, or an assumption to be examined.
+        </p>
       </div>
       {isLoading ? (
         <div className="rounded-xl border border-border bg-card/40 p-6 animate-pulse space-y-3">
@@ -264,8 +350,11 @@ function InquirySpotlight() {
           Could not load spotlight.
         </div>
       ) : !inquiry ? (
-        <div className="rounded-xl border border-dashed border-border bg-card/20 p-8 text-center text-sm text-muted-foreground">
-          No open inquiries at the moment. Check back soon.
+        <div className="rounded-xl border border-dashed border-border bg-card/20 p-6 text-center space-y-1">
+          <p className="text-sm font-medium text-foreground">No open inquiries right now</p>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            When participants challenge a claim, request evidence, or ask for clarification, their structured inquiries appear here.
+          </p>
         </div>
       ) : (
         <Link
@@ -297,24 +386,31 @@ function InquirySpotlight() {
 
 function MetricCard({
   label,
+  subtitle,
   value,
   icon: Icon,
 }: {
   label: string;
+  subtitle?: string;
   value: number;
   icon: React.ElementType;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5">
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 space-y-2">
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-2xl font-bold text-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="text-xs font-semibold text-foreground/90">{label}</p>
         </div>
         <div className="rounded-lg bg-primary/10 p-2 text-primary">
           <Icon className="h-4 w-4" />
         </div>
       </div>
+      {subtitle && (
+        <p className="text-[11px] text-muted-foreground leading-tight">
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
@@ -325,21 +421,25 @@ function UnderstandingMetrics() {
   const items = [
     {
       label: "Open Inquiries",
+      subtitle: "Claim questions awaiting response",
       value: metrics?.openInquiries ?? 0,
       icon: HelpCircle,
     },
     {
       label: "Claims with Evidence",
+      subtitle: "Claims backed by verifiable sources",
       value: metrics?.claimsWithEvidence ?? 0,
       icon: FileText,
     },
     {
       label: "Debates (Both Sides)",
+      subtitle: "Debates with active opposing sides",
       value: metrics?.debatesBothSides ?? 0,
       icon: Scale,
     },
     {
-      label: "Satisfied Today",
+      label: "Inquiries Resolved Today",
+      subtitle: "Inquiries satisfied with evidence",
       value: metrics?.satisfiedToday ?? 0,
       icon: CheckCircle,
     },
@@ -373,6 +473,7 @@ function UnderstandingMetrics() {
             <MetricCard
               key={item.label}
               label={item.label}
+              subtitle={item.subtitle}
               value={item.value}
               icon={item.icon}
             />
@@ -387,6 +488,7 @@ export function GuestHomepage() {
   return (
     <div className="mx-auto max-w-5xl space-y-12 py-8 pb-16">
       <HeroSection />
+      <HowItWorks />
       <ActiveDiscussions />
       <ActiveDebates />
       <InquirySpotlight />

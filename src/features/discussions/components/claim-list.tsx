@@ -57,6 +57,21 @@ import { InquiryCreateDialog } from "@/features/debates/components/inquiry-creat
 import { InquiryList } from "@/features/debates/components/inquiry-list";
 import { useInquiryCountsForRoom } from "@/features/debates/hooks/use-inquiries";
 
+export const CLAIM_TYPE_DESCRIPTIONS: Record<string, string> = {
+  fact: "Factual — an empirical statement that can be checked against evidence.",
+  opinion: "Opinion — a value judgment, interpretation, or subjective perspective.",
+  prediction: "Prediction — a forecast of a future outcome, trend, or scenario.",
+  proposal: "Proposal — a recommended action, policy, or intervention.",
+  observation: "Observation — a descriptive, experiential, or firsthand account.",
+};
+
+export const CLAIM_CONTEXT_DESCRIPTIONS: Record<string, string> = {
+  supporting_idea: "Supporting Idea — reinforces or elaborates on an existing claim.",
+  counterpoint: "Counterpoint — challenges, qualifies, or disputes a claim.",
+  observation: "Observation — descriptive context or neutral background note.",
+  open_question: "Open Question — identifies an unresolved issue or inquiry.",
+};
+
 interface ClaimListProps {
   roomId: string;
   questionId?: string;
@@ -489,13 +504,16 @@ export function ClaimList({
                       <span className="rounded bg-primary/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-primary border border-primary/20">
                         Claim
                       </span>
-                      <span
-                        className={`rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${getBadgeStyles(
-                          claim.claimType
-                        )}`}
-                      >
-                        {claim.claimType}
-                      </span>
+                      <Tooltip content={CLAIM_TYPE_DESCRIPTIONS[claim.claimType] ?? claim.claimType}>
+                        <span
+                          className={`rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider cursor-help ${getBadgeStyles(
+                            claim.claimType
+                          )}`}
+                          title={CLAIM_TYPE_DESCRIPTIONS[claim.claimType]}
+                        >
+                          {claim.claimType}
+                        </span>
+                      </Tooltip>
                       <ContextBadge contextType={claim.contextType} />
 
                       {(() => {
@@ -732,11 +750,21 @@ function ClaimVoting({ roomId, claim }: ClaimVotingProps) {
       </div>
 
       {claim.consensusRatio !== null && claim.consensusRatio !== undefined && (
-        <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-muted-foreground">
-          <div className="h-1.5 w-12 bg-rose-500/30 rounded-full overflow-hidden flex">
+        <div
+          className="flex items-center gap-1.5 text-[10px] font-extrabold text-muted-foreground cursor-help"
+          title={`${Math.round(claim.consensusRatio)}% of voters agree with this claim (${claim.agreeCount ?? 0} agree, ${claim.disagreeCount ?? 0} disagree)`}
+        >
+          <div
+            className="h-1.5 w-12 bg-rose-500/30 rounded-full overflow-hidden flex"
+            role="progressbar"
+            aria-valuenow={Math.round(claim.consensusRatio)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`${Math.round(claim.consensusRatio)}% voter agreement`}
+          >
             <div className="bg-emerald-500 h-full" style={{ width: `${claim.consensusRatio}%` }} />
           </div>
-          <span>{claim.consensusRatio}% Consensus</span>
+          <span>{Math.round(claim.consensusRatio)}% Agree</span>
         </div>
       )}
     </div>
@@ -770,14 +798,18 @@ function getContextLabel(type: ClaimContextType): string {
 }
 
 function ContextBadge({ contextType }: { contextType: ClaimContextType }) {
+  const desc = CLAIM_CONTEXT_DESCRIPTIONS[contextType] ?? getContextLabel(contextType);
   return (
-    <span
-      className={`rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${getContextBadgeStyles(
-        contextType
-      )}`}
-    >
-      {getContextLabel(contextType)}
-    </span>
+    <Tooltip content={desc}>
+      <span
+        className={`rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider cursor-help ${getContextBadgeStyles(
+          contextType
+        )}`}
+        title={desc}
+      >
+        {getContextLabel(contextType)}
+      </span>
+    </Tooltip>
   );
 }
 

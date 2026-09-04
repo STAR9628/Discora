@@ -550,8 +550,11 @@ function EvidenceVoting({ roomId, claimId, evidence }: EvidenceVotingProps) {
       </div>
 
       {evidence.consensusRatio !== null && evidence.consensusRatio !== undefined && (
-        <span className="text-[9px] font-extrabold text-muted-foreground/80">
-          {evidence.consensusRatio}% consensus
+        <span
+          className="text-[9px] font-extrabold text-muted-foreground/80 cursor-help"
+          title={`${Math.round(evidence.consensusRatio)}% of voters agree with this evidence (${evidence.agreeCount ?? 0} agree, ${evidence.disagreeCount ?? 0} disagree)`}
+        >
+          {Math.round(evidence.consensusRatio)}% agree
         </span>
       )}
     </div>
