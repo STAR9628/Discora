@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Shield, AlertCircle, Loader2, ArrowRightLeft, X } from "lucide-react";
+import { Shield, AlertCircle, Loader2, ArrowRightLeft, X, Info } from "lucide-react";
 import { useDebateContext } from "./debate-data-provider";
 import { useJoinDebate, useSwitchSide } from "@/features/debates/hooks/use-debates";
 import { toast } from "@/components/ui/toast";
@@ -17,8 +17,8 @@ export function DebateSidePickerModal() {
     setTargetSideToJoin,
   } = useDebateContext();
 
-  const [selectedSide, setSelectedSide] = useState<"proposition" | "opposition" | "neutral">(
-    targetSideToJoin || "proposition"
+  const [selectedSide, setSelectedSide] = useState<"proposition" | "opposition">(
+    targetSideToJoin === "opposition" ? "opposition" : "proposition"
   );
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function DebateSidePickerModal() {
   const switchMutation = useSwitchSide(room.id);
 
   useEffect(() => {
-    if (targetSideToJoin) {
+    if (targetSideToJoin === "proposition" || targetSideToJoin === "opposition") {
       setSelectedSide(targetSideToJoin);
     }
   }, [targetSideToJoin]);
@@ -46,7 +46,7 @@ export function DebateSidePickerModal() {
       return;
     }
 
-    if (isSwitching && selectedSide !== "neutral") {
+    if (isSwitching) {
       const trimmed = reason.trim();
       if (trimmed.length < 50) {
         setError("Mandatory rationale must be at least 50 characters explaining why you are changing your stance based on evidence.");
@@ -60,17 +60,12 @@ export function DebateSidePickerModal() {
         await joinMutation.mutateAsync(selectedSide);
         toast.success(`Joined debate as ${selectedSide.toUpperCase()}`);
       } else {
-        // Switch Side
-        if (selectedSide === "neutral") {
-          await joinMutation.mutateAsync("neutral");
-          toast.success("Updated stance to Neutral Observer");
-        } else {
-          await switchMutation.mutateAsync({
-            newSide: selectedSide,
-            reason: reason.trim(),
-          });
-          toast.success(`Switched stance to ${selectedSide.toUpperCase()}`);
-        }
+        // Switch Side (enforcing 50-char rationale and 24h cooldown in switch_debate_side RPC)
+        await switchMutation.mutateAsync({
+          newSide: selectedSide,
+          reason: reason.trim(),
+        });
+        toast.success(`Switched stance to ${selectedSide.toUpperCase()}`);
       }
       setIsSideModalOpen(false);
       setReason("");
@@ -86,20 +81,22 @@ export function DebateSidePickerModal() {
         <button
           type="button"
           onClick={() => setIsSideModalOpen(false)}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground cursor-pointer p-1"
+          aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
+        {/* P1.4 Welcoming, progressively disclosed modal header */}
         <div className="space-y-1">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            <span>{userParticipation ? "Switch Stance / Side" : "Select Your Stance"}</span>
+            <span>{userParticipation ? "Change Your Position" : "Choose Your Stance"}</span>
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             {userParticipation
-              ? "Changing your mind based on evidence is a core truth-seeking action."
-              : "Choose a side to participate in structured claim creation."}
+              ? "In Discora, updating your position based on new evidence is recognized as a truth-seeking virtue."
+              : "Select a position to contribute from. You can update your stance as new arguments and evidence develop."}
           </p>
         </div>
 
@@ -111,70 +108,80 @@ export function DebateSidePickerModal() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Side Choices */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {/* Side Choices: Bilateral Proposition vs Opposition */}
+          <div className="grid grid-cols-1 gap-2.5">
             <button
               type="button"
               onClick={() => setSelectedSide("proposition")}
-              className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+              className={`rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
                 selectedSide === "proposition"
                   ? "border-blue-500 bg-blue-500/15 ring-2 ring-blue-500/30"
                   : "border-border bg-card/50 hover:bg-muted/40"
               }`}
             >
-              <span className="block text-[11px] font-black uppercase text-blue-400">PROPOSITION</span>
-              <span className="block text-xs font-semibold text-foreground mt-0.5 leading-tight">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase text-blue-400">PROPOSITION</span>
+                <span className="text-[10px] text-muted-foreground">Affirmative position</span>
+              </div>
+              <span className="block text-xs font-bold text-foreground mt-1 leading-tight">
                 {debate.propositionTitle || "Supports Motion"}
               </span>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Contribute claims and evidence that support this thesis.
+              </p>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedSide("opposition")}
-              className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+              className={`rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
                 selectedSide === "opposition"
                   ? "border-rose-500 bg-rose-500/15 ring-2 ring-rose-500/30"
                   : "border-border bg-card/50 hover:bg-muted/40"
               }`}
             >
-              <span className="block text-[11px] font-black uppercase text-rose-400">OPPOSITION</span>
-              <span className="block text-xs font-semibold text-foreground mt-0.5 leading-tight">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase text-rose-400">OPPOSITION</span>
+                <span className="text-[10px] text-muted-foreground">Counter position</span>
+              </div>
+              <span className="block text-xs font-bold text-foreground mt-1 leading-tight">
                 {debate.oppositionTitle || "Opposes Motion"}
               </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedSide("neutral")}
-              className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
-                selectedSide === "neutral"
-                  ? "border-amber-500 bg-amber-500/15 ring-2 ring-amber-500/30"
-                  : "border-border bg-card/50 hover:bg-muted/40"
-              }`}
-            >
-              <span className="block text-[11px] font-black uppercase text-amber-400">NEUTRAL</span>
-              <span className="block text-xs font-semibold text-foreground mt-0.5 leading-tight">
-                Observer Stance
-              </span>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Contribute claims and evidence that challenge this thesis.
+              </p>
             </button>
           </div>
 
-          {/* Mandatory Rationale Field when Switching Stance */}
-          {isSwitching && selectedSide !== "neutral" && (
+          {/* Progressive Context for First-Time Joiners */}
+          {!userParticipation && (
+            <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+              <Info className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>You can update your position at any time as new evidence is evaluated.</span>
+            </div>
+          )}
+
+          {/* Contextual Rationale Field strictly when Switching Stance */}
+          {isSwitching && (
             <div className="space-y-2 pt-2 border-t border-border/50">
-              <label className="block text-xs font-bold text-foreground">
-                Mandatory Evidence-Based Rationale (Min 50 characters)
-              </label>
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-foreground">
+                  What convinced you to change your mind? (Min 50 characters)
+                </label>
+                <p className="text-[11px] text-muted-foreground">
+                  Explain the evidence, argument, or line of reasoning that prompted your change of perspective. This is recorded in the debate&apos;s position history.
+                </p>
+              </div>
               <textarea
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Explain what evidence, argument, or reasoning convinced you to change your mind..."
+                placeholder="Describe what evidence or counter-argument changed your position..."
                 className="w-full rounded-xl border border-input bg-background/50 p-3 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                 disabled={isPending}
               />
               <div className="flex justify-between items-center text-[10px]">
-                <span className="text-muted-foreground">Logged immutably to side history</span>
+                <span className="text-muted-foreground">Positions have a 24-hour cooldown after switching</span>
                 <span className={reason.trim().length < 50 ? "text-amber-400 font-bold" : "text-emerald-400 font-bold"}>
                   {reason.trim().length} / 50 min
                 </span>
@@ -192,7 +199,7 @@ export function DebateSidePickerModal() {
             </button>
             <button
               type="submit"
-              disabled={isPending || (isSwitching && selectedSide !== "neutral" && reason.trim().length < 50)}
+              disabled={isPending || (isSwitching && reason.trim().length < 50)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-md hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
               {isPending ? (
@@ -203,7 +210,7 @@ export function DebateSidePickerModal() {
               ) : (
                 <>
                   <ArrowRightLeft className="h-3.5 w-3.5" />
-                  <span>{isSwitching ? "Confirm Side Switch" : "Join Stance"}</span>
+                  <span>{isSwitching ? "Confirm Position Change" : "Join Debate Stance"}</span>
                 </>
               )}
             </button>

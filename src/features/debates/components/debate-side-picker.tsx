@@ -32,7 +32,7 @@ export function DebateSidePicker({ roomId, debate }: DebateSidePickerProps) {
   if (!user) return null;
   if (isResolved) return null;
 
-  const handleJoin = async (side: "proposition" | "opposition" | "neutral") => {
+  const handleJoin = async (side: "proposition" | "opposition") => {
     try {
       await joinMutation.mutateAsync(side);
     } catch {
@@ -140,15 +140,6 @@ export function DebateSidePicker({ roomId, debate }: DebateSidePickerProps) {
           <span>Challenge the Motion</span>
         </button>
       </div>
-      <button
-        type="button"
-        onClick={() => handleJoin("neutral")}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-500/20 bg-slate-500/5 p-2.5 text-[11px] font-bold text-slate-400 transition-all hover:bg-slate-500/10 cursor-pointer disabled:opacity-50"
-      >
-        <Eye className="h-3.5 w-3.5" />
-        <span>Observe as Neutral</span>
-      </button>
     </div>
   );
 }

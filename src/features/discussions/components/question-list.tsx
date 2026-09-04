@@ -118,9 +118,14 @@ export function QuestionList({
       {/* 1. Ask a Question Form (Only authenticated users) */}
       {user ? (
         <div className="rounded-2xl border border-border bg-card/35 p-6 backdrop-blur-md shadow-lg space-y-4">
-          <div className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-primary" />
-            <h3 className="text-base font-bold text-foreground">Ask a Question</h3>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-primary" />
+              <h3 className="text-base font-bold text-foreground">Ask a Discussion Question</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Propose an open guiding question to explore key facets and frame claims in this discussion.
+            </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -227,14 +232,20 @@ export function QuestionList({
 
       {/* 2. Question Listing */}
       <div className="space-y-4">
-        <h4 className="text-base font-bold text-foreground flex items-center gap-2">
-          <span>Active Questions</span>
-          {questions && (
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {questions.length}
-            </span>
-          )}
-        </h4>
+        <div className="space-y-1">
+          <h4 className="text-base font-bold text-foreground flex items-center gap-2">
+            <HelpCircle className="h-4 w-4 text-primary" />
+            <span>Discussion Questions</span>
+            {questions && (
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {questions.length}
+              </span>
+            )}
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            Open questions that help explore what this discussion is really about.
+          </p>
+        </div>
 
         {isQuestionsLoading ? (
           <div className="space-y-3">

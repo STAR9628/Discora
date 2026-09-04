@@ -9,7 +9,7 @@ import {
 } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
 import type { DiscussionMessage, DiscussionQuestion } from "@/features/discussions/types";
-import { MessageSquare, AlertCircle, Compass, Loader2, Send, HelpCircle, ArrowLeft, RotateCcw } from "lucide-react";
+import { MessageSquare, AlertCircle, Compass, Loader2, Send, HelpCircle, ArrowLeft, RotateCcw, X, Sparkles } from "lucide-react";
 import { ClaimList } from "./claim-list";
 import { ExtractClaimModal } from "./extract-claim-modal";
 import { QuestionList } from "./question-list";
@@ -23,6 +23,7 @@ import { DiscussionHeader } from "./discussion-header";
 import { OpeningPremise } from "./opening-premise";
 import { SectionNav } from "./section-nav";
 import { RoomEvidenceSection } from "./room-evidence-section";
+import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
 
 interface DiscussionRoomProps {
   initialData: DiscussionFeedItem;
@@ -60,6 +61,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
   const [scrollToClaimId, setScrollToClaimId] = useState<string | null>(null);
   const [showRetractConfirm, setShowRetractConfirm] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<DiscussionQuestion | null>(null);
+  const [showPostFeedback, setShowPostFeedback] = useState(false);
   const highlightHandled = useRef(false);
 
   // URL Question filter parameter synchronization
@@ -167,7 +169,10 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
       });
       setMainContent("");
       setMainAnonymous(false);
-      toast.success("Contribution posted successfully.");
+      setShowPostFeedback(true);
+      toast.success("Contribution posted successfully.", {
+        description: "Your contribution is part of the discussion. You can extract claims or attach evidence.",
+      });
     } catch (err) {
       setMainError(err instanceof Error ? err.message : "Failed to post message.");
     }
@@ -185,6 +190,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
       identityMode: anonymous ? "anonymous" : "public",
     });
     setActiveReplyId(null);
+    setShowPostFeedback(true);
     toast.success("Reply posted.");
   }, [postMutation, room.id]);
 
@@ -217,14 +223,10 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const handleNavigateToEvidence = useCallback((claimId: string) => {
-    const evEl = document.getElementById("evidence");
-    if (evEl) {
-      evEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      handleNavigateToClaim(claimId);
-    }
-  }, [handleNavigateToClaim]);
+  const handleNavigateToEvidence = useCallback((_claimId: string) => {
+    const evSec = document.getElementById("evidence");
+    if (evSec) evSec.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const openQuestionsCount = useMemo(
     () => questions?.filter((q) => !q.isRetracted).length ?? 0,
@@ -232,7 +234,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
   );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-20 px-2 sm:px-4">
+    <div className="mx-auto w-full max-w-5xl space-y-8 pb-16">
       {/* Discussion Header */}
       <DiscussionHeader
         initialData={initialData}
@@ -253,13 +255,16 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
         contributionCount={messages?.length ?? 0}
       />
 
-      {/* SECTION 1: QUESTIONS */}
+      {/* SECTION 1: DISCUSSION QUESTIONS (P1.3 Progressive Disclosure) */}
       <section id="questions" aria-labelledby="questions-heading" className="space-y-4 pt-2">
-        <div className="border-b border-border pb-2 flex items-center justify-between">
+        <div className="border-b border-border pb-2">
           <h2 id="questions-heading" className="text-lg font-bold text-foreground flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-primary" />
-            <span>Questions & Inquiries</span>
+            <span>Discussion Questions</span>
           </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Open questions that help explore what this discussion is really about.
+          </p>
         </div>
 
         {selectedQuestion ? (
@@ -365,6 +370,29 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
           </h2>
         </div>
 
+        {/* P1.2 Contextual Post-Contribution Guidance Banner */}
+        {showPostFeedback && (
+          <div className="flex items-start justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-xs animate-in fade-in duration-200">
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>Your contribution is now part of the discussion.</span>
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                Next step (optional): If your post introduces a distinct factual claim, value judgment, or policy recommendation, you can click &ldquo;Extract Claim&rdquo; below your comment to elevate it into the formal Claims registry, or link supporting evidence.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPostFeedback(false)}
+              className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer p-0.5"
+              aria-label="Dismiss notice"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {isMessagesLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
@@ -416,7 +444,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
           </div>
         )}
 
-        {/* Post Form */}
+        {/* P0.1 Post Form for Authenticated Users or Guest Prompt for Visitors */}
         {user ? (
           <div className="border-t border-border/40 pt-6 space-y-3">
             <h3 className="text-sm font-bold text-foreground">Contribute to Discussion</h3>
@@ -479,7 +507,11 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
               </div>
             </form>
           </div>
-        ) : null}
+        ) : (
+          <div className="border-t border-border/40 pt-6">
+            <GuestContributionPrompt roomType="discussion" />
+          </div>
+        )}
       </section>
 
       {/* Shared Modals */}

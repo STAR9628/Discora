@@ -5,7 +5,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { usePostMessage, useUpdateMessage, useRoomEvidence, usePaginatedEvidence, usePaginatedThreads, useRoomMessageCount, useThreadTarget } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionMessage, DiscussionClaim } from "@/features/discussions/types";
 import type { DebateRoomData } from "@/features/debates/services/debate-service";
-import { MessageSquare, AlertCircle, Compass, Loader2, Send } from "lucide-react";
+import { MessageSquare, AlertCircle, Compass, Loader2, Send, X, Sparkles } from "lucide-react";
 import { ExtractClaimModal } from "@/features/discussions/components/extract-claim-modal";
 import { ReportDialog } from "@/features/discussions/components/report-dialog";
 import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-reputation";
@@ -22,6 +22,8 @@ import { DebateSectionNav } from "./debate-section-nav";
 import { DebateArgumentList } from "./debate-argument-list";
 import { DebateInquiriesTab } from "./debate-inquiries-tab";
 import { DebateSidePickerModal } from "./debate-side-picker-modal";
+import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
+import { toast } from "@/components/ui/toast";
 
 interface DebateRoomProps {
   initialData: DebateRoomData;
@@ -44,7 +46,7 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
   const {
     items: messages,
     isLoading: isMessagesLoading,
-    error: messagesError,
+
     hasMore: threadsHasMore,
     isLoadingMore: threadsLoadingMore,
     loadMore: loadMoreThreads,
@@ -144,6 +146,7 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
   const [mainContent, setMainContent] = useState("");
   const [mainAnonymous, setMainAnonymous] = useState(false);
   const [mainError, setMainError] = useState<string | null>(null);
+  const [showPostFeedback, setShowPostFeedback] = useState(false);
 
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [activeEditId, setActiveEditId] = useState<string | null>(null);
@@ -170,6 +173,10 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
       });
       setMainContent("");
       setMainAnonymous(false);
+      setShowPostFeedback(true);
+      toast.success("Contribution posted successfully.", {
+        description: "Your contribution is part of the debate. You can elevate key points into claims or inquiries.",
+      });
     } catch (err) {
       setMainError(err instanceof Error ? err.message : "Failed to post message.");
     }
@@ -187,6 +194,8 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
       identityMode: anonymous ? "anonymous" : "public",
     });
     setActiveReplyId(null);
+    setShowPostFeedback(true);
+    toast.success("Reply posted.");
   }, [postMutation, room.id]);
 
   const handleUpdateMessage = useCallback(async (messageId: string, content: string) => {
@@ -196,6 +205,7 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
 
     await updateMutation.mutateAsync({ id: messageId, content: trimmed });
     setActiveEditId(null);
+    toast.success("Message updated.");
   }, [updateMutation]);
 
   const commentTree = useMemo(
@@ -257,22 +267,45 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
 
       {activeSection === "contributions" && (
         <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <span>Unstructured Contributions ({messageCount ?? messages.length})</span>
+          <div className="flex items-center justify-between border-b border-border/70 pb-3">
+            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              <span>Contributions</span>
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {messageCount ?? messages.length}
+              </span>
             </h2>
+          </div>
 
-            {isMessagesLoading ? (
+          {/* P1.2 Contextual Post-Contribution Guidance Banner */}
+          {showPostFeedback && (
+            <div className="flex items-start justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-xs animate-in fade-in duration-200">
+              <div className="space-y-1">
+                <p className="font-semibold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>Your contribution is now part of the debate.</span>
+                </p>
+                <p className="text-muted-foreground leading-relaxed">
+                  Next step (optional): If your post makes a distinct empirical or logical assertion, you can click &ldquo;Extract Claim&rdquo; below your comment to elevate it into debate arguments, or submit a Structured Inquiry.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPostFeedback(false)}
+                className="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer p-0.5"
+                aria-label="Dismiss notice"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {isMessagesLoading && messages.length === 0 ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-24 rounded-xl border border-border/60 bg-card/25 p-4 animate-pulse" />
+                  <div key={i} className="h-28 rounded-xl border border-border bg-card/20 p-4 animate-pulse" />
                 ))}
-              </div>
-            ) : messagesError ? (
-              <div className="flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-xs text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Failed to load contributions: {(messagesError as Error).message}</span>
               </div>
             ) : commentTree.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border/80 bg-card/20 p-8 text-center space-y-2">
@@ -340,7 +373,8 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
             )}
           </div>
 
-          {user && (
+          {/* P0.1 Authenticated Form or Guest Participation Prompt */}
+          {user ? (
             <div className="border-t border-border/50 pt-6 space-y-4">
               <h3 className="text-sm font-bold text-foreground">Contribute to the Discussion Thread</h3>
               <form onSubmit={handlePostMain} className="space-y-4">
@@ -357,7 +391,7 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
                     value={mainContent}
                     onChange={(e) => setMainContent(e.target.value)}
                     placeholder="State your argument, reference evidence, or respond to the thread..."
-                    className="w-full rounded-xl border border-input bg-background/50 p-3 text-xs outline-none focus:border-primary"
+                    className="w-full rounded-xl border border-input bg-background/50 p-3 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                     disabled={postMutation.isPending}
                   />
                 </div>
@@ -390,6 +424,10 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
                   </button>
                 </div>
               </form>
+            </div>
+          ) : (
+            <div className="border-t border-border/50 pt-6">
+              <GuestContributionPrompt roomType="debate" />
             </div>
           )}
         </div>

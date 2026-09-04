@@ -22,7 +22,7 @@ export function RoomSectionShell({ roomType, slug, title, description, premise, 
     { id: "overview", label: "Overview", href: `${basePath}/${slug}`, icon: LayoutDashboard },
     { id: reasoning, label: roomType === "debate" ? "Arguments" : "Claims", href: `${basePath}/${slug}/${reasoning}`, icon: FileText },
     { id: "evidence", label: "Evidence", href: `${basePath}/${slug}/evidence`, icon: FileText },
-    { id: "questions", label: "Questions", href: `${basePath}/${slug}/questions`, icon: HelpCircle },
+    { id: "questions", label: roomType === "debate" ? "Structured Inquiries" : "Discussion Questions", href: `${basePath}/${slug}/questions`, icon: HelpCircle },
     { id: "contributions", label: "Contributions", href: `${basePath}/${slug}/contributions`, icon: MessageSquare },
   ] as const;
 
