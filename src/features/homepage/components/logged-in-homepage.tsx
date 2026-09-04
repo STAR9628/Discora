@@ -342,7 +342,7 @@ function MyOpenInquiries() {
           {inquiries.map((inquiry) => (
             <Link
               key={inquiry.id}
-              href={`/discussions/${inquiry.roomSlug}`}
+              href={`/inquiries/${inquiry.id}`}
               className="group flex flex-col gap-1 rounded-xl border border-border bg-card/40 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-border/80"
             >
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -391,7 +391,7 @@ function MyInquiryResponses() {
           {responses.map((r) => (
             <Link
               key={r.inquiryId}
-              href={`/discussions/${r.roomSlug}`}
+              href={`/inquiries/${r.inquiryId}`}
               className="group flex flex-col gap-1 rounded-xl border border-border bg-card/40 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-border/80"
             >
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -538,15 +538,15 @@ function getConsensusInsight(item: UnderstandingEvolved): string {
   if (item.consensusRatio === null) return "No consensus data yet";
   if (item.consensusRatio >= 60) {
     return item.myVote === "agree"
-      ? "Consensus now favors your position"
-      : "Consensus shifted away from your position";
+      ? `Current consensus aligns with your position (${item.consensusRatio}% agree)`
+      : `Current consensus challenges your position (${item.consensusRatio}% agree)`;
   }
   if (item.consensusRatio <= 40) {
     return item.myVote === "agree"
-      ? "Consensus shifted away from your position"
-      : "Consensus now favors your position";
+      ? `Current consensus challenges your position (${item.consensusRatio}% agree)`
+      : `Current consensus aligns with your position (${item.consensusRatio}% agree)`;
   }
-  return "Discussion remains divided";
+  return `Discussion remains divided (${item.consensusRatio}% agree)`;
 }
 
 function getConsensusBadge(item: UnderstandingEvolved): {
@@ -556,13 +556,13 @@ function getConsensusBadge(item: UnderstandingEvolved): {
   if (item.consensusRatio === null) return null;
   if (item.consensusRatio >= 60) {
     return item.myVote === "agree"
-      ? { label: "Favors your position", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" }
-      : { label: "Against your position", className: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+      ? { label: "Aligns with your vote", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" }
+      : { label: "Challenges your vote", className: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
   }
   if (item.consensusRatio <= 40) {
     return item.myVote === "agree"
-      ? { label: "Against your position", className: "bg-rose-500/10 text-rose-400 border-rose-500/20" }
-      : { label: "Favors your position", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+      ? { label: "Challenges your vote", className: "bg-rose-500/10 text-rose-400 border-rose-500/20" }
+      : { label: "Aligns with your vote", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
   }
   return { label: "Divided", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
 }
@@ -677,18 +677,82 @@ function UnderstandingEvolved() {
 }
 
 function PersonalizedUpdates() {
+  const openInquiries = useMyOpenInquiries();
+  const inquiryResponses = useMyInquiryResponses();
+  const debatesAttention = useMyDebatesAttention();
+  const topicEvidence = useMyTopicEvidence(7);
+  const understandingEvolved = useMyUnderstandingEvolved();
+  const { data: onboarding } = useOnboardingStatus();
+
+  const hasActivity =
+    (openInquiries.data?.length ?? 0) > 0 ||
+    (inquiryResponses.data?.length ?? 0) > 0 ||
+    (debatesAttention.data?.length ?? 0) > 0 ||
+    (topicEvidence.data?.length ?? 0) > 0 ||
+    (understandingEvolved.data?.length ?? 0) > 0;
+
+  const isLoading =
+    openInquiries.isLoading ||
+    inquiryResponses.isLoading ||
+    debatesAttention.isLoading ||
+    topicEvidence.isLoading ||
+    understandingEvolved.isLoading;
+
+  if (isLoading) {
+    return (
+      <section className="space-y-4">
+        <div className="border-b border-border pb-2">
+          <h2 className="text-lg font-semibold text-foreground">
+            Your Inquiries &amp; Understanding
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <LoadingCard />
+          <LoadingCard />
+        </div>
+      </section>
+    );
+  }
+
+  if (!hasActivity) {
+    if (onboarding?.isFirstTime) return null;
+
+    return (
+      <section className="space-y-3">
+        <div className="rounded-xl border border-dashed border-border/80 bg-card/20 p-5 text-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">
+                Your understanding trail
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Vote on a claim or open a structured inquiry across discussions to start tracking how consensus and evidence develop over time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6">
-      <div className="border-b border-border pb-2">
+      <div className="border-b border-border pb-2 flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
         <h2 className="text-lg font-semibold text-foreground">
-          Your Activity
+          Your Inquiries &amp; Understanding
         </h2>
+        <span className="text-xs text-muted-foreground">
+          Active deliberations and inquiries you participate in
+        </span>
       </div>
-      <MyOpenInquiries />
       <MyInquiryResponses />
+      <MyOpenInquiries />
+      <UnderstandingEvolved />
       <DebatesNeedingAttention />
       <NewEvidenceTopics />
-      <UnderstandingEvolved />
     </section>
   );
 }
@@ -699,9 +763,9 @@ export function LoggedInHomepage() {
       <WelcomeBar />
       <FirstUserBanner />
       <QuickActions />
+      <PersonalizedUpdates />
       <RecentDiscussions />
       <RecentDebates />
-      <PersonalizedUpdates />
     </div>
   );
 }
