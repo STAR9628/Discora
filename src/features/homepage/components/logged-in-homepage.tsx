@@ -19,6 +19,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
 import {
   useMyOpenInquiries,
+  useInquiriesOnMyClaims,
   useMyInquiryResponses,
   useMyDebatesAttention,
   useMyTopicEvidence,
@@ -27,6 +28,7 @@ import {
   useRecentDebates,
   useOnboardingStatus,
 } from "../hooks/use-homepage";
+import type { InquiriesOnMyClaim } from "../services/homepage-personal-service";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
 import type { DebateFeedItem } from "@/features/debates/services/debate-service";
 import type { UnderstandingEvolved } from "../services/homepage-personal-service";
@@ -370,6 +372,77 @@ function MyOpenInquiries() {
   );
 }
 
+function InquiriesOnMyClaims() {
+  const { data, isLoading, error } = useInquiriesOnMyClaims();
+  const inquiries = data ?? [];
+
+  if (!isLoading && !error && inquiries.length === 0) return null;
+
+  return (
+    <section className="space-y-3">
+      <SectionHeader title="Inquiries on Your Claims" icon={HelpCircle} />
+      {isLoading ? (
+        <div className="space-y-3">
+          <LoadingCard />
+          <LoadingCard />
+        </div>
+      ) : error ? (
+        <ErrorMessage message="Could not load inquiries on your claims." />
+      ) : (
+        <div className="space-y-3">
+          {inquiries.map((inquiry: InquiriesOnMyClaim) => (
+            <Link
+              key={inquiry.id}
+              href={`/inquiries/${inquiry.id}`}
+              className="group flex flex-col gap-2 rounded-xl border border-amber-500/30 bg-amber-950/10 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-amber-500/60"
+            >
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold uppercase tracking-wider text-amber-400">
+                    Structured Challenge
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="capitalize text-muted-foreground">{inquiry.inquiryType.replace("_", " ")}</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="truncate max-w-[160px] sm:max-w-[240px]">{inquiry.roomTitle}</span>
+                </div>
+                <span className="shrink-0 text-xs font-medium text-amber-400/90 group-hover:text-amber-300 transition-colors flex items-center gap-1">
+                  Review Inquiry
+                  <ArrowRight className="h-3 w-3" />
+                </span>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-foreground group-hover:text-amber-300 transition-colors line-clamp-2">
+                  &ldquo;{inquiry.content}&rdquo;
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-card/60 border border-border/50 px-3 py-2 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground/80">On your claim: </span>
+                <span className="line-clamp-1 italic text-foreground/70">&ldquo;{inquiry.targetClaimContent}&rdquo;</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3 w-3 text-muted-foreground" />
+                  <span>Raised by {inquiry.inquiryUsername}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span>
+                    {inquiry.responseCount} response{inquiry.responseCount !== 1 ? "s" : ""}
+                  </span>
+                  <span className="capitalize">{inquiry.status}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MyInquiryResponses() {
   const { data, isLoading, error } = useMyInquiryResponses();
   const responses = data ?? [];
@@ -677,6 +750,7 @@ function UnderstandingEvolved() {
 }
 
 function PersonalizedUpdates() {
+  const inquiriesOnClaims = useInquiriesOnMyClaims();
   const openInquiries = useMyOpenInquiries();
   const inquiryResponses = useMyInquiryResponses();
   const debatesAttention = useMyDebatesAttention();
@@ -685,6 +759,7 @@ function PersonalizedUpdates() {
   const { data: onboarding } = useOnboardingStatus();
 
   const hasActivity =
+    (inquiriesOnClaims.data?.length ?? 0) > 0 ||
     (openInquiries.data?.length ?? 0) > 0 ||
     (inquiryResponses.data?.length ?? 0) > 0 ||
     (debatesAttention.data?.length ?? 0) > 0 ||
@@ -692,6 +767,7 @@ function PersonalizedUpdates() {
     (understandingEvolved.data?.length ?? 0) > 0;
 
   const isLoading =
+    inquiriesOnClaims.isLoading ||
     openInquiries.isLoading ||
     inquiryResponses.isLoading ||
     debatesAttention.isLoading ||
@@ -748,6 +824,7 @@ function PersonalizedUpdates() {
           Active deliberations and inquiries you participate in
         </span>
       </div>
+      <InquiriesOnMyClaims />
       <MyInquiryResponses />
       <MyOpenInquiries />
       <UnderstandingEvolved />

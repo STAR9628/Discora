@@ -14,6 +14,22 @@ export interface MyOpenInquiry {
   createdAt: string;
 }
 
+export interface InquiriesOnMyClaim {
+  id: string;
+  roomId: string;
+  roomTitle: string;
+  roomSlug: string;
+  content: string;
+  inquiryType: string;
+  status: string;
+  targetClaimId: string;
+  targetClaimContent: string;
+  inquiryUsername: string;
+  inquiryAvatarUrl: string | null;
+  responseCount: number;
+  createdAt: string;
+}
+
 export interface InquiryResponse {
   inquiryId: string;
   inquiryContent: string;
@@ -68,6 +84,13 @@ export async function getMyOpenInquiries(): Promise<MyOpenInquiry[]> {
   return ((data || []) as Record<string, unknown>[]).map(mapOpenInquiry);
 }
 
+export async function getInquiriesOnMyClaims(limit: number = 5): Promise<InquiriesOnMyClaim[]> {
+  const supabase = createBrowserSupabaseClient();
+  const { data, error } = await supabase.rpc("get_inquiries_on_my_claims", { p_limit: limit });
+  if (error) throw new Error(mapSupabaseError(error, "Failed to load inquiries on your claims"));
+  return ((data || []) as Record<string, unknown>[]).map(mapInquiryOnMyClaim);
+}
+
 export async function getMyInquiryResponses(): Promise<InquiryResponse[]> {
   const supabase = createBrowserSupabaseClient();
   const { data, error } = await supabase.rpc("get_my_inquiry_responses");
@@ -106,6 +129,24 @@ function mapOpenInquiry(row: Record<string, unknown>): MyOpenInquiry {
     inquiryType: String(row.inquiry_type ?? ""),
     status: String(row.status ?? ""),
     targetClaimContent: row.target_claim_content ? String(row.target_claim_content) : null,
+    responseCount: Number(row.response_count ?? 0),
+    createdAt: String(row.created_at ?? ""),
+  };
+}
+
+function mapInquiryOnMyClaim(row: Record<string, unknown>): InquiriesOnMyClaim {
+  return {
+    id: String(row.id ?? ""),
+    roomId: String(row.room_id ?? ""),
+    roomTitle: String(row.room_title ?? ""),
+    roomSlug: String(row.room_slug ?? ""),
+    content: String(row.content ?? ""),
+    inquiryType: String(row.inquiry_type ?? ""),
+    status: String(row.status ?? ""),
+    targetClaimId: String(row.target_claim_id ?? ""),
+    targetClaimContent: String(row.target_claim_content ?? ""),
+    inquiryUsername: String(row.inquiry_username ?? "Contributor"),
+    inquiryAvatarUrl: row.inquiry_avatar_url ? String(row.inquiry_avatar_url) : null,
     responseCount: Number(row.response_count ?? 0),
     createdAt: String(row.created_at ?? ""),
   };

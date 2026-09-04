@@ -6,6 +6,7 @@ import { getDebates } from "@/features/debates/services/debate-service";
 import { getHomepageMetrics, getFeaturedInquiries } from "../services/homepage-service";
 import {
   getMyOpenInquiries,
+  getInquiriesOnMyClaims,
   getMyInquiryResponses,
   getMyDebatesAttention,
   getMyTopicEvidence,
@@ -57,6 +58,16 @@ export function useRecentDebates(limit = 5) {
     queryKey: ["homepage", "recent-debates", limit],
     queryFn: () => getDebates("active", "newest", null, limit),
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useInquiriesOnMyClaims(limit = 5) {
+  const { status } = useAuth();
+  return useQuery({
+    queryKey: ["homepage", "inquiries-on-my-claims", limit],
+    queryFn: () => getInquiriesOnMyClaims(limit),
+    enabled: status === "authenticated",
+    staleTime: 30_000,
   });
 }
 
