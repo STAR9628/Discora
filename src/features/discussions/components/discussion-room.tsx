@@ -24,6 +24,8 @@ import { OpeningPremise } from "./opening-premise";
 import { SectionNav } from "./section-nav";
 import { RoomEvidenceSection } from "./room-evidence-section";
 import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
+import { StateOfUnderstanding } from "./state-of-understanding";
+import { useInquiryCountsForRoom } from "@/features/debates/hooks/use-inquiries";
 
 interface DiscussionRoomProps {
   initialData: DiscussionFeedItem;
@@ -101,11 +103,14 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
     claims,
     roomEvidence,
     questions,
+    claimRelations,
     claimQuestionMap,
     messageToClaimMap,
     messageEvidenceMap,
     claimedMessageIds,
   } = useDiscussionData();
+
+  const { data: inquiryCounts } = useInquiryCountsForRoom(room.id);
 
   const postMutation = usePostMessage();
   const updateMutation = useUpdateMessage(room.id);
@@ -276,7 +281,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const handleNavigateToEvidence = useCallback((_claimId: string) => {
+  const handleNavigateToEvidence = useCallback(() => {
     const evSec = document.getElementById("evidence");
     if (evSec) evSec.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
@@ -302,6 +307,26 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
 
       {/* 3B.3 Guest Room Orientation */}
       {!user && <RoomOrientationNote />}
+
+      {/* State of Understanding */}
+      <StateOfUnderstanding
+        claims={claims}
+        roomEvidence={roomEvidence}
+        questions={questions}
+        claimRelations={claimRelations}
+        inquiryCounts={inquiryCounts}
+        onNavigateToClaim={handleNavigateToClaim}
+        onNavigateToEvidence={handleNavigateToEvidence}
+        onNavigateToQuestions={(qId) => {
+          if (qId && questions) {
+            const found = questions.find((q) => q.id === qId);
+            if (found) handleSelectQuestion(found);
+          } else {
+            const qSec = document.getElementById("questions");
+            if (qSec) qSec.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }}
+      />
 
       {/* Sticky Section Navigation */}
       <SectionNav

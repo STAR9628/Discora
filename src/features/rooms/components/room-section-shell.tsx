@@ -15,6 +15,7 @@ type RoomSectionShellProps = {
   premise?: string | null;
   section: RoomSection;
   children: React.ReactNode;
+  beforeNav?: React.ReactNode;
 };
 
 
@@ -70,7 +71,7 @@ function RoomOrientationNote() {
   );
 }
 
-export function RoomSectionShell({ roomType, slug, title, description, premise, section, children }: RoomSectionShellProps) {
+export function RoomSectionShell({ roomType, slug, title, description, premise, section, children, beforeNav }: RoomSectionShellProps) {
   const { user } = useAuth();
   const basePath = roomType === "debate" ? "/debates" : "/discussions";
   const reasoning = roomType === "debate" ? "arguments" : "claims";
@@ -94,6 +95,8 @@ export function RoomSectionShell({ roomType, slug, title, description, premise, 
       </header>
 
       {roomType === "discussion" && !user && <RoomOrientationNote />}
+
+      {beforeNav}
 
       <nav aria-label={`${roomType} room sections`} className="sticky top-0 z-30 -mx-4 overflow-hidden border-y border-border/70 bg-background/90 px-4 py-2 backdrop-blur-md sm:-mx-6 sm:px-6">
         <div className="flex min-w-max gap-2 overflow-x-auto no-scrollbar">
