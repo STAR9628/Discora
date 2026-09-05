@@ -45,7 +45,8 @@ export async function updateSupabaseSession(request: NextRequest) {
   const isProtectedPath =
     pathname.startsWith("/protected") ||
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/discussions/create");
+    pathname.startsWith("/discussions/create") ||
+    pathname.startsWith("/debates/create");
 
   if (!user && isProtectedPath) {
     const redirectUrl = request.nextUrl.clone();
