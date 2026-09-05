@@ -1,5 +1,6 @@
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
 import { mapSupabaseError } from "@/lib/errors";
+import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
 import type {
   ForgotPasswordFormValues,
   LoginFormValues,
@@ -50,10 +51,20 @@ export async function registerWithEmail(
 
 export async function loginWithGoogle(options?: { redirectTo?: string }): Promise<void> {
   const supabase = createBrowserSupabaseClient();
+  const siteUrl = getSiteUrl();
+  let callbackUrl = `${siteUrl}/auth/callback`;
+
+  if (options?.redirectTo) {
+    const safeTarget = getSafeRedirectUrl(options.redirectTo, "/");
+    if (safeTarget && safeTarget !== "/") {
+      callbackUrl += `?next=${encodeURIComponent(safeTarget)}`;
+    }
+  }
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: options?.redirectTo || `${getSiteUrl()}/auth/callback`,
+      redirectTo: callbackUrl,
       queryParams: {
         prompt: "select_account",
       },
