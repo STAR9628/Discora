@@ -18,21 +18,16 @@ import {
   AlertCircle,
   Plus,
   Loader2,
-  User,
   HelpCircle,
   Send,
-  RotateCcw,
-  MessageSquare,
   ChevronDown,
   ChevronUp,
   ThumbsUp,
   ThumbsDown,
-  Flag,
   FileText,
   GitBranch,
   ArrowRight,
   ArrowDown,
-  ArrowLeft,
 } from "lucide-react";
 import { EvidenceSection } from "./evidence-section";
 import type {
@@ -45,13 +40,10 @@ import type {
 import { ClaimRelationDialog } from "./claim-relation-dialog";
 import { ClaimCredibilityBadge } from "@/features/reputation/components/claim-credibility-badge";
 import { CredibilityTooltip } from "@/features/reputation/components/credibility-tooltip";
-import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
 import { computeCredibility } from "@/features/reputation/reputation-utils";
-import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-reputation";
 import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { formatDate } from "@/lib/date";
 import { InquiryButton } from "@/features/debates/components/inquiry-button";
 import { InquiryCreateDialog } from "@/features/debates/components/inquiry-create-dialog";
 import { InquiryList } from "@/features/debates/components/inquiry-list";
@@ -145,9 +137,6 @@ export function ClaimList({
     }
   }
 
-  const authorIds = claims?.filter((c) => c.createdBy && c.identityMode !== "anonymous").map((c) => c.createdBy!) || [];
-  const { data: authorRepScores } = useAuthorsReputation(authorIds);
-
   const [relationDialogState, setRelationDialogState] = useState<{
     claim: DiscussionClaim;
     relationType: ClaimRelationType;
@@ -193,7 +182,6 @@ export function ClaimList({
       setAutoOpenEvidenceForm(scrollToClaimId);
     }
   }, [scrollToClaimId, autoOpenEvidence]);
-  const [navigatedFrom, setNavigatedFrom] = useState<{ sourceClaimId: string; targetClaimId: string } | null>(null);
   const [inquiryDialogClaimId, setInquiryDialogClaimId] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -481,8 +469,6 @@ export function ClaimList({
         ) : (
           <div className="space-y-3">
             {claims?.map((claim) => {
-              const isClaimAnon = claim.identityMode === "anonymous";
-              const isClaimDeleted = claim.username === "Deleted User";
               const isOwnClaim = claim.createdBy === user?.id;
 
               const accentBorderMap: Record<string, string> = {
@@ -644,9 +630,7 @@ export function ClaimList({
                     <RelationPreview
                       claimId={claim.id}
                       relations={claimRelations}
-                      onNavigateToClaim={(targetClaimId) =>
-                        setNavigatedFrom({ sourceClaimId: claim.id, targetClaimId })
-                      }
+                      onNavigateToClaim={() => {}}
                     />
                   )}
 

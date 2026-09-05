@@ -157,6 +157,7 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
               <div className="flex items-center gap-2">
                 <div className="h-4.5 w-4.5 overflow-hidden rounded-full border border-border/60 bg-muted flex items-center justify-center">
                   {ev.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={ev.avatarUrl} alt={`${ev.username}'s avatar`} className="h-full w-full object-cover" />
                   ) : (
                     <User className="h-2.5 w-2.5 text-muted-foreground/60" />

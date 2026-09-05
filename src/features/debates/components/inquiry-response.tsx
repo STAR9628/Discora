@@ -16,6 +16,7 @@ export function InquiryResponse({ content, username, avatarUrl, createdAt }: Inq
     <div className="flex gap-2 pl-3 border-l-2 border-border/30 py-1.5">
       <div className="h-5 w-5 shrink-0 overflow-hidden rounded-full border border-border/60 bg-muted flex items-center justify-center">
         {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
         ) : (
           <User className="h-3 w-3 text-muted-foreground/60" />

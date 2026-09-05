@@ -149,6 +149,7 @@ export const CommentItem = memo(function CommentItem({
 
         <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border/60 bg-muted flex items-center justify-center">
           {message.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={message.avatarUrl} alt={`${message.username}'s avatar`} className="h-full w-full object-cover" />
           ) : (
             <User className={`h-4.5 w-4.5 ${isAnonymous ? "text-muted-foreground/60" : "text-muted-foreground"}`} />
