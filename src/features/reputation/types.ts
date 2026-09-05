@@ -71,14 +71,6 @@ export interface TrustBadge {
   earnedAt?: string;
 }
 
-export interface LeaderboardEntry {
-  userId: string;
-  username: string;
-  avatarUrl: string | null;
-  score: number;
-  rank: number;
-}
-
 export interface ReputationSnapshot {
   id: string;
   userId: string;
