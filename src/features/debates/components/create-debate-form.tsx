@@ -6,16 +6,19 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useTopics } from "@/features/discussions/hooks/use-discussions";
-import { useCreateDebate } from "@/features/debates/hooks/use-debates";
+import { useCreateDebate, useCreatePrivateDebate } from "@/features/debates/hooks/use-debates";
 import { debateSchema, type DebateFormValues } from "@/features/discussions/validation";
-import { Loader2, AlertCircle, Swords, Check } from "lucide-react";
+import type { CreatedDebateResult } from "@/features/debates/services/debate-service";
+import { Loader2, AlertCircle, Swords, Check, Lock, Globe } from "lucide-react";
 
 export function CreateDebateForm() {
   const router = useRouter();
   const { user, status } = useAuth();
   const { data: topics, isLoading: isTopicsLoading, error: topicsError } = useTopics();
   const createDebateMutation = useCreateDebate();
+  const createPrivateDebateMutation = useCreatePrivateDebate();
   const [formError, setFormError] = useState<string | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const {
     register,
@@ -58,15 +61,29 @@ export function CreateDebateForm() {
   const onSubmit = async (values: DebateFormValues) => {
     setFormError(null);
     try {
-      const result = await createDebateMutation.mutateAsync({
-        title: values.title,
-        description: values.description || undefined,
-        topicId: values.topicId,
-        openingStatement: values.openingStatement,
-      });
+      let roomSlug: string | undefined;
+      if (isPrivate) {
+        const debateResult = await createPrivateDebateMutation.mutateAsync({
+          title: values.title,
+          description: values.description || undefined,
+          topicId: values.topicId,
+          propositionTitle: "Supports the motion",
+          oppositionTitle: "Opposes the motion",
+          openingStatement: values.openingStatement,
+        }) as CreatedDebateResult;
+        roomSlug = debateResult?.room?.slug;
+      } else {
+        const debateResult = await createDebateMutation.mutateAsync({
+          title: values.title,
+          description: values.description || undefined,
+          topicId: values.topicId,
+          openingStatement: values.openingStatement,
+        });
+        roomSlug = debateResult?.room?.slug;
+      }
 
-      if (result?.room?.slug) {
-        router.push(`/discussions/${result.room.slug}`);
+      if (roomSlug) {
+        router.push(`/debates/${roomSlug}`);
       } else {
         throw new Error("Invalid response received from service layer.");
       }
@@ -143,6 +160,44 @@ export function CreateDebateForm() {
               <span>{errors.description.message}</span>
             </p>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-semibold flex items-center justify-between">
+            <span>Visibility</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setIsPrivate(false)}
+              className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+                !isPrivate
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/10"
+                  : "border-border bg-card hover:border-muted-foreground/30"
+              }`}
+            >
+              <Globe className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Public</p>
+                <p className="text-xs text-muted-foreground">Anyone can discover and join</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPrivate(true)}
+              className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+                isPrivate
+                  ? "border-primary bg-primary/5 ring-2 ring-primary/10"
+                  : "border-border bg-card hover:border-muted-foreground/30"
+              }`}
+            >
+              <Lock className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Private</p>
+                <p className="text-xs text-muted-foreground">Invite-only or access code</p>
+              </div>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">

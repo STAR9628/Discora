@@ -90,6 +90,7 @@ export interface DebateParticipant {
   userId: string;
   side: DebateSide;
   joinedAt: string;
+  removedAt?: string | null;
 }
 
 export interface DebateSideChange {

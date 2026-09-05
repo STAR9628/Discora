@@ -438,3 +438,287 @@ export async function resolveDebate(
     throw new Error(mapSupabaseError(error, "Failed to resolve debate"));
   }
 }
+
+export async function createPrivateDebate(
+  data: {
+    title: string;
+    description?: string;
+    topicId: string;
+    propositionTitle: string;
+    oppositionTitle: string;
+    openingStatement: string;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<CreatedDebateResult> {
+  const supabase = getClient(overrideClient);
+
+  const { data: roomId, error: rpcError } = await supabase.rpc(
+    "create_private_debate_room",
+    {
+      p_title: data.title,
+      p_description: data.description || null,
+      p_topic_id: data.topicId,
+      p_proposition_title: data.propositionTitle,
+      p_opposition_title: data.oppositionTitle,
+      p_opening_statement: data.openingStatement || null,
+    },
+  );
+
+  if (rpcError || !roomId) {
+    throw new Error(mapSupabaseError(rpcError, "Failed to create private debate room"));
+  }
+
+  const { data: { user: creator } } = await supabase.auth.getUser();
+
+  if (creator) {
+    const { error: joinError } = await supabase
+      .from("debate_participants")
+      .upsert({
+        room_id: roomId,
+        user_id: creator.id,
+        side: "proposition",
+      }, {
+        onConflict: "room_id,user_id",
+      });
+
+    if (joinError) {
+      console.warn("Failed to auto-join creator to proposition:", joinError.message);
+    }
+  }
+
+  const { data: roomResult, error: readError } = await supabase
+    .from("rooms")
+    .select(`
+      *,
+      debates!left (*)
+    `)
+    .eq("id", roomId)
+    .single();
+
+  if (readError || !roomResult) {
+    throw new Error(mapSupabaseError(readError, "Failed to retrieve the created debate details"));
+  }
+
+  const joinedRow = roomResult as unknown as DbRoomRow & { debates: DbDebateRow | null };
+
+  return {
+    room: mapRoomRow(joinedRow),
+    debate: joinedRow.debates ? mapDebateRow(joinedRow.debates) : null as unknown as Debate,
+  };
+}
+
+export async function createRoomInvitation(
+  data: {
+    roomId: string;
+    invitedUserId?: string;
+    invitedEmail?: string;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<{ invitationId: string; invitationToken: string }> {
+  const supabase = getClient(overrideClient);
+
+  const { data: invitationToken, error: rpcError } = await supabase.rpc(
+    "create_room_invitation",
+    {
+      p_room_id: data.roomId,
+      p_invited_user_id: data.invitedUserId || null,
+      p_invited_email: data.invitedEmail || null,
+    },
+  );
+
+  if (rpcError || !invitationToken) {
+    throw new Error(mapSupabaseError(rpcError, "Failed to create invitation"));
+  }
+
+  return { invitationId: invitationToken, invitationToken };
+}
+
+export async function setRoomAccessCode(
+  data: {
+    roomId: string;
+    code: string;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { error } = await supabase.rpc("set_room_access_code", {
+    p_room_id: data.roomId,
+    p_code: data.code,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to set access code"));
+  }
+}
+
+export async function removeDebateParticipant(
+  data: {
+    roomId: string;
+    userId: string;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { error } = await supabase.rpc("remove_participant", {
+    p_room_id: data.roomId,
+    p_user_id: data.userId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to remove participant"));
+  }
+}
+
+export async function publishDebateRoom(
+  roomId: string,
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { error } = await supabase.rpc("make_room_public", {
+    p_room_id: roomId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to publish debate room"));
+  }
+}
+
+export async function acceptInvitation(
+  data: {
+    roomId: string;
+    invitationToken: string;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { error } = await supabase.rpc("accept_invitation", {
+    p_invitation_token: data.invitationToken,
+    p_room_id: data.roomId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to accept invitation"));
+  }
+}
+
+export async function joinWithAccessCode(
+  data: {
+    roomId: string;
+    code: string;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { data: result, error } = await supabase.rpc("join_with_access_code", {
+    p_room_id: data.roomId,
+    p_code: data.code,
+  });
+
+  if (error) {
+    if (error.message?.includes("too_many_attempts") || error.message?.includes("rate_limit")) {
+      throw new Error("Too many failed attempts. Please wait 15 minutes before trying again.");
+    }
+    throw new Error(mapSupabaseError(error, "Failed to join with access code"));
+  }
+
+  if (result === null) {
+    throw new Error("Invalid access code.");
+  }
+}
+
+export async function getRoomInvitations(
+  roomId: string,
+  overrideClient?: SupabaseClient,
+): Promise<RoomInvitation[]> {
+  const supabase = getClient(overrideClient);
+
+  const { data, error } = await supabase
+    .from("room_invitations")
+    .select("*")
+    .eq("room_id", roomId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to load invitations"));
+  }
+
+  return (data || []).map((row: {
+    id: string;
+    room_id: string;
+    invited_by: string;
+    invited_user_id: string | null;
+    email: string | null;
+    invitation_token: string;
+    status: string;
+    accepted_at: string | null;
+    revoked_at: string | null;
+    created_at: string;
+    updated_at: string;
+  }) => ({
+    id: row.id,
+    roomId: row.room_id,
+    invitedBy: row.invited_by,
+    invitedUserId: row.invited_user_id,
+    email: row.email,
+    invitationToken: row.invitation_token,
+    status: row.status as "active" | "accepted" | "revoked",
+    acceptedAt: row.accepted_at,
+    revokedAt: row.revoked_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function revokeRoomInvitation(
+  invitationId: string,
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { error } = await supabase
+    .from("room_invitations")
+    .update({ status: "revoked", revoked_at: new Date().toISOString() })
+    .eq("id", invitationId);
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to revoke invitation"));
+  }
+}
+
+export interface RoomInvitation {
+  id: string;
+  roomId: string;
+  invitedBy: string;
+  invitedUserId: string | null;
+  email: string | null;
+  invitationToken: string;
+  status: "active" | "accepted" | "revoked";
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function setParticipantInvitesEnabled(
+  data: {
+    roomId: string;
+    enabled: boolean;
+  },
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  const { error } = await supabase.rpc("set_participant_invites_enabled", {
+    p_room_id: data.roomId,
+    p_enabled: data.enabled,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to update participant invites setting"));
+  }
+}

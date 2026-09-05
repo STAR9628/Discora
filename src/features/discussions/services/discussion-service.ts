@@ -26,6 +26,8 @@ export interface DbRoomRow {
   topic_id: string | null;
   created_at: string;
   updated_at: string;
+  access_code: string | null;
+  participant_invites_enabled: boolean;
 }
 
 export interface DbDiscussionRow {
@@ -157,6 +159,8 @@ export function mapRoomRow(row: DbRoomRow): Room {
     status: row.status,
     createdBy: row.created_by || "",
     topicId: row.topic_id || undefined,
+    accessCode: row.access_code || null,
+    participantInvitesEnabled: row.participant_invites_enabled,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

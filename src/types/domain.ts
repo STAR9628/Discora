@@ -81,6 +81,8 @@ export type Room = BaseEntity & {
   status: RoomStatus;
   createdBy: string;
   topicId?: string;
+  accessCode?: string | null;
+  participantInvitesEnabled?: boolean;
 };
 
 /**

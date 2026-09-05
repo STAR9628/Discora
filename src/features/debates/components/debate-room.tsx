@@ -23,21 +23,26 @@ import { DebateArgumentList } from "./debate-argument-list";
 import { DebateInquiriesTab } from "./debate-inquiries-tab";
 import { DebateSidePickerModal } from "./debate-side-picker-modal";
 import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
+import { PrivateDebateManagement } from "./private-debate-management";
+import { PrivateAccessGate } from "./private-access-gate";
 import { toast } from "@/components/ui/toast";
 
 interface DebateRoomProps {
   initialData: DebateRoomData;
   highlightId?: string | null;
   initialSection?: import("./debate-data-provider").DebateSection;
+  invitationToken?: string | null;
+  gateMode?: boolean;
 }
 
-function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
+function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: string | null; invitationToken?: string | null }) {
   const {
     room,
     debate,
     activeSection,
     setActiveSection,
     claims,
+    userParticipation,
   } = useDebateContext();
   const { user } = useAuth();
 
@@ -212,6 +217,19 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
     () => buildCommentTree(resolvedThread && !highlightInLoadedThread ? [...messages, ...resolvedThread.thread] : messages),
     [messages, resolvedThread, highlightInLoadedThread],
   );
+
+  // Private room access gate (client-side fallback if user is removed or not participant)
+  if (room.visibility === "private" && !userParticipation) {
+    return (
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <PrivateAccessGate
+          roomId={room.id}
+          roomSlug={room.slug}
+          initialInvitationToken={invitationToken}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -456,14 +474,33 @@ function InnerDebateRoom({ highlightId }: { highlightId?: string | null }) {
         entityTypeLabel={reportState?.entityTypeLabel || ""}
         roomId={room.id}
       />
+
+      {/* Private Debate Management */}
+      {room.visibility === "private" && userParticipation && (
+        <div className="mt-8 pt-6 border-t border-border/50">
+          <PrivateDebateManagement />
+        </div>
+      )}
     </div>
   );
 }
 
-export function DebateRoom({ initialData, highlightId, initialSection }: DebateRoomProps) {
+export function DebateRoom({ initialData, highlightId, initialSection, invitationToken, gateMode }: DebateRoomProps) {
+  if (gateMode) {
+    return (
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <PrivateAccessGate
+          roomId={initialData.room.id}
+          roomSlug={initialData.room.slug}
+          initialInvitationToken={invitationToken}
+        />
+      </div>
+    );
+  }
+
   return (
     <DebateDataProvider initialData={initialData} initialSection={initialSection}>
-      <InnerDebateRoom highlightId={highlightId} />
+      <InnerDebateRoom highlightId={highlightId} invitationToken={invitationToken} />
     </DebateDataProvider>
   );
 }
