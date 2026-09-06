@@ -7,7 +7,11 @@ import { useHasRole } from "@/features/auth/hooks/use-role";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
 import { Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield } from "lucide-react";
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenFeedback?: () => void;
+}
+
+export function Sidebar({ onOpenFeedback }: SidebarProps = {}) {
   const pathname = usePathname();
   const { status } = useAuth();
   const { data: profile, isLoading: isProfileLoading, error: profileError } = useCurrentProfile();
@@ -122,6 +126,18 @@ export function Sidebar() {
               </Link>
             ) : null}
           </div>
+        )}
+
+        {onOpenFeedback && (
+          <button
+            type="button"
+            onClick={onOpenFeedback}
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-medium text-muted-foreground/80 hover:bg-accent/50 hover:text-accent-foreground transition-colors cursor-pointer mt-1"
+            title="Send feedback"
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            <span>Feedback</span>
+          </button>
         )}
       </nav>
     </aside>

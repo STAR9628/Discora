@@ -383,6 +383,7 @@ export function useFlagEntity() {
       questionId?: string | null;
       claimId?: string | null;
       evidenceId?: string | null;
+      inquiryId?: string | null;
       reason: string;
       roomId?: string;
     }) => flagEntity(data),

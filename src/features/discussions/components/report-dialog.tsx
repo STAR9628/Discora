@@ -11,6 +11,7 @@ interface ReportDialogProps {
   questionId?: string | null;
   claimId?: string | null;
   evidenceId?: string | null;
+  inquiryId?: string | null;
   contentPreview: string;
   entityTypeLabel: string;
   roomId?: string;
@@ -23,6 +24,7 @@ export function ReportDialog({
   questionId = null,
   claimId = null,
   evidenceId = null,
+  inquiryId = null,
   contentPreview,
   entityTypeLabel,
   roomId,
@@ -130,6 +132,7 @@ export function ReportDialog({
         questionId,
         claimId,
         evidenceId,
+        inquiryId,
         reason: trimmedReason,
         roomId: roomId || undefined,
       });

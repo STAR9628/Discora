@@ -6,6 +6,8 @@ import type { CommentNode } from "@/features/discussions/utils/build-comment-tre
 import { formatDate } from "@/lib/date";
 import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
 import { User, Award, Reply, Edit3, Check, Loader2, Send, Clock, Flag, FileText, AlertCircle } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
+import { ReportDialog } from "./report-dialog";
 
 interface CommentItemProps {
   node: CommentNode;
@@ -27,6 +29,7 @@ interface CommentItemProps {
   onNavigateToClaims: () => void;
   onNavigateToClaim: (claimId: string) => void;
   onNavigateToEvidence: (claimId: string) => void;
+  roomId?: string;
 }
 
 export const CommentItem = memo(function CommentItem({
@@ -49,6 +52,7 @@ export const CommentItem = memo(function CommentItem({
   onNavigateToClaims,
   onNavigateToClaim,
   onNavigateToEvidence,
+  roomId,
 }: CommentItemProps) {
   const { message, children } = node;
   const isSystem = message.messageType === "system";
@@ -87,6 +91,11 @@ export const CommentItem = memo(function CommentItem({
   const [editContent, setEditContent] = useState(message.content);
   const [editError, setEditError] = useState<string | null>(null);
   const [isEditSaving, setIsEditSaving] = useState(false);
+  const [reportState, setReportState] = useState<{
+    messageId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,14 +296,25 @@ export const CommentItem = memo(function CommentItem({
                 </button>
               )}
 
-              {!message.isModerated && message.username !== "Deleted User" && (
-                <button
-                  onClick={() => onReport(message)}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  <Flag className="h-3.5 w-3.5 text-destructive/75" />
-                  <span>Report</span>
-                </button>
+              {!message.isModerated && message.username !== "Deleted User" && currentUserId && (
+                <Tooltip content="Report contribution">
+                  <button
+                    onClick={() => {
+                      if (roomId) {
+                        setReportState({
+                          messageId: message.id,
+                          contentPreview: message.content.slice(0, 100),
+                          entityTypeLabel: "Contribution",
+                        });
+                      } else {
+                        onReport(message);
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <Flag className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               )}
 
               {canEdit && (
@@ -397,9 +417,21 @@ export const CommentItem = memo(function CommentItem({
               onNavigateToClaims={onNavigateToClaims}
               onNavigateToClaim={onNavigateToClaim}
               onNavigateToEvidence={onNavigateToEvidence}
+              roomId={roomId}
             />
           ))}
         </div>
+      )}
+
+      {roomId && (
+        <ReportDialog
+          isOpen={!!reportState}
+          onClose={() => setReportState(null)}
+          messageId={reportState?.messageId || null}
+          contentPreview={reportState?.contentPreview || ""}
+          entityTypeLabel={reportState?.entityTypeLabel || ""}
+          roomId={roomId}
+        />
       )}
     </div>
   );

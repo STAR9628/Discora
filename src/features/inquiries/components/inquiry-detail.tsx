@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, HelpCircle, User, FileText, ChevronRight } from "lucide-react";
+import { ArrowLeft, HelpCircle, User, FileText, ChevronRight, Flag } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { ReportDialog } from "@/features/discussions/components/report-dialog";
 import { InquiryTypeBadge } from "./inquiry-type-badge";
 import { InquiryStatusPill } from "./inquiry-status-pill";
 import { InquirySatisfactionBar } from "./inquiry-satisfaction-bar";
@@ -30,12 +31,15 @@ export function InquiryDetail({
   roomType = "discussion",
 }: InquiryDetailProps) {
   const { user } = useAuth();
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const roomHref = roomSlug
     ? roomType === "debate"
       ? `/debates/${roomSlug}`
       : `/discussions/${roomSlug}`
     : "#";
+
+  const contentPreview = inquiry.content.slice(0, 100);
 
   return (
     <div className="space-y-6">
@@ -56,6 +60,17 @@ export function InquiryDetail({
         <div className="flex items-center gap-2">
           <InquiryTypeBadge type={inquiry.inquiryType} showPrompt />
           <InquiryStatusPill status={inquiry.status} />
+          {user && (
+            <button
+              type="button"
+              onClick={() => setIsReportOpen(true)}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-accent/50 hover:text-muted-foreground transition-colors"
+              title="Report this inquiry"
+              aria-label="Report this inquiry"
+            >
+              <Flag className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -129,6 +144,15 @@ export function InquiryDetail({
           <InquiryResponseForm inquiry={inquiry} />
         </div>
       </div>
+
+      <ReportDialog
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        inquiryId={inquiry.id}
+        contentPreview={contentPreview}
+        entityTypeLabel="Inquiry"
+        roomId={inquiry.roomId}
+      />
     </div>
   );
 }

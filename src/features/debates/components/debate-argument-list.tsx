@@ -7,6 +7,7 @@ import { ClaimList } from "@/features/discussions/components/claim-list";
 import { usePaginatedClaims, useClaimTarget } from "@/features/discussions/hooks/use-discussions";
 import { SectionTargetCard, SectionTargetLoader, SectionTargetError, targetMetaForClaim } from "@/features/discussions/components/section-target-card";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { ReportDialog } from "@/features/discussions/components/report-dialog";
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +22,12 @@ function SideClaims({ roomId, side, label, highlightId }: { roomId: string; side
 
   const inLoadedPage = claims.some((c) => c.id === highlightId);
   const targetQuery = useClaimTarget(!inLoadedPage ? highlightId : null, roomId);
+  const { user } = useAuth();
+  const [reportState, setReportState] = useState<{
+    evidenceId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   return (
     <div>
@@ -41,7 +48,14 @@ function SideClaims({ roomId, side, label, highlightId }: { roomId: string; side
         </>
       )}
       <div className="mt-3">
-        <ClaimList roomId={roomId} debateSide={side} scrollToClaimId={inLoadedPage ? highlightId : null} claims={claims} isLoading={isLoading} />
+        <ClaimList
+          roomId={roomId}
+          debateSide={side}
+          scrollToClaimId={inLoadedPage ? highlightId : null}
+          claims={claims}
+          isLoading={isLoading}
+          onReportEvidence={user ? (ev) => setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" }) : undefined}
+        />
         {hasMore && (
           <button
             onClick={loadMore}
@@ -53,6 +67,15 @@ function SideClaims({ roomId, side, label, highlightId }: { roomId: string; side
           </button>
         )}
       </div>
+
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        evidenceId={reportState?.evidenceId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
+      />
     </div>
   );
 }

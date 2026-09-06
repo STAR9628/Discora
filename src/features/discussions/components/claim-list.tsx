@@ -28,6 +28,7 @@ import {
   GitBranch,
   ArrowRight,
   ArrowDown,
+  Flag,
 } from "lucide-react";
 import { EvidenceSection } from "./evidence-section";
 import type {
@@ -48,6 +49,7 @@ import { InquiryButton } from "@/features/debates/components/inquiry-button";
 import { InquiryCreateDialog } from "@/features/debates/components/inquiry-create-dialog";
 import { InquiryList } from "@/features/debates/components/inquiry-list";
 import { useInquiryCountsForRoom } from "@/features/debates/hooks/use-inquiries";
+import { ReportDialog } from "./report-dialog";
 
 export const CLAIM_TYPE_DESCRIPTIONS: Record<string, string> = {
   fact: "Factual — an empirical statement that can be checked against evidence.",
@@ -71,7 +73,6 @@ interface ClaimListProps {
   autoOpenEvidence?: boolean;
   onScrollComplete?: () => void;
   claimQuestionMap?: Map<string, string>;
-  onReportClaim?: (claim: DiscussionClaim) => void;
   onReportEvidence?: (evidence: DiscussionEvidence) => void;
   debateSide?: "proposition" | "opposition" | null;
   claims?: DiscussionClaim[] | undefined;
@@ -85,7 +86,6 @@ export function ClaimList({
   autoOpenEvidence,
   onScrollComplete,
   claimQuestionMap,
-  onReportClaim,
   onReportEvidence,
   debateSide,
   claims: externalClaims,
@@ -185,6 +185,11 @@ export function ClaimList({
   const [inquiryDialogClaimId, setInquiryDialogClaimId] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [reportState, setReportState] = useState<{
+    claimId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   const anyRelationsOpen = Object.values(expandedRelations).some(Boolean);
   const { data: claimRelations } = useClaimRelations(roomId, anyRelationsOpen);
@@ -543,12 +548,20 @@ export function ClaimList({
                         </button>
                       )}
                       {user && (
-                        <button
-                          onClick={() => onReportClaim?.(claim)}
-                          className="text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                          Report
-                        </button>
+                        <Tooltip content="Report claim">
+                          <button
+                            onClick={() =>
+                              setReportState({
+                                claimId: claim.id,
+                                contentPreview: claim.content.slice(0, 100),
+                                entityTypeLabel: "Claim",
+                              })
+                            }
+                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            <Flag className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
                       )}
                     </div>
                   </div>
@@ -680,6 +693,15 @@ export function ClaimList({
           onClose={() => setRelationDialogState(null)}
         />
       )}
+
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        claimId={reportState?.claimId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
+      />
     </div>
   );
 }

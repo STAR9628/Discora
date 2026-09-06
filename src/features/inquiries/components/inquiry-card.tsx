@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { User, MessageSquare, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { User, MessageSquare, ChevronDown, ChevronUp, ExternalLink, Flag } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { ReportDialog } from "@/features/discussions/components/report-dialog";
 import { InquiryTypeBadge } from "./inquiry-type-badge";
 import { InquiryStatusPill } from "./inquiry-status-pill";
 import { InquirySatisfactionBar } from "./inquiry-satisfaction-bar";
@@ -12,6 +13,7 @@ import { InquiryResponseForm } from "./inquiry-response-form";
 import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
 import { formatDate } from "@/lib/date";
 import type { InquiryItem } from "../types";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface InquiryCardProps {
   inquiry: InquiryItem;
@@ -22,6 +24,9 @@ interface InquiryCardProps {
 export function InquiryCard({ inquiry, defaultExpanded = false, showLinkToStandalone = true }: InquiryCardProps) {
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+
+  const contentPreview = inquiry.content.slice(0, 100);
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card/50 p-4 md:p-5 space-y-3.5 shadow-sm backdrop-blur-sm transition-all hover:border-border">
@@ -32,16 +37,30 @@ export function InquiryCard({ inquiry, defaultExpanded = false, showLinkToStanda
           <InquiryStatusPill status={inquiry.status} />
         </div>
 
-        {showLinkToStandalone && (
-          <Link
-            href={`/inquiries/${inquiry.id}`}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-amber-400 transition-colors"
-            title="Open standalone inquiry page"
-          >
-            <span>Details</span>
-            <ExternalLink className="h-3 w-3" />
-          </Link>
-        )}
+        <div className="flex items-center gap-1">
+          {showLinkToStandalone && (
+            <Link
+              href={`/inquiries/${inquiry.id}`}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-amber-400 transition-colors"
+              title="Open standalone inquiry page"
+            >
+              <span>Details</span>
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          )}
+          {user && (
+            <Tooltip content="Report inquiry">
+              <button
+                type="button"
+                onClick={() => setIsReportOpen(true)}
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
+                aria-label="Report inquiry"
+              >
+                <Flag className="h-4 w-4" />
+              </button>
+            </Tooltip>
+          )}
+        </div>
       </div>
 
       {/* Main Question Content */}
@@ -98,6 +117,15 @@ export function InquiryCard({ inquiry, defaultExpanded = false, showLinkToStanda
           <InquiryResponseForm inquiry={inquiry} />
         </div>
       )}
+
+      <ReportDialog
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        inquiryId={inquiry.id}
+        contentPreview={contentPreview}
+        entityTypeLabel="Inquiry"
+        roomId={inquiry.roomId}
+      />
     </div>
   );
 }

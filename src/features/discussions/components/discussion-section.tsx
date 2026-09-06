@@ -13,9 +13,11 @@ import {
   useQuestionTarget,
   useClaimsByIds,
 } from "@/features/discussions/hooks/use-discussions";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, HelpCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { ReportDialog } from "./report-dialog";
 import type { DiscussionQuestion } from "../types";
 
 const DEFAULT_PAGE_SIZE = 15;
@@ -66,6 +68,12 @@ export function DiscussionClaimsSection({
 
   const inLoadedPage = claims.some((c) => c.id === highlightId);
   const targetQuery = useClaimTarget(!inLoadedPage ? highlightId : null, roomId);
+  const { user } = useAuth();
+  const [reportState, setReportState] = useState<{
+    evidenceId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   return (
     <div className="space-y-4">
@@ -93,6 +101,7 @@ export function DiscussionClaimsSection({
         debateSide={null}
         claims={claims}
         isLoading={isLoading}
+        onReportEvidence={user ? (ev) => setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" }) : undefined}
       />
 
       {error ? (
@@ -100,6 +109,15 @@ export function DiscussionClaimsSection({
       ) : null}
 
       <LoadMoreButton hasMore={hasMore} isLoadingMore={isLoadingMore} onLoadMore={loadMore} label="Load more claims" />
+
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        evidenceId={reportState?.evidenceId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
+      />
     </div>
   );
 }
@@ -119,6 +137,12 @@ export function DiscussionEvidenceSection({ roomId, highlightId }: { roomId: str
 
   const inLoadedPage = evidence.some((e) => e.id === highlightId);
   const targetQuery = useEvidenceTarget(!inLoadedPage ? highlightId : null, roomId);
+  const { user } = useAuth();
+  const [reportState, setReportState] = useState<{
+    evidenceId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   return (
     <div className="space-y-4">
@@ -139,11 +163,26 @@ export function DiscussionEvidenceSection({ roomId, highlightId }: { roomId: str
         </>
       )}
 
-      <RoomEvidenceSection roomId={roomId} claims={claims} evidenceList={evidence} isLoading={isLoading} />
+      <RoomEvidenceSection
+        roomId={roomId}
+        claims={claims}
+        evidenceList={evidence}
+        isLoading={isLoading}
+        onReportEvidence={user ? (ev) => setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" }) : undefined}
+      />
       {error ? (
         <div className="text-xs text-destructive">Failed to load evidence: {(error as Error).message}</div>
       ) : null}
       <LoadMoreButton hasMore={hasMore} isLoadingMore={isLoadingMore} onLoadMore={loadMore} label="Load more evidence" />
+
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        evidenceId={reportState?.evidenceId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
+      />
     </div>
   );
 }
@@ -195,7 +234,6 @@ export function DiscussionQuestionsSection({ roomId }: { roomId: string }) {
         questions={questions}
         isLoading={isLoading}
         onSelectQuestion={(question) => router.push(`?question=${question.id}`)}
-        onReportQuestion={() => undefined}
       />
 
       <LoadMoreButton hasMore={hasMore} isLoadingMore={isLoadingMore} onLoadMore={loadMore} label="Load more questions" />

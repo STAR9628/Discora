@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRoomEvidence } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionEvidence } from "@/features/discussions/types";
 import { formatDate } from "@/lib/date";
-import { AlertCircle, FileText, Link2, User } from "lucide-react";
+import { AlertCircle, FileText, Link2, User, Flag } from "lucide-react";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { Tooltip } from "@/components/ui/tooltip";
+import { ReportDialog } from "./report-dialog";
 
 interface RoomEvidenceTabProps {
   roomId: string;
@@ -24,6 +27,12 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
   const isLoading = hasExternal ? (externalLoading ?? false) : internalLoading;
   const scrollHandled = useRef(false);
   const pendingClaimHandled = useRef(false);
+  const { user } = useAuth();
+  const [reportState, setReportState] = useState<{
+    evidenceId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!scrollToEvidenceId || scrollHandled.current) return;
@@ -173,6 +182,22 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
               </div>
 
               <div className="flex items-center gap-3">
+                {user && (
+                  <Tooltip content="Report evidence">
+                    <button
+                      onClick={() =>
+                        setReportState({
+                          evidenceId: ev.id,
+                          contentPreview: ev.content.slice(0, 100),
+                          entityTypeLabel: "Evidence",
+                        })
+                      }
+                      className="text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <Flag className="h-4 w-4" />
+                    </button>
+                  </Tooltip>
+                )}
                 <div className="flex items-center gap-1.5 text-primary bg-primary/5 border border-primary/10 rounded-lg px-2.5 py-1 text-[11px] font-bold">
                   <Link2 className="h-3 w-3 shrink-0" />
                   <span className="truncate max-w-[150px]">
@@ -188,6 +213,15 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
           </div>
         ))}
       </div>
+
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        evidenceId={reportState?.evidenceId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
+      />
     </div>
   );
 }

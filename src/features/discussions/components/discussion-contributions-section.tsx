@@ -8,6 +8,7 @@ import type { DiscussionMessage } from "@/features/discussions/types";
 import { buildCommentTree } from "@/features/discussions/utils/build-comment-tree";
 import { CommentItem } from "./comment-item";
 import { ExtractClaimModal } from "./extract-claim-modal";
+import { ReportDialog } from "./report-dialog";
 import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
 import { toast } from "@/components/ui/toast";
 
@@ -23,6 +24,11 @@ export function DiscussionContributionsSection({ roomId }: { roomId: string }) {
   const [activeEditId, setActiveEditId] = useState<string | null>(null);
   const [showPostFeedback, setShowPostFeedback] = useState(false);
   const [extractComment, setExtractComment] = useState<DiscussionMessage | null>(null);
+  const [reportState, setReportState] = useState<{
+    messageId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   const tree = useMemo(() => (messages ? buildCommentTree(messages) : []), [messages]);
 
@@ -101,13 +107,20 @@ export function DiscussionContributionsSection({ roomId }: { roomId: string }) {
               claimedMessageIds={new Set()}
               messageToClaimMap={new Map()}
               messageEvidenceMap={new Map()}
+              roomId={roomId}
               onReply={reply}
               onEdit={async (id, value) => {
                 await update.mutateAsync({ id, content: value });
                 setActiveEditId(null);
               }}
               onExtractClaim={(msg) => setExtractComment(msg)}
-              onReport={() => undefined}
+              onReport={(msg) =>
+                setReportState({
+                  messageId: msg.id,
+                  contentPreview: msg.content,
+                  entityTypeLabel: "Message",
+                })
+              }
               onNavigateToClaims={() => undefined}
               onNavigateToClaim={() => undefined}
               onNavigateToEvidence={() => undefined}
@@ -162,6 +175,16 @@ export function DiscussionContributionsSection({ roomId }: { roomId: string }) {
         onClose={() => setExtractComment(null)}
         roomId={roomId}
         comment={extractComment}
+      />
+
+      {/* P1.3 Report Dialog for dedicated contributions route */}
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        messageId={reportState?.messageId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
       />
     </section>
   );

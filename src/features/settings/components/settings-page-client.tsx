@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useCurrentProfile, useUpdateProfile } from "@/features/profiles/hooks/use-profile";
 import { ProfileForm } from "@/features/profiles/components/profile-form";
 import { ReportHistory } from "@/features/safety/components/report-history";
+import { FeedbackModal } from "@/features/settings/components/feedback-modal";
 import { useUserPreferences, useUpsertUserPreferences } from "@/features/preferences/hooks/use-preferences";
 import {
   User,
@@ -16,6 +17,7 @@ import {
   Loader2,
   Info,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { privacySchema, type PrivacyFormValues } from "@/features/preferences/validation";
@@ -337,6 +339,8 @@ function PrivacyPanel() {
 }
 
 function SafetyPanel() {
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="mb-2">
@@ -360,6 +364,26 @@ function SafetyPanel() {
       </div>
 
       <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-md md:p-8">
+        <div className="mb-4 flex items-start gap-3">
+          <MessageSquare className="mt-0.5 h-5 w-5 text-primary" />
+          <div className="flex-1">
+            <h3 className="text-lg font-bold tracking-tight">Feedback</h3>
+            <p className="text-sm text-muted-foreground">
+              Report bugs, confusing UX, or suggest improvements. No personal info is collected.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsFeedbackOpen(true)}
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-background/50 px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent/40 transition-colors cursor-pointer"
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+          <span>Send Feedback</span>
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-md md:p-8">
         <div className="flex items-start gap-3">
           <Info className="mt-0.5 h-5 w-5 text-muted-foreground" />
           <div>
@@ -370,6 +394,8 @@ function SafetyPanel() {
           </div>
         </div>
       </div>
+
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
     </div>
   );
 }

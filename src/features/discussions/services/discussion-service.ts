@@ -1196,6 +1196,7 @@ export async function flagEntity(
     questionId?: string | null;
     claimId?: string | null;
     evidenceId?: string | null;
+    inquiryId?: string | null;
     reason: string;
   },
   overrideClient?: SupabaseClient,
@@ -1207,7 +1208,7 @@ export async function flagEntity(
     throw new Error("Must be authenticated to report content.");
   }
 
-  const references = [data.messageId, data.questionId, data.claimId, data.evidenceId].filter(Boolean);
+  const references = [data.messageId, data.questionId, data.claimId, data.evidenceId, data.inquiryId].filter(Boolean);
   if (references.length !== 1) {
     throw new Error("Exactly one entity must be reported.");
   }
@@ -1225,6 +1226,7 @@ export async function flagEntity(
     p_question_id: data.questionId || null,
     p_claim_id: data.claimId || null,
     p_evidence_id: data.evidenceId || null,
+    p_inquiry_id: data.inquiryId || null,
     p_reason: trimmedReason,
   });
 

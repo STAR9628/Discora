@@ -396,9 +396,6 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
                 roomId={room.id}
                 questionId={selectedQuestion.id}
                 claimQuestionMap={claimQuestionMap}
-                onReportClaim={(c) =>
-                  setReportState({ claimId: c.id, contentPreview: c.content, entityTypeLabel: "Claim" })
-                }
                 onReportEvidence={(ev) =>
                   setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" })
                 }
@@ -410,9 +407,6 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
           <QuestionList
             roomId={room.id}
             onSelectQuestion={handleSelectQuestion}
-            onReportQuestion={(q) =>
-              setReportState({ questionId: q.id, contentPreview: q.content, entityTypeLabel: "Question" })
-            }
           />
         )}
       </section>
@@ -428,9 +422,6 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
             setAutoOpenEvidence(false);
           }}
           claimQuestionMap={claimQuestionMap}
-          onReportClaim={(c) =>
-            setReportState({ claimId: c.id, contentPreview: c.content, entityTypeLabel: "Claim" })
-          }
           onReportEvidence={(ev) =>
             setReportState({ evidenceId: ev.id, contentPreview: ev.content, entityTypeLabel: "Evidence" })
           }

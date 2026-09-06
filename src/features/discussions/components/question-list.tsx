@@ -13,11 +13,12 @@ import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate } from "@/lib/date";
 import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
+import { ReportDialog } from "./report-dialog";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface QuestionListProps {
   roomId: string;
   onSelectQuestion: (question: DiscussionQuestion) => void;
-  onReportQuestion: (question: DiscussionQuestion) => void;
   questions?: DiscussionQuestion[] | undefined;
   isLoading?: boolean;
 }
@@ -25,7 +26,6 @@ interface QuestionListProps {
 export function QuestionList({
   roomId,
   onSelectQuestion,
-  onReportQuestion,
   questions: externalQuestions,
   isLoading: externalLoading,
 }: QuestionListProps) {
@@ -39,6 +39,11 @@ export function QuestionList({
 
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
+  const [reportState, setReportState] = useState<{
+    questionId: string;
+    contentPreview: string;
+    entityTypeLabel: string;
+  } | null>(null);
 
   // Form setup
   const {
@@ -319,16 +324,21 @@ export function QuestionList({
                         </button>
                       )}
                       {user && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onReportQuestion(question);
-                          }}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                        >
-                          <Flag className="h-3.5 w-3.5 text-destructive/75" />
-                          <span>Report</span>
-                        </button>
+                        <Tooltip content="Report question">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReportState({
+                                questionId: question.id,
+                                contentPreview: question.content.slice(0, 100),
+                                entityTypeLabel: "Question",
+                              });
+                            }}
+                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                          >
+                            <Flag className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
                       )}
                     </div>
                   </div>
@@ -401,6 +411,15 @@ export function QuestionList({
         variant="danger"
         onConfirm={executeRetract}
         onCancel={() => setPendingRetractId(null)}
+      />
+
+      <ReportDialog
+        isOpen={!!reportState}
+        onClose={() => setReportState(null)}
+        questionId={reportState?.questionId || null}
+        contentPreview={reportState?.contentPreview || ""}
+        entityTypeLabel={reportState?.entityTypeLabel || ""}
+        roomId={roomId}
       />
     </div>
   );
