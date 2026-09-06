@@ -182,6 +182,8 @@ alter table public.user_feedback enable row level security;
 revoke all on public.user_feedback from anon, authenticated;
 
 -- Policy: users can insert their own feedback (user_id must match auth.uid() or be null for guests)
+drop policy if exists "Users can insert own feedback" on public.user_feedback;
+
 create policy "Users can insert own feedback"
   on public.user_feedback
   for insert
@@ -192,6 +194,8 @@ create policy "Users can insert own feedback"
   );
 
 -- Policy: users can view their own feedback
+drop policy if exists "Users can view own feedback" on public.user_feedback;
+
 create policy "Users can view own feedback"
   on public.user_feedback
   for select
@@ -199,6 +203,8 @@ create policy "Users can view own feedback"
   using (user_id = auth.uid());
 
 -- Policy: admins/moderators can view all feedback
+drop policy if exists "Moderators and admins can view all feedback" on public.user_feedback;
+
 create policy "Moderators and admins can view all feedback"
   on public.user_feedback
   for select

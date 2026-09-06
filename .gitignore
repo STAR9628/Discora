@@ -29,3 +29,5 @@ Thumbs.db
 
 .discora-qa-credentials
 .playwright-cli/
+playwright-cli/
+test-results/
