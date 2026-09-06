@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   Hash,
   GitBranch,
+  Sparkles,
 } from "lucide-react";
+import { useOnboarding } from "@/features/onboarding";
 import {
   useHomepageMetrics,
   useFeaturedInquiries,
@@ -30,9 +32,21 @@ const CTA_LINKS = [
 ] as const;
 
 function HeroSection() {
+  const { openDeck } = useOnboarding();
+
   return (
     <div className="space-y-8 text-center">
       <div className="space-y-4">
+        <div className="inline-block">
+          <button
+            type="button"
+            onClick={() => openDeck()}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-sm"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>New to Discora? See how evidence-based discussion works (2 min)</span>
+          </button>
+        </div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           Structured Discussion &amp; Debate
         </h1>
@@ -145,15 +159,27 @@ function HowItWorks() {
     },
   ];
 
+  const { openDeck } = useOnboarding();
+
   return (
     <section className="space-y-4">
-      <div className="text-center sm:text-left space-y-1">
-        <h2 className="text-lg font-semibold text-foreground">
-          How Discora Works
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          A structured progression for exploring disagreements with clarity.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="text-center sm:text-left space-y-1">
+          <h2 className="text-lg font-semibold text-foreground">
+            How Discora Works
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            A structured progression for exploring disagreements with clarity.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => openDeck()}
+          className="inline-flex items-center gap-1.5 self-center sm:self-auto rounded-xl border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Interactive Sandbox &amp; Guide</span>
+        </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((s) => {

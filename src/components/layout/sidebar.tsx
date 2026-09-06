@@ -6,6 +6,7 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useHasRole } from "@/features/auth/hooks/use-role";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
 import { Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield } from "lucide-react";
+import { OnboardingTriggerButton } from "@/features/onboarding";
 
 interface SidebarProps {
   onOpenFeedback?: () => void;
@@ -128,17 +129,21 @@ export function Sidebar({ onOpenFeedback }: SidebarProps = {}) {
           </div>
         )}
 
-        {onOpenFeedback && (
-          <button
-            type="button"
-            onClick={onOpenFeedback}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-medium text-muted-foreground/80 hover:bg-accent/50 hover:text-accent-foreground transition-colors cursor-pointer mt-1"
-            title="Send feedback"
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            <span>Feedback</span>
-          </button>
-        )}
+        <div className="pt-2 border-t border-border mt-3 space-y-1">
+          <OnboardingTriggerButton className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-medium text-muted-foreground/80 hover:bg-accent/50 hover:text-accent-foreground transition-colors cursor-pointer" />
+
+          {onOpenFeedback && (
+            <button
+              type="button"
+              onClick={onOpenFeedback}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs font-medium text-muted-foreground/80 hover:bg-accent/50 hover:text-accent-foreground transition-colors cursor-pointer"
+              title="Send feedback"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span>Feedback</span>
+            </button>
+          )}
+        </div>
       </nav>
     </aside>
   );

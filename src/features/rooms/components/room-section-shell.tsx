@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { FileText, HelpCircle, LayoutDashboard, MessageSquare, Compass, X } from "lucide-react";
-import { useAuth } from "@/features/auth/hooks/use-auth";
+import { FileText, HelpCircle, LayoutDashboard, MessageSquare } from "lucide-react";
+
+import { RoomGuideCard } from "@/features/onboarding";
 
 export type RoomSection = "overview" | "claims" | "arguments" | "evidence" | "questions" | "contributions";
 
@@ -18,61 +18,7 @@ type RoomSectionShellProps = {
   beforeNav?: React.ReactNode;
 };
 
-
-function RoomOrientationNote() {
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const isOriented = sessionStorage.getItem("discora_room_oriented");
-    if (!isOriented) {
-      setDismissed(false);
-    }
-  }, []);
-
-  const handleDismiss = () => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("discora_room_oriented", "1");
-    }
-    setDismissed(true);
-  };
-
-  if (dismissed) return null;
-
-  return (
-    <div
-      data-testid="room-orientation-note"
-      className="rounded-xl border border-primary/25 bg-primary/5 p-4 text-xs text-foreground/90 backdrop-blur-sm relative flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-    >
-      <div className="space-y-1 max-w-2xl">
-        <div className="flex items-center gap-2 font-semibold text-foreground">
-          <Compass className="h-4 w-4 text-primary shrink-0" />
-          <span>Where should I start?</span>
-        </div>
-        <p className="text-muted-foreground leading-relaxed">
-          <span className="text-foreground font-medium">1. Read the premise above</span>
-          <span className="mx-1.5 text-muted-foreground/40">→</span>
-          <span className="text-foreground font-medium">2. Explore questions</span>
-          <span className="mx-1.5 text-muted-foreground/40">→</span>
-          <span className="text-foreground font-medium">3. Examine claims &amp; evidence</span>
-          <span className="mx-1.5 text-muted-foreground/40">→</span>
-          <span className="text-foreground font-medium">4. Contribute if you have something useful to add</span>
-        </p>
-      </div>
-      <button
-        onClick={handleDismiss}
-        className="self-end sm:self-center p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        aria-label="Dismiss orientation"
-        title="Dismiss orientation"
-      >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}
-
 export function RoomSectionShell({ roomType, slug, title, description, premise, section, children, beforeNav }: RoomSectionShellProps) {
-  const { user } = useAuth();
   const basePath = roomType === "debate" ? "/debates" : "/discussions";
   const reasoning = roomType === "debate" ? "arguments" : "claims";
   const sections = [
@@ -94,7 +40,8 @@ export function RoomSectionShell({ roomType, slug, title, description, premise, 
         {(premise || description) && <p className="mt-2 max-w-4xl text-sm leading-relaxed text-muted-foreground">{premise || description}</p>}
       </header>
 
-      {roomType === "discussion" && !user && <RoomOrientationNote />}
+      {/* Phase 5C Contextual Room Guide */}
+      <RoomGuideCard roomType={roomType} />
 
       {beforeNav}
 

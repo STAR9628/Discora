@@ -13,7 +13,6 @@ import {
   ArrowRight,
   Plus,
   Search,
-  Lightbulb,
   ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -34,6 +33,7 @@ import type { InquiriesOnMyClaim, NewEvidenceOnVotedClaim } from "../services/ho
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
 import type { DebateFeedItem } from "@/features/debates/services/debate-service";
 import type { UnderstandingEvolved } from "../services/homepage-personal-service";
+import { OnboardingChecklistCard } from "@/features/onboarding";
 
 function SectionHeader({
   title,
@@ -286,43 +286,7 @@ function RecentDebates() {
 }
 
 function FirstUserBanner() {
-  const { data: onboarding, isLoading } = useOnboardingStatus();
-
-  if (isLoading || !onboarding?.isFirstTime) return null;
-
-  return (
-    <section className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-card/30 p-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Lightbulb className="h-5 w-5" />
-        </div>
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-foreground">
-            Welcome to Discora
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Structured discussion starts with a question. Build understanding
-            one claim at a time: ask a question, support it with a claim, back
-            it with evidence, and track how your understanding evolves.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/discussions"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90"
-            >
-              Browse Discussions
-            </Link>
-            <Link
-              href="/discussions/create"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card/60 px-3.5 py-2 text-xs font-medium text-foreground transition-all hover:bg-card"
-            >
-              Start a Discussion
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+  return <OnboardingChecklistCard />;
 }
 
 function MyOpenInquiries() {

@@ -25,6 +25,7 @@ import { DebateSidePickerModal } from "./debate-side-picker-modal";
 import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
 import { PrivateDebateManagement } from "./private-debate-management";
 import { PrivateAccessGate } from "./private-access-gate";
+import { RoomGuideCard } from "@/features/onboarding";
 import { toast } from "@/components/ui/toast";
 
 interface DebateRoomProps {
@@ -245,6 +246,7 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
       {/* 4. Main Section Render */}
       {activeSection === "overview" && (
         <div className="space-y-6 animate-in fade-in duration-200">
+          <RoomGuideCard roomType="debate" />
           <DebateScorecard roomId={room.id} debateId={debate.id} />
           <DebateResolution roomId={room.id} debate={debate} roomCreatedBy={room.createdBy} />
           <PositionHistory roomId={room.id} />

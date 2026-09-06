@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { FeedbackModal } from "@/features/settings/components/feedback-modal";
+import { DiscoveryDeckModal } from "@/features/onboarding";
 
 type AppShellProps = {
   children: ReactNode;
@@ -24,6 +25,7 @@ export function AppShell({ children }: AppShellProps) {
       </div>
       <MobileNav />
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+      <DiscoveryDeckModal />
     </div>
   );
 }
