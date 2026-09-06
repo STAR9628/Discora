@@ -16,9 +16,10 @@ type RoomSectionShellProps = {
   section: RoomSection;
   children: React.ReactNode;
   beforeNav?: React.ReactNode;
+  headerAction?: React.ReactNode;
 };
 
-export function RoomSectionShell({ roomType, slug, title, description, premise, section, children, beforeNav }: RoomSectionShellProps) {
+export function RoomSectionShell({ roomType, slug, title, description, premise, section, children, beforeNav, headerAction }: RoomSectionShellProps) {
   const basePath = roomType === "debate" ? "/debates" : "/discussions";
   const reasoning = roomType === "debate" ? "arguments" : "claims";
   const sections = [
@@ -32,12 +33,17 @@ export function RoomSectionShell({ roomType, slug, title, description, premise, 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 pb-16">
       <header className="rounded-2xl border border-border/80 bg-card/50 p-5 shadow-lg backdrop-blur-md md:p-6">
-        <div className="flex flex-wrap items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-primary">
-          <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1">{roomType}</span>
-          {section !== "overview" && <span className="text-muted-foreground">{section === "arguments" ? "Arguments" : section}</span>}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-primary">
+              <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1">{roomType}</span>
+              {section !== "overview" && <span className="text-muted-foreground">{section === "arguments" ? "Arguments" : section}</span>}
+            </div>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">{title}</h1>
+            {(premise || description) && <p className="mt-2 max-w-4xl text-sm leading-relaxed text-muted-foreground">{premise || description}</p>}
+          </div>
+          {headerAction && <div className="shrink-0 pt-1">{headerAction}</div>}
         </div>
-        <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">{title}</h1>
-        {(premise || description) && <p className="mt-2 max-w-4xl text-sm leading-relaxed text-muted-foreground">{premise || description}</p>}
       </header>
 
       {/* Phase 5C Contextual Room Guide */}

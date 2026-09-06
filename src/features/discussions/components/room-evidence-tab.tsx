@@ -8,6 +8,7 @@ import { AlertCircle, FileText, Link2, User, Flag } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ReportDialog } from "./report-dialog";
+import { SaveButton } from "@/features/saves/components/save-button";
 
 interface RoomEvidenceTabProps {
   roomId: string;
@@ -181,24 +182,25 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
                 <span>{formatDate(ev.createdAt, { month: "short", day: "numeric" })}</span>
               </div>
 
-              <div className="flex items-center gap-3">
-                {user && (
-                  <Tooltip content="Report evidence">
-                    <button
-                      onClick={() =>
-                        setReportState({
-                          evidenceId: ev.id,
-                          contentPreview: ev.content.slice(0, 100),
-                          entityTypeLabel: "Evidence",
-                        })
-                      }
-                      className="text-muted-foreground hover:text-foreground cursor-pointer"
-                    >
-                      <Flag className="h-4 w-4" />
-                    </button>
-                  </Tooltip>
-                )}
-                <div className="flex items-center gap-1.5 text-primary bg-primary/5 border border-primary/10 rounded-lg px-2.5 py-1 text-[11px] font-bold">
+               <div className="flex items-center gap-3">
+                 {user && (
+                   <Tooltip content="Report evidence">
+                     <button
+                       onClick={() =>
+                         setReportState({
+                           evidenceId: ev.id,
+                           contentPreview: ev.content.slice(0, 100),
+                           entityTypeLabel: "Evidence",
+                         })
+                       }
+                       className="text-muted-foreground hover:text-foreground cursor-pointer"
+                     >
+                       <Flag className="h-4 w-4" />
+                     </button>
+                   </Tooltip>
+                 )}
+                 <SaveButton targetType="evidence" targetId={ev.id} />
+                 <div className="flex items-center gap-1.5 text-primary bg-primary/5 border border-primary/10 rounded-lg px-2.5 py-1 text-[11px] font-bold">
                   <Link2 className="h-3 w-3 shrink-0" />
                   <span className="truncate max-w-[150px]">
                     {ev.sourceUrl ? (

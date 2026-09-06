@@ -7,6 +7,7 @@ import type { DiscussionEvidence, DiscussionClaim } from "@/features/discussions
 import { FileText, ThumbsUp, ThumbsDown, GitBranch, ExternalLink, Search, RotateCcw, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SaveButton } from "@/features/saves/components/save-button";
 
 interface RoomEvidenceSectionProps {
   roomId: string;
@@ -329,6 +330,8 @@ function EvidenceCardItem({
               Report
             </button>
           )}
+
+          <SaveButton targetType="evidence" targetId={evidence.id} />
         </div>
       </div>
     </article>

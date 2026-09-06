@@ -14,6 +14,7 @@ import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-repu
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate } from "@/lib/date";
+import { SaveButton } from "@/features/saves/components/save-button";
 
 interface EvidenceSectionProps {
   claimId: string;
@@ -431,6 +432,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                         <Flag className="h-3.5 w-3.5 text-destructive/75" />
                         <span>Report</span>
                       </button>
+                      <SaveButton targetType="evidence" targetId={ev.id} />
                     </>
                   )}
                 </div>

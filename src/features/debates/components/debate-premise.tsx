@@ -21,17 +21,19 @@ export function DebatePremise() {
           <Quote className="h-3.5 w-3.5 text-primary" />
           <span>Opening Premise & Context</span>
         </h2>
-        {isLong && (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
-            aria-expanded={isExpanded}
-          >
-            <span>{isExpanded ? "Show Less" : "Read Full Premise"}</span>
-            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isLong && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
+              aria-expanded={isExpanded}
+            >
+              <span>{isExpanded ? "Show Less" : "Read Full Premise"}</span>
+              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          )}
+        </div>
       </div>
 
       <p className="text-xs md:text-sm leading-relaxed text-foreground/85 whitespace-pre-wrap pl-3 border-l-2 border-primary/50">

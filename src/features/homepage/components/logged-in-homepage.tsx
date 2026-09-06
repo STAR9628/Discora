@@ -34,6 +34,8 @@ import type { DiscussionFeedItem } from "@/features/discussions/services/discuss
 import type { DebateFeedItem } from "@/features/debates/services/debate-service";
 import type { UnderstandingEvolved } from "../services/homepage-personal-service";
 import { OnboardingChecklistCard } from "@/features/onboarding";
+import { RecentlySavedSection } from "./recently-saved-section";
+import { RecentlyEngagedSection } from "./recently-engaged-section";
 
 function SectionHeader({
   title,
@@ -952,6 +954,8 @@ export function LoggedInHomepage() {
       <WelcomeBar />
       <FirstUserBanner />
       <QuickActions />
+      <RecentlySavedSection />
+      <RecentlyEngagedSection />
       <PersonalizedUpdates />
       <RecentDiscussions />
       <RecentDebates />

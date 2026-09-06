@@ -4,16 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { CirclePlus, Home, Search, User, Loader2, MessageSquare, Scale, Settings } from "lucide-react";
+import { CirclePlus, Home, Search, User, Loader2, MessageSquare, Scale, Settings, Bookmark } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
   const { status } = useAuth();
   const { data: profile, isLoading: isProfileLoading, error: profileError } = useCurrentProfile();
 
-  // Resolve Profile URL dynamically
-  // Unauthenticated users go to /settings/profile so middleware
-  // can intercept and redirect to /login?redirectedFrom=/settings/profile.
   const profileHref = (() => {
     if (status === "loading") return "#";
     if (status !== "authenticated") return "/settings/profile";
@@ -30,18 +27,20 @@ export function MobileNav() {
     { label: "Search", icon: Search, href: "/search" },
     { label: "Debates", icon: Scale, href: "/debates" },
     { label: "Create", icon: CirclePlus, href: "/discussions/create" },
+    ...(status === "authenticated" ? [{ label: "Saved", icon: Bookmark, href: "/saved" }] : []),
     { label: "Profile", icon: User, href: profileHref },
     { label: "Settings", icon: Settings, href: "/settings" },
   ];
 
   const isSettingsActive = pathname.startsWith("/settings");
+  const cols = mobileItems.length === 8 ? "grid-cols-8" : "grid-cols-7";
 
   return (
     <nav
       aria-label="Mobile navigation"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden"
     >
-      <ul className="grid grid-cols-7">
+      <ul className={`grid ${cols}`}>
         {mobileItems.map((item) => {
           const Icon = item.icon;
           const isProfileItem = item.label === "Profile";

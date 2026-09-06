@@ -50,6 +50,7 @@ import { InquiryCreateDialog } from "@/features/debates/components/inquiry-creat
 import { InquiryList } from "@/features/debates/components/inquiry-list";
 import { useInquiryCountsForRoom } from "@/features/debates/hooks/use-inquiries";
 import { ReportDialog } from "./report-dialog";
+import { SaveButton } from "@/features/saves/components/save-button";
 
 export const CLAIM_TYPE_DESCRIPTIONS: Record<string, string> = {
   fact: "Factual — an empirical statement that can be checked against evidence.",
@@ -563,6 +564,7 @@ export function ClaimList({
                           </button>
                         </Tooltip>
                       )}
+                      <SaveButton targetType="claim" targetId={claim.id} />
                     </div>
                   </div>
 

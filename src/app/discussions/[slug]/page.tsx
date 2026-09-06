@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/services/supabase/server";
 import { getDiscussionBySlug } from "@/features/discussions/services/discussion-service";
 import { RoomSectionShell } from "@/features/rooms/components/room-section-shell";
 import { DiscussionOverviewUnderstanding } from "@/features/discussions/components/discussion-overview-understanding";
+import { SaveButton } from "@/features/saves/components/save-button";
 
 type PageProps = {
   params: Promise<{
@@ -67,6 +68,9 @@ export default async function DiscussionRoomPage({ params }: PageProps) {
         description={discussionItem.room.description}
         premise={discussionItem.discussion?.openingStatement}
         section="overview"
+        headerAction={
+          <SaveButton targetType="discussion" targetId={discussionItem.room.id} showLabel />
+        }
         beforeNav={
           <DiscussionOverviewUnderstanding
             roomId={discussionItem.room.id}

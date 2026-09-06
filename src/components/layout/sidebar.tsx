@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useHasRole } from "@/features/auth/hooks/use-role";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
-import { Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield } from "lucide-react";
+import { Home, MessageSquare, Scale, Search as SearchIcon, User, Settings, Shield, Bookmark } from "lucide-react";
 import { OnboardingTriggerButton } from "@/features/onboarding";
 
 interface SidebarProps {
@@ -37,6 +37,9 @@ export function Sidebar({ onOpenFeedback }: SidebarProps = {}) {
     { label: "Discussions", icon: MessageSquare, href: "/discussions" },
     { label: "Search", icon: SearchIcon, href: "/search" },
     { label: "Debates", icon: Scale, href: "/debates" },
+    ...(status === "authenticated"
+      ? [{ label: "Saved", icon: Bookmark, href: "/saved" }]
+      : []),
     { label: "Profile", icon: User, href: profileHref },
   ];
 

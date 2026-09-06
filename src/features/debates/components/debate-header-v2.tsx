@@ -3,6 +3,7 @@
 import React from "react";
 import { Swords, CheckCircle2, AlertCircle, Shield, ArrowRightLeft, FileText } from "lucide-react";
 import { useDebateContext } from "./debate-data-provider";
+import { SaveButton } from "@/features/saves/components/save-button";
 
 export function DebateHeaderV2() {
   const {
@@ -46,47 +47,49 @@ export function DebateHeaderV2() {
           )}
         </div>
 
-        {/* User Participation Badge / CTA */}
-        <div className="flex items-center gap-2">
-          {userParticipation ? (
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-bold border ${
-                userParticipation.side === "proposition"
-                  ? "bg-blue-500/15 border-blue-500/30 text-blue-400"
-                  : userParticipation.side === "opposition"
-                  ? "bg-rose-500/15 border-rose-500/30 text-rose-400"
-                  : "bg-muted/60 border-border text-muted-foreground"
-              }`}>
-                <Shield className="h-3.5 w-3.5" />
-                Stance: {userParticipation.side === "proposition" ? "Proposition" : userParticipation.side === "opposition" ? "Opposition" : "Neutral Observer"}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setTargetSideToJoin(userParticipation.side === "proposition" ? "opposition" : "proposition");
-                  setIsSideModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1 rounded-lg border border-border bg-card hover:bg-muted/50 px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-                title="Switch side with mandatory rationale"
-              >
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                <span>Switch</span>
-              </button>
-            </div>
-          ) : (
+        <SaveButton targetType="debate" targetId={room.id} showLabel />
+      </div>
+
+      {/* User Participation Badge / CTA */}
+      <div>
+        {userParticipation ? (
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-bold border ${
+              userParticipation.side === "proposition"
+                ? "bg-blue-500/15 border-blue-500/30 text-blue-400"
+                : userParticipation.side === "opposition"
+                ? "bg-rose-500/15 border-rose-500/30 text-rose-400"
+                : "bg-muted/60 border-border text-muted-foreground"
+            }`}>
+              <Shield className="h-3.5 w-3.5" />
+              Stance: {userParticipation.side === "proposition" ? "Proposition" : userParticipation.side === "opposition" ? "Opposition" : "Neutral Observer"}
+            </span>
             <button
               type="button"
               onClick={() => {
-                setTargetSideToJoin("proposition");
+                setTargetSideToJoin(userParticipation.side === "proposition" ? "opposition" : "proposition");
                 setIsSideModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-card hover:bg-muted/50 px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+              title="Switch side with mandatory rationale"
             >
-              <Shield className="h-3.5 w-3.5" />
-              <span>Join Debate</span>
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              <span>Switch</span>
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setTargetSideToJoin("proposition");
+              setIsSideModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all cursor-pointer"
+          >
+            <Shield className="h-3.5 w-3.5" />
+            <span>Join Debate</span>
+          </button>
+        )}
       </div>
 
       {/* Motion Title */}
