@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDebates } from "@/features/debates/hooks/use-debates";
-import { Swords, Plus, Calendar, Users, FileText, Trophy, Clock, Loader2 } from "lucide-react";
+import { Swords, Plus, Calendar, Users, FileText, Clock, Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/date";
 import type { DebateSortOption, DebateFeedItem } from "@/features/debates/services/debate-service";
 
 export function BrowseDebates() {
-  const [statusFilter, setStatusFilter] = useState<"active" | "resolved" | "closing_soon">("active");
+  const [statusFilter, setStatusFilter] = useState<"active" | "closing_soon">("active");
   const [sort, setSort] = useState<DebateSortOption>("most_active");
 
   const { items: debates, isLoading, error, hasMore, isLoadingMore, loadMore } = useDebates(statusFilter, sort);
@@ -26,7 +26,7 @@ export function BrowseDebates() {
         </div>
         <Link
           href="/debates/create"
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-400 shadow-md transition-all hover:opacity-90 hover:scale-[1.02]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-400 shadow-xs transition-all duration-150 hover:bg-amber-500/20 active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" />
           <span>New Debate</span>
@@ -35,17 +35,17 @@ export function BrowseDebates() {
 
       {/* Status filter */}
       <div className="flex gap-2">
-        {(["active", "closing_soon", "resolved"] as const).map((status) => (
+        {(["active", "closing_soon"] as const).map((status) => (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all cursor-pointer ${
+            className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all duration-150 active:scale-[0.96] cursor-pointer ${
               statusFilter === status
-                ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                ? "bg-primary border-primary text-primary-foreground shadow-xs"
                 : "bg-card border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            {status === "active" ? "Active" : status === "closing_soon" ? "Closing Soon" : "Resolved"}
+            {status === "active" ? "Active" : "Closing Soon"}
           </button>
         ))}
       </div>
@@ -57,7 +57,7 @@ export function BrowseDebates() {
           <button
             key={s}
             onClick={() => setSort(s)}
-            className={`rounded-lg px-3 py-1 text-xs font-semibold border transition-all cursor-pointer ${
+            className={`rounded-lg px-3 py-1 text-xs font-semibold border transition-all duration-150 active:scale-[0.96] cursor-pointer ${
               sort === s
                 ? "border-primary/40 bg-primary/5 text-primary"
                 : "border-border text-muted-foreground hover:text-foreground"
@@ -97,7 +97,7 @@ export function BrowseDebates() {
           </div>
           <Link
             href="/debates/create"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:opacity-95 hover:scale-[1.02]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-all duration-150 hover:bg-primary/90 active:scale-[0.98]"
           >
             <Swords className="h-4 w-4" />
             <span>Launch the First Debate</span>
@@ -108,21 +108,15 @@ export function BrowseDebates() {
           {debates.map(({ room, debate }: DebateFeedItem) => (
             <article
               key={room.id}
-              className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card/45 p-6 backdrop-blur-sm shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-border"
+              className="group relative flex flex-col justify-between rounded-2xl border border-border/70 bg-card/40 p-6 backdrop-blur-sm shadow-xs transition-all duration-200 hover:border-border hover:bg-card/70"
             >
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/30">
                     Debate
                   </span>
-                  {debate.status === "resolved" && (
-                    <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <Trophy className="h-3 w-3" />
-                      Resolved
-                    </span>
-                  )}
                   {debate.status === "active" && (
-                    <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/30">
+                    <span className="rounded-full bg-blue-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-400 border border-blue-500/30">
                       Active
                     </span>
                   )}
@@ -146,18 +140,18 @@ export function BrowseDebates() {
 
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-1">
-                    <span className="font-extrabold text-blue-400 uppercase tracking-wider text-[9px]">Proposition</span>
-                    <p className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
+                    <span className="font-extrabold text-blue-400 uppercase tracking-wider text-xs">Proposition</span>
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">
                       &ldquo;{room.title}&rdquo;
                     </p>
                     <p className="font-semibold text-blue-400">Supports the motion</p>
                   </div>
-                  <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3 space-y-1">
-                    <span className="font-extrabold text-rose-400 uppercase tracking-wider text-[9px]">Opposition</span>
-                    <p className="text-[10px] text-muted-foreground/60 italic leading-relaxed">
+                  <div className="rounded-lg border border-slate-500/20 bg-slate-500/5 p-3 space-y-1">
+                    <span className="font-extrabold text-slate-400 uppercase tracking-wider text-xs">Opposition</span>
+                    <p className="text-xs text-muted-foreground italic leading-relaxed">
                       &ldquo;{room.title}&rdquo;
                     </p>
-                    <p className="font-semibold text-rose-400">Challenges the motion</p>
+                    <p className="font-semibold text-slate-400">Challenges the motion</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-1">
@@ -169,14 +163,6 @@ export function BrowseDebates() {
                     <Users className="h-3.5 w-3.5" />
                     {debate.propositionParticipantCount + debate.oppositionParticipantCount + debate.neutralParticipantCount} participants
                   </span>
-                  {debate.status === "resolved" && debate.resolution && (
-                    <span className="flex items-center gap-1 text-emerald-400">
-                      <Trophy className="h-3.5 w-3.5" />
-                      {(debate.resolution as { winner: string }).winner === "draw"
-                        ? "Draw"
-                        : `${(debate.resolution as { winner: string }).winner === "proposition" ? "Proposition" : "Opposition"} wins`}
-                    </span>
-                  )}
                 </div>
               </div>
 

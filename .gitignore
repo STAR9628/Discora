@@ -31,3 +31,6 @@ Thumbs.db
 .playwright-cli/
 playwright-cli/
 test-results/
+
+# local database backups (never commit production data)
+/backups/

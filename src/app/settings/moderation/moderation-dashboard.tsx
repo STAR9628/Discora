@@ -328,7 +328,7 @@ function ModerationFlagCard({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/30 pt-4">
-        <span className="text-[10px] italic text-muted-foreground/60">
+        <span className="text-xs italic text-muted-foreground">
           Flag ID: {flag.id}
         </span>
 

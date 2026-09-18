@@ -59,7 +59,7 @@ export function InquiryCreateDialog({ roomId, targetClaimId, isOpen, onClose }: 
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-extrabold text-foreground uppercase tracking-wider">
-            Ask a Question
+            Targeted Inquiry
           </h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
             <X className="h-4 w-4" />
@@ -90,7 +90,7 @@ export function InquiryCreateDialog({ roomId, targetClaimId, isOpen, onClose }: 
 
           <div>
             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-              Question
+              Inquiry
             </label>
             <textarea
               value={content}

@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/services/supabase/server";
-import { getDebateBySlug } from "@/features/debates/services/debate-service";
+import {
+  getDebateBySlug,
+  getDebateParticipants,
+  getClaimsBySide,
+} from "@/features/debates/services/debate-service";
+import { getEvidenceForRoom, getQuestions } from "@/features/discussions/services/discussion-service";
+import { getInquiriesByRoom } from "@/features/inquiries/services/inquiry-service";
 import { DebateRoom } from "@/features/debates/components/debate-room";
+import { getSiteUrl } from "@/lib/site-url";
+import { truncateText } from "@/lib/text";
+import { isPubliclyVisibleRoom } from "@/lib/seo/public-room";
+import { getBreadcrumbSchema, getDebateSchema } from "@/lib/seo/structured-data";
 
 type PageProps = {
   params: Promise<{
@@ -10,7 +20,6 @@ type PageProps = {
   }>;
   searchParams?: Promise<{
     highlight?: string;
-    invitation?: string;
   }>;
 };
 
@@ -25,11 +34,55 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     console.error("Error generating metadata for debate:", error);
   }
 
+  const siteUrl = await getSiteUrl();
+  const isPublicRoom = debateData?.room.visibility === "public";
+
+  if (!debateData || !isPublicRoom) {
+    return {
+      title: "Debate | Discora",
+      description: "Browse and participate in structured debates on Discora.",
+      metadataBase: new URL(siteUrl),
+      robots: { index: false },
+    };
+  }
+
+  const description =
+    truncateText(debateData.room.description || debateData.debate.openingStatement) ||
+    "A structured debate on Discora.";
+
   return {
-    title: debateData ? `${debateData.room.title} | Discora Debate` : "Debate | Discora",
-    description:
-      debateData?.room.description ||
-      "Browse and participate in structured debates on Discora.",
+    title: debateData.room.title,
+    description,
+    metadataBase: new URL(siteUrl),
+    alternates: { canonical: `/debates/${slug}` },
+    openGraph: {
+      type: "article",
+      title: debateData.room.title,
+      description,
+      url: `/debates/${slug}`,
+      siteName: "Discora",
+    },
+    other: {
+      "script:ld+json": [
+        JSON.stringify(
+          getBreadcrumbSchema([
+            { name: "Home", url: siteUrl },
+            { name: "Debates", url: `${siteUrl}/debates` },
+            { name: debateData.room.title, url: `${siteUrl}/debates/${slug}` },
+          ]),
+        ),
+        JSON.stringify(
+          await getDebateSchema({
+            slug,
+            title: debateData.room.title,
+            description,
+            authorName: debateData.room.createdBy,
+            datePublished: debateData.room.createdAt,
+            dateModified: debateData.room.updatedAt,
+          }),
+        ),
+      ].join(""),
+    },
   };
 }
 
@@ -37,7 +90,8 @@ export default async function DebateRoomPage({ params, searchParams }: PageProps
   const { slug } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const highlightId = resolvedSearchParams.highlight || null;
-  const invitationToken = resolvedSearchParams.invitation || null;
+  // Phase 9D.3: invitation tokens travel via URL fragment (client-side only)
+  // and are never passed through SSR props or server-rendered page data.
 
   const supabase = await createServerSupabaseClient();
   let debateData = null;
@@ -48,10 +102,42 @@ export default async function DebateRoomPage({ params, searchParams }: PageProps
     console.error("Error fetching debate details:", error);
   }
 
+  // Public-room SSR: fetch initial lens-gated collections so SSR HTML carries
+  // real debate substance (claims, evidence, questions, inquiries, participants).
+  // Gated + fail-open; RLS scopes reads to public rows. Never pass private data.
+  let initialCollections;
+  if (debateData && isPubliclyVisibleRoom(debateData.room)) {
+    try {
+      const supabaseSSR = await createServerSupabaseClient();
+      const [propositionClaims, oppositionClaims, questions, roomEvidence, inquiries, participants] = await Promise.all([
+        getClaimsBySide(debateData.room.id, "proposition", supabaseSSR),
+        getClaimsBySide(debateData.room.id, "opposition", supabaseSSR),
+        getQuestions(debateData.room.id, supabaseSSR),
+        getEvidenceForRoom(debateData.room.id, supabaseSSR),
+        getInquiriesByRoom(debateData.room.id, supabaseSSR),
+        getDebateParticipants(debateData.room.id, supabaseSSR),
+      ]);
+      initialCollections = {
+        claims: [...propositionClaims, ...oppositionClaims],
+        questions,
+        roomEvidence,
+        inquiries,
+        participants,
+      };
+    } catch {
+      // Fall through to client-side fetching.
+    }
+  }
+
   if (debateData) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <DebateRoom initialData={debateData} highlightId={highlightId} invitationToken={invitationToken} />
+        <DebateRoom
+          initialData={debateData}
+          highlightId={highlightId}
+          initialSection="conversation"
+          initialCollections={initialCollections}
+        />
       </main>
     );
   }
@@ -99,7 +185,7 @@ export default async function DebateRoomPage({ params, searchParams }: PageProps
 
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <DebateRoom initialData={minimalData} highlightId={highlightId} invitationToken={invitationToken} gateMode />
+        <DebateRoom initialData={minimalData} highlightId={highlightId} gateMode />
       </main>
     );
   }

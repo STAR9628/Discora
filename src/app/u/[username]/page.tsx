@@ -1,17 +1,63 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 import { getProfileByUsername } from "@/features/profiles/services/profile-service";
 import { getUserContributions } from "@/features/reputation/services/reputation-service";
 import type { LucideIcon } from "lucide-react";
-import { Calendar, User, MessageSquare, Scale, Award, FileText, Swords, Trophy, TrendingDown } from "lucide-react";
+import { Calendar, User, MessageSquare, Award, FileText, Swords, HelpCircle, Sparkles } from "lucide-react";
 import { formatDate } from "@/lib/date";
 import { ProfileReputationSection } from "@/features/reputation/components/profile-reputation-section";
+import { ShareButton } from "@/components/share/share-button";
+import { ProfileFriendControl } from "@/features/friends/components/profile-friend-control";
+import { getSiteUrl } from "@/lib/site-url";
+import { truncateText } from "@/lib/text";
 
 type ProfilePageProps = {
   params: Promise<{
     username: string;
   }>;
 };
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = await createServerSupabaseClient();
+  let profile = null;
+
+  try {
+    profile = await getProfileByUsername(username, supabase);
+  } catch (error) {
+    console.error("Error generating metadata for profile:", error);
+  }
+
+  if (!profile) {
+    return {
+      title: "User not found",
+      robots: { index: false },
+    };
+  }
+
+  const siteUrl = await getSiteUrl();
+  const displayName = profile.displayName || `@${profile.username}`;
+  const description = truncateText(profile.bio) || `${displayName} on Discora.`;
+  const ogImage = profile.avatarUrl?.startsWith("http")
+    ? { url: profile.avatarUrl, alt: displayName }
+    : undefined;
+
+  return {
+    title: displayName,
+    description,
+    metadataBase: new URL(siteUrl),
+    alternates: { canonical: `/u/${username}` },
+    openGraph: {
+      type: "profile",
+      title: displayName,
+      description,
+      url: `/u/${username}`,
+      siteName: "Discora",
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
+  };
+}
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
@@ -34,7 +80,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     year: "numeric",
   });
 
-  let contributions: Awaited<ReturnType<typeof getUserContributions>> = { claims: [], evidence: [], questions: [], discussionCount: 0, debateCount: 0, debateParticipations: [], debateWins: 0, debateLosses: 0, evidenceAgreeCount: 0, evidenceDisagreeCount: 0 };
+  let contributions: Awaited<ReturnType<typeof getUserContributions>> = { claims: [], evidence: [], questions: [], discussionCount: 0, debateCount: 0, debateParticipations: [] };
   try {
     contributions = await getUserContributions(profile.id, supabase);
   } catch (error) {
@@ -42,7 +88,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   // Fetch user preferences for privacy gating
-  let showReputation = true;
   let showExpertise = true;
   let showSideSwitches = true;
   try {
@@ -50,7 +95,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       p_user_id: profile.id,
     });
     if (prefs && prefs.length > 0) {
-      showReputation = prefs[0].show_reputation;
       showExpertise = prefs[0].show_expertise;
       showSideSwitches = prefs[0].show_side_switches;
     }
@@ -85,22 +129,50 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           {/* Details */}
           <div className="flex-1 space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              @{profile.username}
-            </h1>
+            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                {profile.displayName || `@${profile.username}`}
+              </h1>
+              {profile.displayName && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  @{profile.username}
+                </span>
+              )}
+              {profile.isFoundingMember && (
+                <span
+                  data-testid="founding-participant-badge"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary shadow-xs"
+                >
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  Founding Participant
+                </span>
+              )}
+            </div>
             {profile.bio ? (
               <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed whitespace-pre-wrap">
                 {profile.bio}
               </p>
             ) : (
-              <p className="text-xs italic text-muted-foreground/60">No bio provided</p>
+              <p className="text-xs italic text-muted-foreground">No bio provided</p>
             )}
             
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2 sm:justify-start">
+              <ProfileFriendControl
+                targetUserId={profile.id}
+                targetLabel={profile.displayName || `@${profile.username}`}
+              />
+            </div>
             <div className="flex flex-wrap items-center justify-center gap-4 pt-1 sm:justify-start text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
                 Joined {joinDate}
               </span>
+              <ShareButton
+                shareTitle={profile.displayName || `@${profile.username}`}
+                shareText="Check out this Discora profile."
+                sharePath={`/u/${profile.username}`}
+                ariaLabel="Share this profile"
+              />
             </div>
           </div>
         </div>
@@ -108,32 +180,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
       {/* Activity Statistics */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4 tracking-tight">Activity Statistics</h2>
+        <h2 className="text-lg font-semibold mb-4 tracking-tight">Participation Overview</h2>
         
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={MessageSquare} label="Discussions" value={contributions.discussionCount} />
           <StatCard icon={Swords} label="Debates Joined" value={contributions.debateParticipations.length} />
           <StatCard icon={Award} label="Claims" value={activeClaims} />
           <StatCard icon={FileText} label="Evidence Added" value={activeEvidence} />
+          <StatCard icon={HelpCircle} label="Questions" value={contributions.questions.filter((q) => !q.isRetracted).length} />
+          <StatCard icon={FileText} label="Sources Cited" value={new Set(contributions.evidence.filter((e) => !e.isRetracted && e.sourceUrl).map((e) => e.sourceUrl)).size} />
         </div>
-
-        {(contributions.debateWins > 0 || contributions.debateLosses > 0) && (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={Scale} label="Debates Created" value={contributions.debateCount} />
-            <StatCard icon={Trophy} label="Debates Won" value={contributions.debateWins} />
-            <StatCard icon={TrendingDown} label="Debates Lost" value={contributions.debateLosses} />
-            <StatCard icon={Swords} label="Win Rate" value={contributions.debateWins + contributions.debateLosses > 0
-              ? `${Math.round((contributions.debateWins / (contributions.debateWins + contributions.debateLosses)) * 100)}%`
-              : "0%"
-            } />
-          </div>
-        )}
       </div>
 
-      {/* Reputation & Contributions Section */}
+      {/* Contributions Section */}
       <ProfileReputationSection
         userId={profile.id}
-        showReputation={showReputation}
         showExpertise={showExpertise}
         showSideSwitches={showSideSwitches}
       />

@@ -241,7 +241,7 @@ export async function getClaimsBySide(
 }
 
 export async function getDebates(
-  statusFilter: "active" | "resolved" | "closing_soon" = "active",
+  statusFilter: "active" | "closing_soon" = "active",
   sort: DebateSortOption = "most_active",
   cursor?: string | null,
   pageSize: number = 20,
@@ -255,8 +255,6 @@ export async function getDebates(
 
   if (statusFilter === "active") {
     query = query.eq("status", "active");
-  } else if (statusFilter === "resolved") {
-    query = query.eq("status", "resolved");
   } else if (statusFilter === "closing_soon") {
     query = query.eq("status", "active");
   }
@@ -336,7 +334,7 @@ export async function getDebates(
         description: row.description || undefined,
         roomType: "debate",
         visibility: (row.visibility as "public" | "private") || "public",
-        status: row.status === "resolved" ? "inactive" : "open",
+        status: row.status === "closed" ? "inactive" : "open",
         createdBy: row.room_created_by || "",
         topicId: row.topic_id || undefined,
         createdAt: row.room_created_at || row.created_at,
@@ -416,29 +414,6 @@ export async function getSideChangeHistory(
   }));
 }
 
-export async function resolveDebate(
-  roomId: string,
-  resolution: {
-    winner: "proposition" | "opposition" | "draw";
-    summary: string;
-    resolvedBy: string;
-  },
-  overrideClient?: SupabaseClient,
-): Promise<void> {
-  const supabase = getClient(overrideClient);
-
-  const { error } = await supabase.rpc("resolve_debate", {
-    p_room_id: roomId,
-    p_winner: resolution.winner,
-    p_summary: resolution.summary,
-    p_resolved_by: resolution.resolvedBy,
-  });
-
-  if (error) {
-    throw new Error(mapSupabaseError(error, "Failed to resolve debate"));
-  }
-}
-
 export async function createPrivateDebate(
   data: {
     title: string;
@@ -514,7 +489,7 @@ export async function createRoomInvitation(
     invitedEmail?: string;
   },
   overrideClient?: SupabaseClient,
-): Promise<{ invitationId: string; invitationToken: string }> {
+): Promise<{ invitationToken: string }> {
   const supabase = getClient(overrideClient);
 
   const { data: invitationToken, error: rpcError } = await supabase.rpc(
@@ -527,10 +502,17 @@ export async function createRoomInvitation(
   );
 
   if (rpcError || !invitationToken) {
+    const message = (rpcError?.message ?? "").toLowerCase();
+    if (message.includes("room_invite_cap")) {
+      throw new Error("This room has reached its active invitation limit.");
+    }
+    if (message.includes("invitation_rate_limited")) {
+      throw new Error("Too many invitations created. Please try again later.");
+    }
     throw new Error(mapSupabaseError(rpcError, "Failed to create invitation"));
   }
 
-  return { invitationId: invitationToken, invitationToken };
+  return { invitationToken };
 }
 
 export async function setRoomAccessCode(
@@ -595,13 +577,16 @@ export async function acceptInvitation(
 ): Promise<void> {
   const supabase = getClient(overrideClient);
 
-  const { error } = await supabase.rpc("accept_invitation", {
+  // Phase 9D.3: the hardened RPC returns the room id on success and NULL on ANY
+  // failure (invalid/expired/revoked/wrong-room/wrong-identity/throttled). One
+  // generic message keeps failure classes indistinguishable by design.
+  const { data: acceptedRoomId, error } = await supabase.rpc("accept_invitation", {
     p_invitation_token: data.invitationToken,
     p_room_id: data.roomId,
   });
 
-  if (error) {
-    throw new Error(mapSupabaseError(error, "Failed to accept invitation"));
+  if (error || !acceptedRoomId) {
+    throw new Error("This invitation is not available.");
   }
 }
 
@@ -637,9 +622,13 @@ export async function getRoomInvitations(
 ): Promise<RoomInvitation[]> {
   const supabase = getClient(overrideClient);
 
+  // Phase 9D.3: explicit lifecycle columns only. Token hashes are never
+  // delivered to the UI; newly minted links come solely from the create call.
   const { data, error } = await supabase
     .from("room_invitations")
-    .select("*")
+    .select(
+      "id, room_id, invited_by, invited_user_id, email, status, accepted_at, revoked_at, created_at, updated_at, expires_at",
+    )
     .eq("room_id", roomId)
     .order("created_at", { ascending: false });
 
@@ -653,24 +642,24 @@ export async function getRoomInvitations(
     invited_by: string;
     invited_user_id: string | null;
     email: string | null;
-    invitation_token: string;
     status: string;
     accepted_at: string | null;
     revoked_at: string | null;
     created_at: string;
     updated_at: string;
+    expires_at: string | null;
   }) => ({
     id: row.id,
     roomId: row.room_id,
     invitedBy: row.invited_by,
     invitedUserId: row.invited_user_id,
     email: row.email,
-    invitationToken: row.invitation_token,
-    status: row.status as "active" | "accepted" | "revoked",
+    status: row.status as "active" | "accepted" | "revoked" | "expired",
     acceptedAt: row.accepted_at,
     revokedAt: row.revoked_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    expiresAt: row.expires_at,
   }));
 }
 
@@ -680,10 +669,10 @@ export async function revokeRoomInvitation(
 ): Promise<void> {
   const supabase = getClient(overrideClient);
 
-  const { error } = await supabase
-    .from("room_invitations")
-    .update({ status: "revoked", revoked_at: new Date().toISOString() })
-    .eq("id", invitationId);
+  // Phase 9D.3: owner-only revoke RPC. Direct client UPDATE is no longer granted.
+  const { error } = await supabase.rpc("revoke_room_invitation", {
+    p_invitation_id: invitationId,
+  });
 
   if (error) {
     throw new Error(mapSupabaseError(error, "Failed to revoke invitation"));
@@ -696,12 +685,27 @@ export interface RoomInvitation {
   invitedBy: string;
   invitedUserId: string | null;
   email: string | null;
-  invitationToken: string;
-  status: "active" | "accepted" | "revoked";
+  status: "active" | "accepted" | "revoked" | "expired";
   acceptedAt: string | null;
   revokedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  expiresAt: string | null;
+}
+
+export async function roomHasAccessCode(
+  roomId: string,
+  overrideClient?: SupabaseClient,
+): Promise<boolean> {
+  const supabase = getClient(overrideClient);
+
+  // Phase 9D.3: presence check only — the code hash is never returned.
+  const { data, error } = await supabase.rpc("room_has_access_code", {
+    p_room_id: roomId,
+  });
+
+  if (error) return false;
+  return !!data;
 }
 
 export async function setParticipantInvitesEnabled(

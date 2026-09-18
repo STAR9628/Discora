@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { DiscussionClaim, DiscussionClaimRelation } from "@/features/discussions/types";
 import { computeRelationCounts, computeImportance, computeTotalRelations } from "./graph-utils";
 import type { GraphEdge } from "./graph-utils";
-import { ThumbsUp, ThumbsDown, GitBranch, Zap, Scale, BarChart3, TrendingUp, Flame, Star, ChevronRight, ChevronDown } from "lucide-react";
+import { Check, X, GitBranch, Zap, Scale, BarChart3, TrendingUp, Flame, Star, ChevronRight, ChevronDown } from "lucide-react";
 
 const COLLAPSED_KEY = "discora:intelligence:collapsed";
 
@@ -104,11 +104,13 @@ export function DiscussionIntelligence({ claims, claimRelations }: DiscussionInt
     const avgConsensus = ratios.length > 0
       ? Math.min(Math.max(ratios.reduce((sum, r) => sum + r, 0) / ratios.length, 0), 1)
       : null;
+    // Community-stance wording only: these labels describe how participant
+    // Support/Challenge votes are distributed, never truth or correctness.
     let consensusLevel: { label: string; color: string } = { label: "Insufficient data", color: "text-muted-foreground" };
     if (avgConsensus !== null) {
-      if (avgConsensus >= 0.7) consensusLevel = { label: "High", color: "text-green-400" };
-      else if (avgConsensus >= 0.4) consensusLevel = { label: "Medium", color: "text-amber-400" };
-      else consensusLevel = { label: "Low", color: "text-rose-400" };
+      if (avgConsensus >= 0.7) consensusLevel = { label: "Mostly aligned", color: "text-slate-400" };
+      else if (avgConsensus >= 0.4) consensusLevel = { label: "Mixed", color: "text-amber-400" };
+      else consensusLevel = { label: "Divided", color: "text-amber-400" };
     }
 
     let keyTension: { claimA: { id: string; content: string }; claimB: { id: string; content: string }; count: number } | null = null;
@@ -193,19 +195,19 @@ export function DiscussionIntelligence({ claims, claimRelations }: DiscussionInt
       </div>
 
       {intelligence.keyTension && (
-        <CollapsibleSection title="Key Tension" icon={Zap} color="text-rose-400" collapsed={collapsed.has("key-tension")} onToggle={() => toggle("key-tension")}>
-          <div className="rounded-lg bg-rose-500/5 border border-rose-500/20 p-2.5 space-y-1.5">
+        <CollapsibleSection title="Key Tension" icon={Zap} color="text-amber-400" collapsed={collapsed.has("key-tension")} onToggle={() => toggle("key-tension")}>
+          <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-2.5 space-y-1.5">
             <div className="flex items-start gap-2 text-[11px]">
-              <span className="inline-flex items-center justify-center rounded-full bg-rose-500/10 text-rose-400 px-1.5 py-0.5 text-[9px] font-bold mt-0.5 shrink-0">A</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-bold mt-0.5 shrink-0">A</span>
               <span className="text-foreground/75 leading-relaxed">{truncate(intelligence.keyTension.claimA.content, 80)}</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-rose-400/60 justify-center">
-              <span className="h-px flex-1 bg-rose-500/20" />
+            <div className="flex items-center gap-2 text-[10px] text-amber-400/60 justify-center">
+              <span className="h-px flex-1 bg-amber-500/20" />
               <span className="font-semibold">contradicts ({intelligence.keyTension.count})</span>
-              <span className="h-px flex-1 bg-rose-500/20" />
+              <span className="h-px flex-1 bg-amber-500/20" />
             </div>
             <div className="flex items-start gap-2 text-[11px]">
-              <span className="inline-flex items-center justify-center rounded-full bg-rose-500/10 text-rose-400 px-1.5 py-0.5 text-[9px] font-bold mt-0.5 shrink-0">B</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-amber-500/10 text-amber-400 px-1.5 py-0.5 text-[9px] font-bold mt-0.5 shrink-0">B</span>
               <span className="text-foreground/75 leading-relaxed">{truncate(intelligence.keyTension.claimB.content, 80)}</span>
             </div>
           </div>
@@ -215,15 +217,15 @@ export function DiscussionIntelligence({ claims, claimRelations }: DiscussionInt
       {(intelligence.supportsCount > 0 || intelligence.contradictsCount > 0 || intelligence.refinesCount > 0) && (
         <CollapsibleSection title="Discussion Balance" icon={Scale} color="text-muted-foreground" collapsed={collapsed.has("balance")} onToggle={() => toggle("balance")}>
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-2 text-center">
-              <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-400 mb-0.5">
-                <ThumbsUp className="h-3 w-3" /> Supports
+            <div className="rounded-lg bg-slate-500/5 border border-slate-500/20 p-2 text-center">
+              <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 mb-0.5">
+                <Check className="h-3 w-3" /> Supports
               </div>
               <div className="text-base font-bold text-foreground">{intelligence.supportsCount}</div>
             </div>
-            <div className="rounded-lg bg-rose-500/5 border border-rose-500/20 p-2 text-center">
-              <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-400 mb-0.5">
-                <ThumbsDown className="h-3 w-3" /> Contradicts
+            <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-2 text-center">
+              <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 mb-0.5">
+                <X className="h-3 w-3" /> Contradicts
               </div>
               <div className="text-base font-bold text-foreground">{intelligence.contradictsCount}</div>
             </div>
@@ -237,25 +239,28 @@ export function DiscussionIntelligence({ claims, claimRelations }: DiscussionInt
         </CollapsibleSection>
       )}
 
-      <CollapsibleSection title="Consensus Level" icon={BarChart3} color="text-muted-foreground" collapsed={collapsed.has("consensus")} onToggle={() => toggle("consensus")}>
-        <div className={`rounded-lg border p-2.5 text-center ${intelligence.consensusLevel.color === "text-green-400" ? "bg-green-500/5 border-green-500/20" : intelligence.consensusLevel.color === "text-amber-400" ? "bg-amber-500/5 border-amber-500/20" : intelligence.consensusLevel.color === "text-rose-400" ? "bg-rose-500/5 border-rose-500/20" : "bg-card/30 border-border/40"}`}>
+      <CollapsibleSection title="Stance Distribution" icon={BarChart3} color="text-muted-foreground" collapsed={collapsed.has("consensus")} onToggle={() => toggle("consensus")}>
+        <div className={`rounded-lg border p-2.5 text-center ${intelligence.consensusLevel.color === "text-slate-400" ? "bg-slate-500/5 border-slate-500/20" : intelligence.consensusLevel.color === "text-amber-400" ? "bg-amber-500/5 border-amber-500/20" : intelligence.consensusLevel.color === "text-amber-400" ? "bg-amber-500/5 border-amber-500/20" : "bg-card/30 border-border/40"}`}>
           <span className={`text-lg font-bold ${intelligence.consensusLevel.color}`}>
             {intelligence.consensusLevel.label}
           </span>
           {intelligence.avgConsensus !== null && (
             <div className="text-[10px] text-muted-foreground mt-0.5">
-              {Math.round(intelligence.avgConsensus * 100)}% average agreement
+              {Math.round(intelligence.avgConsensus * 100)}% Support · {Math.round((1 - intelligence.avgConsensus) * 100)}% Challenge
             </div>
           )}
+          <div className="text-[10px] text-muted-foreground/70 mt-0.5">
+            Participant stance — not a measure of truth or correctness.
+          </div>
         </div>
       </CollapsibleSection>
 
       {intelligence.emergingConsensus.length > 0 && (
-        <CollapsibleSection title="Emerging Consensus" icon={TrendingUp} color="text-emerald-400" collapsed={collapsed.has("emerging")} onToggle={() => toggle("emerging")}>
+        <CollapsibleSection title="Most Agreed-Upon by Participants" icon={TrendingUp} color="text-slate-400" collapsed={collapsed.has("emerging")} onToggle={() => toggle("emerging")}>
           <div className="space-y-1">
             {intelligence.emergingConsensus.map((c) => (
               <div key={c.id} className="flex items-start gap-1.5 text-[11px] text-foreground/70">
-                <span className="text-emerald-400/80 font-bold shrink-0">{Math.round(computeAgreementRatio(c)! * 100)}%</span>
+                <span className="text-slate-400/80 font-bold shrink-0">{Math.round(computeAgreementRatio(c)! * 100)}%</span>
                 <span>{truncate(c.content, 80)}</span>
               </div>
             ))}
@@ -264,11 +269,11 @@ export function DiscussionIntelligence({ claims, claimRelations }: DiscussionInt
       )}
 
       {intelligence.majorDisputes.length > 0 && (
-        <CollapsibleSection title="Major Disputes" icon={Flame} color="text-rose-400" collapsed={collapsed.has("disputes")} onToggle={() => toggle("disputes")}>
+        <CollapsibleSection title="Major Disputes" icon={Flame} color="text-amber-400" collapsed={collapsed.has("disputes")} onToggle={() => toggle("disputes")}>
           <div className="space-y-1">
             {intelligence.majorDisputes.map((c) => (
               <div key={c.id} className="flex items-start gap-1.5 text-[11px] text-foreground/70">
-                <Flame className="h-3 w-3 text-rose-400 mt-0.5 shrink-0" />
+                 <Flame className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
                 <span>{truncate(c.content, 80)}</span>
               </div>
             ))}

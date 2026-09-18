@@ -1,7 +1,7 @@
 "use client";
 
 import type { Debate } from "@/features/discussions/types";
-import { Swords, Shield, Trophy, Users, FileText } from "lucide-react";
+import { Swords, Shield, Users, FileText } from "lucide-react";
 
 interface DebateHeaderProps {
   debate: Debate;
@@ -13,46 +13,20 @@ export function DebateHeader({ debate, motionTitle }: DebateHeaderProps) {
   const totalParticipants = debate.propositionParticipantCount + debate.oppositionParticipantCount + debate.neutralParticipantCount;
   const title = motionTitle || debate.propositionTitle;
 
-  const isPropositionWinner = debate.status === "resolved" && (debate.resolution as { winner: string })?.winner === "proposition";
-  const isOppositionWinner = debate.status === "resolved" && (debate.resolution as { winner: string })?.winner === "opposition";
-
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card/50 p-6 md:p-8 backdrop-blur-md shadow-xl">
       <div className="absolute top-0 right-0 h-40 w-40 bg-primary/5 blur-3xl rounded-full" />
 
-      {debate.status === "resolved" && debate.resolution && (
-        <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-emerald-400" />
-            <span className="text-sm font-bold text-emerald-400">
-              Resolved: {(debate.resolution as { winner: string }).winner === "draw"
-                ? "Draw"
-                : `${(debate.resolution as { winner: string }).winner === "proposition" ? "Proposition" : "Opposition"} wins`}
-            </span>
-          </div>
-          {(debate.resolution as { summary: string }).summary && (
-            <p className="mt-2 text-xs text-emerald-400/80">
-              {(debate.resolution as { summary: string }).summary}
-            </p>
-          )}
-        </div>
-      )}
-
       {debate.status === "closed" && (
         <div className="mb-6 rounded-xl border border-slate-500/30 bg-slate-500/10 p-4">
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-slate-400" />
             <span className="text-sm font-bold text-slate-400">Debate Closed</span>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className={`rounded-xl border p-5 space-y-3 transition-all ${
-          isPropositionWinner
-            ? "border-emerald-500/40 bg-emerald-500/5"
-            : "border-blue-500/30 bg-blue-500/5"
-        }`}>
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-5 space-y-3 transition-all">
           <div className="flex items-center gap-2">
             <Swords className="h-5 w-5 text-blue-400" />
             <h3 className="text-base font-extrabold text-blue-400 uppercase tracking-wider">Proposition</h3>
@@ -73,11 +47,7 @@ export function DebateHeader({ debate, motionTitle }: DebateHeaderProps) {
           </div>
         </div>
 
-        <div className={`rounded-xl border p-5 space-y-3 transition-all ${
-          isOppositionWinner
-            ? "border-emerald-500/40 bg-emerald-500/5"
-            : "border-rose-500/30 bg-rose-500/5"
-        }`}>
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-5 space-y-3 transition-all">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-rose-400" />
             <h3 className="text-base font-extrabold text-rose-400 uppercase tracking-wider">Opposition</h3>

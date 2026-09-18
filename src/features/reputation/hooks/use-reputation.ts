@@ -41,8 +41,8 @@ export function useReputation(userId: string | null, options?: ReputationOptions
       // Compute reputation for breakdown display (matches authoritative DB score)
       const reputation = computeReputation(contributions, options);
 
-      const badges = computeTrustBadges(contributions, reputation);
-      const badgeProgress = computeBadgeProgress(contributions, reputation);
+      const badges = computeTrustBadges(contributions);
+      const badgeProgress = computeBadgeProgress(contributions);
 
       const sideChanges = await getUserSideChanges(userId);
 

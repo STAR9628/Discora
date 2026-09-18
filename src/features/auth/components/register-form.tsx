@@ -16,16 +16,30 @@ export function RegisterForm() {
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof RegisterFormValues, string[]>>
   >({});
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [ageError, setAgeError] = useState<string | null>(null);
   const { register, handleSubmit, formState } = useForm<RegisterFormValues>();
 
   async function onSubmit(values: RegisterFormValues) {
     setMessage(null);
     setFieldErrors({});
+    setAgeError(null);
+
+    let hasError = false;
+
+    if (!ageConfirmed) {
+      setAgeError("You must confirm that you are at least 18 years old to create a Discora Public Beta account.");
+      hasError = true;
+    }
 
     const parsed = registerSchema.safeParse(values);
 
     if (!parsed.success) {
       setFieldErrors(getFieldErrors(parsed));
+      hasError = true;
+    }
+
+    if (hasError || !parsed.success) {
       return;
     }
 
@@ -43,7 +57,7 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-6">
-      <GoogleOneTap redirectTo="/" />
+      <GoogleOneTap redirectTo="/about" />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -119,9 +133,60 @@ export function RegisterForm() {
       >
         {formState.isSubmitting ? "Creating account..." : "Register"}
       </button>
-      <p className="text-xs text-muted-foreground">
+
+      {/* Legal & 18+ Eligibility Area */}
+      <div className="space-y-3 pt-1">
+        <div className="space-y-1.5">
+          <div className="flex items-start gap-2.5">
+            <input
+              id="confirmAge"
+              type="checkbox"
+              checked={ageConfirmed}
+              onChange={(e) => {
+                setAgeConfirmed(e.target.checked);
+                if (e.target.checked) {
+                  setAgeError(null);
+                }
+              }}
+              aria-invalid={!!ageError}
+              aria-describedby={ageError ? "confirmAge-error" : undefined}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border border-input bg-background accent-primary text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring cursor-pointer"
+            />
+            <label
+              htmlFor="confirmAge"
+              className="text-xs leading-normal text-muted-foreground select-none cursor-pointer"
+            >
+              I confirm that I am at least 18 years old.
+            </label>
+          </div>
+          {ageError && (
+            <p id="confirmAge-error" className="text-xs text-destructive pl-6.5">
+              {ageError}
+            </p>
+          )}
+        </div>
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          By creating a Discora account, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+          >
+            Terms of Service
+          </Link>{" "}
+          and acknowledge our{" "}
+          <Link
+            href="/privacy"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+          >
+            Privacy Policy
+          </Link>.
+        </p>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="hover:text-foreground">
+        <Link href="/login" className="font-medium text-foreground hover:underline">
           Login
         </Link>
       </p>

@@ -22,8 +22,8 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
-  ThumbsUp,
-  ThumbsDown,
+  Check,
+  X,
   FileText,
   GitBranch,
   ArrowRight,
@@ -39,9 +39,6 @@ import type {
   ClaimContextType,
 } from "../types";
 import { ClaimRelationDialog } from "./claim-relation-dialog";
-import { ClaimCredibilityBadge } from "@/features/reputation/components/claim-credibility-badge";
-import { CredibilityTooltip } from "@/features/reputation/components/credibility-tooltip";
-import { computeCredibility } from "@/features/reputation/reputation-utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -276,7 +273,7 @@ export function ClaimList({
       case "prediction":
         return "bg-orange-500/10 border-orange-500/25 text-orange-400";
       case "proposal":
-        return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
+        return "bg-slate-500/10 border-slate-500/25 text-slate-400";
       case "observation":
         return "bg-amber-500/10 border-amber-500/25 text-amber-400";
       default:
@@ -520,17 +517,6 @@ export function ClaimList({
                       </Tooltip>
                       <ContextBadge contextType={claim.contextType} />
 
-                      {(() => {
-                        if (isClaimRetracted || !roomEvidence) return null;
-                        const evidenceForClaim = roomEvidence.filter((e) => e.claimId === claim.id);
-                        const claimCredibility = computeCredibility(claim, evidenceForClaim, relationCounts ?? [], 0);
-                        return (
-                          <Tooltip content={<CredibilityTooltip credibility={claimCredibility} />}>
-                            <ClaimCredibilityBadge credibility={claimCredibility} />
-                          </Tooltip>
-                        );
-                      })()}
-
                       {isClaimRetracted && (
                         <span className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-500">
                           Retracted
@@ -579,7 +565,7 @@ export function ClaimList({
                   )}
 
                   {/* Claim Text */}
-                  <p className="text-xs md:text-sm leading-relaxed text-foreground font-medium">
+                  <p className="text-xs md:text-sm leading-relaxed text-foreground font-medium break-words">
                     {claim.content}
                   </p>
 
@@ -743,13 +729,13 @@ function ClaimVoting({ roomId, claim }: ClaimVotingProps) {
           disabled={voteMutation.isPending}
           className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs font-bold transition-all cursor-pointer ${
             agreeActive
-              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+              ? "bg-slate-500/20 text-slate-300 border border-slate-500/30"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
-          title="Agree with claim"
+          title="Support this claim"
         >
-          <ThumbsUp className="h-3 w-3" />
-          <span>{claim.agreeCount ?? 0}</span>
+          <span className="text-[10px] uppercase tracking-wide">Support</span>
+          <span className="font-mono">{claim.agreeCount ?? 0}</span>
         </button>
 
         <div className="h-3 w-px bg-border/80" />
@@ -759,34 +745,15 @@ function ClaimVoting({ roomId, claim }: ClaimVotingProps) {
           disabled={voteMutation.isPending}
           className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs font-bold transition-all cursor-pointer ${
             disagreeActive
-              ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
-          title="Disagree with claim"
+          title="Challenge this claim"
         >
-          <ThumbsDown className="h-3 w-3" />
-          <span>{claim.disagreeCount ?? 0}</span>
+          <span className="text-[10px] uppercase tracking-wide">Challenge</span>
+          <span className="font-mono">{claim.disagreeCount ?? 0}</span>
         </button>
       </div>
-
-      {claim.consensusRatio !== null && claim.consensusRatio !== undefined && (
-        <div
-          className="flex items-center gap-1.5 text-[10px] font-extrabold text-muted-foreground cursor-help"
-          title={`${Math.round(claim.consensusRatio)}% of voters agree with this claim (${claim.agreeCount ?? 0} agree, ${claim.disagreeCount ?? 0} disagree)`}
-        >
-          <div
-            className="h-1.5 w-12 bg-rose-500/30 rounded-full overflow-hidden flex"
-            role="progressbar"
-            aria-valuenow={Math.round(claim.consensusRatio)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`${Math.round(claim.consensusRatio)}% voter agreement`}
-          >
-            <div className="bg-emerald-500 h-full" style={{ width: `${claim.consensusRatio}%` }} />
-          </div>
-          <span>{Math.round(claim.consensusRatio)}% Agree</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -794,7 +761,7 @@ function ClaimVoting({ roomId, claim }: ClaimVotingProps) {
 function getContextBadgeStyles(type: ClaimContextType): string {
   switch (type) {
     case "supporting_idea":
-      return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
+      return "bg-slate-500/10 border-slate-500/25 text-slate-400";
     case "counterpoint":
       return "bg-violet-500/10 border-violet-500/25 text-violet-400";
     case "observation":
@@ -866,9 +833,9 @@ function RelationPreview({ claimId, relations, onNavigateToClaim }: RelationPrev
   const relationIcon = (type: string) => {
     switch (type) {
       case "supports":
-        return <ThumbsUp className="h-3 w-3 text-emerald-400" />;
+        return <Check className="h-3 w-3 text-slate-400" />;
       case "contradicts":
-        return <ThumbsDown className="h-3 w-3 text-rose-400" />;
+        return <X className="h-3 w-3 text-amber-400" />;
       case "refines":
         return <GitBranch className="h-3 w-3 text-violet-400" />;
       default:

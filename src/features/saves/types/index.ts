@@ -6,6 +6,7 @@ export interface UserSave {
   target_type: SaveTargetType;
   target_id: string;
   created_at: string;
+  alias?: string | null;
 }
 
 export interface SavedItem {
@@ -17,6 +18,7 @@ export interface SavedItem {
   slug?: string;
   roomType?: "discussion" | "debate";
   roomTitle: string;
+  alias?: string | null;
 }
 
 export interface SaveCheckResult {

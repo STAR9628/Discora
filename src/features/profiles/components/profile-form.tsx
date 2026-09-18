@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -14,10 +15,17 @@ import { profileSchema, type ProfileFormValues } from "@/features/profiles/valid
 import { Camera, AlertTriangle, CheckCircle, Loader2, AtSign } from "lucide-react";
 
 export function ProfileForm() {
+  const router = useRouter();
   const { user } = useAuth();
   const { data: profile, isLoading: isProfileLoading, error: profileError, refetch } = useCurrentProfile();
   const createProfileMutation = useCreateProfile();
   const updateProfileMutation = useUpdateProfile();
+
+  // Determine if this is an email signup (user has email provider and no google provider)
+  // Email signups have already confirmed 18+ via the registration checkbox.
+  const isEmailSignup = user?.app_metadata?.providers?.includes("email") &&
+    !user?.app_metadata?.providers?.includes("google");
+  const ageConfirmed = isEmailSignup;
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -102,11 +110,15 @@ export function ProfileForm() {
         bio: values.bio || null,
         defaultIdentityMode: values.defaultIdentityMode,
         avatarUrl: finalAvatarUrl,
+        ageConfirmed,
       };
 
       if (isNewProfile) {
         await createProfileMutation.mutateAsync(payload);
-        setFormMessage({ type: "success", text: "Your profile has been created successfully!" });
+        setFormMessage({ type: "success", text: "Your profile has been created successfully! Taking you to About Discora..." });
+        await refetch();
+        router.push("/about");
+        return;
       } else {
         await updateProfileMutation.mutateAsync({
           displayName: payload.displayName,

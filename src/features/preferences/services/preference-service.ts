@@ -37,12 +37,18 @@ export async function upsertUserPreferences(
   if (data.showExpertise !== undefined) updateData.show_expertise = data.showExpertise;
   if (data.showSideSwitches !== undefined) updateData.show_side_switches = data.showSideSwitches;
 
+  // A default row is created by the handle_new_user_preferences trigger at
+  // signup, so plain INSERT upserts conflict (409). Resolve on the UNIQUE
+  // user_id constraint to turn repeat saves into updates.
   const { data: result, error } = await supabase
     .from("user_preferences")
-    .upsert({
-      user_id: userId,
-      ...updateData,
-    })
+    .upsert(
+      {
+        user_id: userId,
+        ...updateData,
+      },
+      { onConflict: "user_id" },
+    )
     .select("*")
     .single();
 

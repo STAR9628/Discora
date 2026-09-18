@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery, type QueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useMemo } from "react";
-import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, castEvidenceVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag, getClaimRelations, createClaimRelation, deleteClaimRelation, getClaimsPaginated, getClaimsMinimal, getClaimById, getClaimsByIds, getEvidencePaginated, getEvidenceById, getMessagesPaginated, getMessageById, getMessageRoots, getMessageSubtreeDescendants, getRoomMessageCount, resolveMessageThread, getQuestionsPaginated, getQuestionById, getEvidenceMetadataForRoom, getClaimRelationCounts } from "@/features/discussions/services/discussion-service";
+import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag, getClaimRelations, createClaimRelation, deleteClaimRelation, getClaimsPaginated, getClaimsMinimal, getClaimById, getClaimsByIds, getEvidencePaginated, getEvidenceById, getMessagesPaginated, getMessageById, getMessageRoots, getMessageSubtreeDescendants, getRoomMessageCount, resolveMessageThread, getQuestionsPaginated, getQuestionById, getEvidenceMetadataForRoom, getClaimRelationCounts, toggleReaction, getReactionsForTargets, createClaimRequest, decideClaimRequest, getClaimRequestsForMessages, getMyClaimRequests, convertMessageToClaim, getRoomArguments, createArgument, retractArgument } from "@/features/discussions/services/discussion-service";
 import type { QuestionType, ClaimContextType } from "@/types/domain";
-import type { ClaimRelationType, DiscussionClaim, DiscussionEvidence, DiscussionMessage, DiscussionQuestion } from "@/features/discussions/types";
+import type { ClaimRelationCount, EvidenceMetadata, SectionPage } from "@/features/discussions/services/discussion-service";
+import type { ClaimRelationType, DiscussionArgument, DiscussionClaim, DiscussionClaimRelation, DiscussionEvidence, DiscussionMessage, DiscussionQuestion, ReactionTargetType, ReactionType } from "@/features/discussions/types";
 
 /**
  * Invalidate every cache shape for a room-scoped section query, covering both the
@@ -73,12 +74,13 @@ export function useInfiniteDiscussions(topicId?: string, limit: number = 10) {
 /**
  * Hook to retrieve messages for a discussion room
  */
-export function useMessages(roomId: string, enabled: boolean = true) {
+export function useMessages(roomId: string, enabled: boolean = true, initialData?: DiscussionMessage[]) {
   return useQuery({
     queryKey: ["messages", roomId],
     queryFn: () => getMessages(roomId),
     enabled: !!roomId && enabled,
     staleTime: 30_000,
+    initialData,
   });
 }
 
@@ -106,6 +108,7 @@ export function usePostMessage() {
       parentMessageId?: string | null;
       content: string;
       identityMode: "public" | "anonymous";
+      messageType?: "message" | "question";
     }) => postMessage(data),
     onSuccess: (_, variables) => {
       // Invalidate messages for this specific room (legacy + paginated + minimal)
@@ -132,12 +135,13 @@ export function useUpdateMessage(roomId: string) {
 /**
  * Hook to retrieve questions for a room
  */
-export function useQuestions(roomId: string, enabled: boolean = true) {
+export function useQuestions(roomId: string, enabled: boolean = true, initialData?: DiscussionQuestion[]) {
   return useQuery({
     queryKey: ["questions", roomId],
     queryFn: () => getQuestions(roomId),
     enabled: !!roomId && enabled,
     staleTime: 30_000,
+    initialData,
   });
 }
 
@@ -177,12 +181,13 @@ export function useRetractQuestion(roomId: string) {
 /**
  * Hook to retrieve claims for a discussion room
  */
-export function useClaims(roomId: string, questionId?: string | null, enabled: boolean = true) {
+export function useClaims(roomId: string, questionId?: string | null, enabled: boolean = true, initialData?: DiscussionClaim[]) {
   return useQuery({
     queryKey: ["claims", roomId, { questionId }],
     queryFn: () => getClaims(roomId, questionId),
     enabled: !!roomId && enabled,
     staleTime: 30_000,
+    initialData,
   });
 }
 
@@ -285,12 +290,13 @@ export function useRetractEvidence(roomId: string, claimId: string) {
 /**
  * Hook to retrieve all evidence for a discussion room
  */
-export function useRoomEvidence(roomId: string, enabled: boolean = true) {
+export function useRoomEvidence(roomId: string, enabled: boolean = true, initialData?: DiscussionEvidence[]) {
   return useQuery({
     queryKey: ["roomEvidence", roomId],
     queryFn: () => getEvidenceForRoom(roomId),
     enabled: !!roomId && enabled,
     staleTime: 30_000,
+    initialData,
   });
 }
 
@@ -305,12 +311,13 @@ export const useDiscussionContributions = useMessages;
 /**
  * Lightweight room evidence metadata hook — fetches only the columns ClaimList reads.
  */
-export function useEvidenceMetadata(roomId: string, enabled: boolean = true) {
+export function useEvidenceMetadata(roomId: string, enabled: boolean = true, initialData?: EvidenceMetadata[]) {
   return useQuery({
     queryKey: ["roomEvidence", "minimal", roomId],
     queryFn: () => getEvidenceMetadataForRoom(roomId),
     enabled: !!roomId && enabled,
     staleTime: 30_000,
+    initialData,
   });
 }
 
@@ -318,12 +325,13 @@ export function useEvidenceMetadata(roomId: string, enabled: boolean = true) {
  * Lightweight claim relation counts hook — fetches only the columns ClaimList needs
  * to compute per-claim relation counts.
  */
-export function useClaimRelationCounts(roomId: string, enabled: boolean = true) {
+export function useClaimRelationCounts(roomId: string, enabled: boolean = true, initialData?: ClaimRelationCount[]) {
   return useQuery({
     queryKey: ["claimRelations", "minimal", roomId],
     queryFn: () => getClaimRelationCounts(roomId),
     enabled: !!roomId && enabled,
     staleTime: 30_000,
+    initialData,
   });
 }
 
@@ -332,11 +340,12 @@ export function useClaimRelationCounts(roomId: string, enabled: boolean = true) 
  * the full claim-relations query. New code should prefer useClaimRelationCounts.
  * `enabled` lets callers defer the heavier full-content query until it is needed.
  */
-export function useClaimRelations(roomId: string, enabled: boolean = true) {
+export function useClaimRelations(roomId: string, enabled: boolean = true, initialData?: DiscussionClaimRelation[]) {
   return useQuery({
     queryKey: ["claimRelations", roomId],
     queryFn: () => getClaimRelations(roomId),
     enabled: !!roomId && enabled,
+    initialData,
   });
 }
 
@@ -351,22 +360,6 @@ export function useVoteClaim(roomId: string, claimId: string) {
       castClaimVote(claimId, voteType),
     onSuccess: () => {
       invalidateRoomQueries(queryClient, "claims", roomId);
-    },
-  });
-}
-
-/**
- * Mutation hook to vote on evidence
- */
-export function useVoteEvidence(roomId: string, claimId: string, evidenceId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (voteType: "agree" | "disagree" | null) =>
-      castEvidenceVote(evidenceId, voteType),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["evidence", claimId] });
-      invalidateRoomQueries(queryClient, "roomEvidence", roomId);
     },
   });
 }
@@ -497,12 +490,18 @@ export function usePaginatedClaims(
     debateSide?: "proposition" | "opposition" | null;
     pageSize?: number;
     enabled?: boolean;
+    /**
+     * Server-rendered first page (public rooms only). Seeds both the rendered
+     * items and the query cache so SSR HTML contains real content and the
+     * client does not refetch on mount. Never pass private-room data here.
+     */
+    initialPage?: SectionPage<DiscussionClaim>;
   },
 ) {
   const [state, setState] = useState<PaginatedSectionState<DiscussionClaim>>({
-    items: [],
-    cursor: null,
-    hasMore: true,
+    items: opts?.initialPage?.items ?? [],
+    cursor: opts?.initialPage?.nextCursor ?? null,
+    hasMore: opts?.initialPage ? opts.initialPage.nextCursor !== null : true,
     isLoadingMore: false,
   });
 
@@ -519,6 +518,7 @@ export function usePaginatedClaims(
     },
     enabled: opts?.enabled !== false && !!roomId,
     staleTime: 30_000,
+    initialData: opts?.initialPage,
   });
 
   const loadMore = useCallback(async () => {
@@ -601,12 +601,16 @@ export function usePaginatedEvidence(
     direction?: "support" | "contradict" | "context" | null;
     pageSize?: number;
     enabled?: boolean;
+    /**
+     * Server-rendered first page (public rooms only). See usePaginatedClaims.
+     */
+    initialPage?: SectionPage<DiscussionEvidence>;
   },
 ) {
   const [state, setState] = useState<PaginatedSectionState<DiscussionEvidence>>({
-    items: [],
-    cursor: null,
-    hasMore: true,
+    items: opts?.initialPage?.items ?? [],
+    cursor: opts?.initialPage?.nextCursor ?? null,
+    hasMore: opts?.initialPage ? opts.initialPage.nextCursor !== null : true,
     isLoadingMore: false,
   });
 
@@ -622,6 +626,7 @@ export function usePaginatedEvidence(
     },
     enabled: opts?.enabled !== false && !!roomId,
     staleTime: 30_000,
+    initialData: opts?.initialPage,
   });
 
   const loadMore = useCallback(async () => {
@@ -675,12 +680,16 @@ export function usePaginatedMessages(
   opts?: {
     pageSize?: number;
     enabled?: boolean;
+    /**
+     * Server-rendered first page (public rooms only). See usePaginatedClaims.
+     */
+    initialPage?: SectionPage<DiscussionMessage>;
   },
 ) {
   const [state, setState] = useState<PaginatedSectionState<DiscussionMessage>>({
-    items: [],
-    cursor: null,
-    hasMore: true,
+    items: opts?.initialPage?.items ?? [],
+    cursor: opts?.initialPage?.nextCursor ?? null,
+    hasMore: opts?.initialPage ? opts.initialPage.nextCursor !== null : true,
     isLoadingMore: false,
   });
 
@@ -693,6 +702,7 @@ export function usePaginatedMessages(
     },
     enabled: opts?.enabled !== false && !!roomId,
     staleTime: 30_000,
+    initialData: opts?.initialPage,
   });
 
   const loadMore = useCallback(async () => {
@@ -744,11 +754,23 @@ export function useMessageTarget(messageId: string | null | undefined, roomId: s
  * accumulated list is a set of COMPLETE threads feeding buildCommentTree —
  * never the whole room collection.
  */
+export interface ThreadPage {
+  roots: DiscussionMessage[];
+  descendants: DiscussionMessage[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 export function usePaginatedThreads(
   roomId: string,
   opts?: {
     pageSize?: number;
     enabled?: boolean;
+    /**
+     * Server-rendered first thread page (public rooms only): seeds rendered
+     * items and the query cache so SSR HTML contains real thread content.
+     */
+    initialPage?: ThreadPage;
   },
 ) {
   const [state, setState] = useState<{
@@ -758,10 +780,10 @@ export function usePaginatedThreads(
     hasMore: boolean;
     isLoadingMore: boolean;
   }>({
-    items: [],
-    rootIds: [],
-    cursor: null,
-    hasMore: true,
+    items: opts?.initialPage ? [...opts.initialPage.roots, ...opts.initialPage.descendants] : [],
+    rootIds: opts?.initialPage ? opts.initialPage.roots.map((r) => r.id) : [],
+    cursor: opts?.initialPage?.nextCursor ?? null,
+    hasMore: opts?.initialPage ? opts.initialPage.hasMore : true,
     isLoadingMore: false,
   });
 
@@ -792,6 +814,7 @@ export function usePaginatedThreads(
     },
     enabled: opts?.enabled !== false && !!roomId,
     staleTime: 30_000,
+    initialData: opts?.initialPage,
   });
 
   const loadMore = useCallback(async () => {
@@ -848,12 +871,16 @@ export function usePaginatedQuestions(
   opts?: {
     pageSize?: number;
     enabled?: boolean;
+    /**
+     * Server-rendered first page (public rooms only). See usePaginatedClaims.
+     */
+    initialPage?: SectionPage<DiscussionQuestion>;
   },
 ) {
   const [state, setState] = useState<PaginatedSectionState<DiscussionQuestion>>({
-    items: [],
-    cursor: null,
-    hasMore: true,
+    items: opts?.initialPage?.items ?? [],
+    cursor: opts?.initialPage?.nextCursor ?? null,
+    hasMore: opts?.initialPage ? opts.initialPage.nextCursor !== null : true,
     isLoadingMore: false,
   });
 
@@ -866,6 +893,7 @@ export function usePaginatedQuestions(
     },
     enabled: opts?.enabled !== false && !!roomId,
     staleTime: 30_000,
+    initialData: opts?.initialPage,
   });
 
   const loadMore = useCallback(async () => {
@@ -907,5 +935,183 @@ export function useQuestionTarget(questionId: string | null | undefined, roomId:
     queryFn: () => getQuestionById(questionId!, roomId),
     enabled: !!questionId && !!roomId,
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Fetch reactions for a list of targets (messages, claims, etc.)
+ */
+export function useReactions(
+  targetType: ReactionTargetType,
+  targetIds: string[],
+  enabled: boolean = true
+) {
+  const ids = useMemo(() => [...new Set(targetIds)].sort(), [targetIds]);
+  return useQuery({
+    queryKey: ["reactions", targetType, ids],
+    queryFn: () => getReactionsForTargets(targetType, ids),
+    enabled: enabled && ids.length > 0,
+    staleTime: 15_000,
+  });
+}
+
+/**
+ * Mutation to toggle a reaction on a target.
+ */
+export function useToggleReaction(targetType: ReactionTargetType, _roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ targetId, reactionType }: { targetId: string; reactionType: ReactionType }) =>
+      toggleReaction(targetType, targetId, reactionType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reactions", targetType], exact: false });
+    },
+  });
+}
+
+/**
+ * Room-scoped arguments for conversation interleaving and claim presence counts.
+ * Retracted/deleted rows are excluded server-side; tombstones never render as nodes.
+ */
+export function useRoomArguments(roomId: string, enabled: boolean = true, initialData?: DiscussionArgument[]) {
+  return useQuery({
+    queryKey: ["roomArguments", roomId],
+    queryFn: () => getRoomArguments(roomId),
+    enabled: !!roomId && enabled,
+    staleTime: 30_000,
+    initialData,
+  });
+}
+
+/**
+ * Create an argument attached to one claim (initiated from the claim, never a composer mode).
+ */
+export function useCreateArgument(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      claimId: string;
+      content: string;
+      stance: "supporting" | "challenging";
+      identityMode?: "public" | "anonymous";
+    }) => createArgument(roomId, data.claimId, data.content, data.stance, data.identityMode ?? "public"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roomArguments", roomId] });
+      invalidateRoomQueries(queryClient, "claims", roomId);
+    },
+  });
+}
+
+/**
+ * Retract an argument (author only, enforced server-side).
+ */
+export function useRetractArgument(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => retractArgument(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roomArguments", roomId] });
+    },
+  });
+}
+
+/**
+ * Retract room evidence from a conversation node (author only, server-side).
+ * Room-level invalidation covers every claim-scoped evidence cache.
+ */
+export function useRetractRoomEvidence(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => retractEvidence(id),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "roomEvidence", roomId);
+      invalidateRoomQueries(queryClient, "claims", roomId);
+    },
+  });
+}
+
+/**
+ * Fetch aggregated and user claim request states for a set of messages.
+ */
+export function useClaimRequests(roomId: string, messageIds: string[], enabled: boolean = true) {
+  const ids = useMemo(() => [...new Set(messageIds)].sort(), [messageIds]);
+  const aggregatedQuery = useQuery({
+    queryKey: ["claimRequests", "aggregated", roomId, ids],
+    queryFn: () => getClaimRequestsForMessages(ids),
+    enabled: enabled && ids.length > 0,
+    staleTime: 15_000,
+  });
+
+  const myRequestsQuery = useQuery({
+    queryKey: ["claimRequests", "my", roomId, ids],
+    queryFn: () => getMyClaimRequests(ids),
+    enabled: enabled && ids.length > 0,
+    staleTime: 15_000,
+  });
+
+  return {
+    requestsMap: aggregatedQuery.data ?? new Map(),
+    myRequests: myRequestsQuery.data ?? new Set<string>(),
+    isLoading: aggregatedQuery.isLoading || myRequestsQuery.isLoading,
+    refetch: () => {
+      aggregatedQuery.refetch();
+      myRequestsQuery.refetch();
+    },
+  };
+}
+
+/**
+ * Create a claim request on a message.
+ */
+export function useCreateClaimRequest(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageId: string) => createClaimRequest(messageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["claimRequests", "aggregated", roomId], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["claimRequests", "my", roomId], exact: false });
+    },
+  });
+}
+
+/**
+ * Author decision on a claim request (accept, skip, or decline).
+ */
+export function useDecideClaimRequest(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ messageId, decision }: { messageId: string; decision: "accept" | "skip" | "decline" }) =>
+      decideClaimRequest(messageId, decision),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["claimRequests", "aggregated", roomId], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["claimRequests", "my", roomId], exact: false });
+      invalidateRoomQueries(queryClient, "messages", roomId);
+      invalidateRoomQueries(queryClient, "claims", roomId);
+    },
+  });
+}
+
+/**
+ * Convert a message into a claim in-place (author only).
+ */
+export function useConvertMessageToClaim(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      messageId,
+      claimType = "opinion",
+      contextType = "observation",
+    }: {
+      messageId: string;
+      claimType?: "fact" | "opinion" | "prediction" | "proposal" | "observation";
+      contextType?: ClaimContextType;
+    }) => convertMessageToClaim(messageId, claimType, contextType),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "messages", roomId);
+      invalidateRoomQueries(queryClient, "claims", roomId);
+      queryClient.invalidateQueries({ queryKey: ["discussionOverview", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["claimRequests", "aggregated", roomId], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["claimRequests", "my", roomId], exact: false });
+    },
   });
 }

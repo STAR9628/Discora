@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useClaims, useCreateClaimRelation, useDeleteClaimRelation, useClaimRelations } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionClaim, ClaimRelationType } from "@/features/discussions/types";
-import { X, Link2, Trash2, ThumbsUp, ThumbsDown, GitBranch, Loader2, Search } from "lucide-react";
+import { X as CloseIcon, Link2, Trash2, Check, X, GitBranch, Loader2, Search } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 
 interface ClaimRelationDialogProps {
@@ -24,16 +24,16 @@ function getRelationLabel(type: ClaimRelationType): string {
 
 function getRelationIcon(type: ClaimRelationType) {
   switch (type) {
-    case "supports": return <ThumbsUp className="h-3.5 w-3.5" />;
-    case "contradicts": return <ThumbsDown className="h-3.5 w-3.5" />;
+    case "supports": return <Check className="h-3.5 w-3.5" />;
+    case "contradicts": return <X className="h-3.5 w-3.5" />;
     case "refines": return <GitBranch className="h-3.5 w-3.5" />;
   }
 }
 
 function getRelationColor(type: ClaimRelationType): string {
   switch (type) {
-    case "supports": return "bg-green-500/10 text-green-400 border-green-500/20";
-    case "contradicts": return "bg-red-500/10 text-red-400 border-red-500/20";
+    case "supports": return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+    case "contradicts": return "bg-amber-500/10 text-amber-400 border-amber-500/20";
     case "refines": return "bg-blue-400/10 text-blue-400 border-blue-400/20";
   }
 }
@@ -127,7 +127,7 @@ export function ClaimRelationDialog({ roomId, sourceClaim, relationType, isOpen,
             <span className="text-sm text-muted-foreground">relation</span>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-            <X className="h-4 w-4" />
+            <CloseIcon className="h-4 w-4" />
           </button>
         </div>
 

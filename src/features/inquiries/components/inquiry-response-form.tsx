@@ -68,7 +68,7 @@ export function InquiryResponseForm({ inquiry }: InquiryResponseFormProps) {
         className="w-full rounded-xl border border-border/60 bg-card/40 p-3 text-xs md:text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30"
       />
       <div className="flex items-center justify-between">
-        <span className="text-[11px] text-muted-foreground/60">
+        <span className="text-xs text-muted-foreground">
           {content.trim().length} / 5000 chars (min 10)
         </span>
         <button

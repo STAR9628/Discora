@@ -40,10 +40,16 @@ docs/18_SUPABASE_AUTH_SETUP.md
 
 ## Environment
 
+Local development MUST target local Supabase (`http://127.0.0.1:54321`).
+Copy `.env.example` to `.env.local` for safe local defaults — never point a
+local `.env.local` at the production Supabase project. `npm run dev` refuses
+to start against `*.supabase.co` unless `DISCORA_ALLOW_REMOTE_DEV=true` is set
+explicitly for intentional remote development (see `next.config.ts` guard).
+
 Create a local `.env.local` file for real values. Do not commit secrets.
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 GEMINI_API_KEY=
 ```

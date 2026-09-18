@@ -42,6 +42,23 @@ export async function updateSupabaseSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  const isAdminPath = pathname.startsWith("/admin");
+
+  if (isAdminPath) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.searchParams.set("redirectedFrom", pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const ownerId = process.env.DISCORA_OWNER_USER_ID?.trim();
+    if (!ownerId || user.id !== ownerId) {
+      // Rewrite unauthorized requests to 404
+      return NextResponse.rewrite(new URL("/404", request.url));
+    }
+  }
+
   const isProtectedPath =
     pathname.startsWith("/protected") ||
     pathname.startsWith("/settings") ||
@@ -56,6 +73,82 @@ export async function updateSupabaseSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // First-visit guest experience: route brand-new visitors to /about
+  if (pathname === "/" && !user && !request.cookies.get("discora_visited")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/about";
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+    redirectResponse.cookies.set("discora_visited", "true", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+    return redirectResponse;
+  }
+
+  // Ensure discora_visited cookie is set when visiting /about
+  if (pathname === "/about" && !request.cookies.get("discora_visited")) {
+    response.cookies.set("discora_visited", "true", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
+
+  // Age eligibility gate for OAuth users
+  if (user && !pathname.startsWith("/auth/") && !pathname.startsWith("/login") && !pathname.startsWith("/register") && !pathname.startsWith("/api/") && !pathname.startsWith("/_next/") && pathname !== "/favicon.ico") {
+    const skipAgeGate =
+      pathname.startsWith("/auth/attest-age") ||
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/register") ||
+      pathname.startsWith("/api/") ||
+      pathname.startsWith("/_next/") ||
+      pathname === "/favicon.ico" ||
+      pathname.startsWith("/about");
+
+    if (!skipAgeGate) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, is_deleted, age_confirmed")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      // Check if this is an OAuth user (has google provider but no email provider)
+      const providers = user.app_metadata?.providers ?? [];
+      const isOAuthUser = providers.includes("google") && !providers.includes("email");
+
+      if (profile) {
+        if (profile.is_deleted) {
+          // Fail-closed gate: invalidate sessions and redirect to /
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = "/";
+          const redirectResponse = NextResponse.redirect(redirectUrl);
+          const allCookies = request.cookies.getAll();
+          for (const c of allCookies) {
+            if (c.name.includes("auth-token") || c.name.startsWith("sb-")) {
+              redirectResponse.cookies.delete(c.name);
+            }
+          }
+          return redirectResponse;
+        }
+
+        // Age gate for OAuth users who haven't confirmed 18+
+        if (isOAuthUser && !profile.age_confirmed) {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = "/auth/attest-age";
+          redirectUrl.searchParams.set("redirectTo", pathname);
+          return NextResponse.redirect(redirectUrl);
+        }
+      } else if (isOAuthUser) {
+        // OAuth user without profile - they need to create profile first, then attest
+        // The profile creation will set age_confirmed = false, then middleware will catch them
+        // on next request and redirect to attest-age.
+        // For now, allow them to proceed to /settings/profile to create profile.
+        // The profile form will set age_confirmed = false for OAuth users.
+      }
+    }
+  }
+
   // Redirect new users without a profile to the profile setup page
   if (user && !pathname.startsWith("/settings")) {
     const skipProfileCheck =
@@ -64,12 +157,13 @@ export async function updateSupabaseSession(request: NextRequest) {
       pathname.startsWith("/auth/") ||
       pathname.startsWith("/api/") ||
       pathname.startsWith("/_next/") ||
-      pathname === "/favicon.ico";
+      pathname === "/favicon.ico" ||
+      pathname.startsWith("/about");
 
     if (!skipProfileCheck) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id")
+        .select("id, is_deleted")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -77,6 +171,20 @@ export async function updateSupabaseSession(request: NextRequest) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/settings/profile";
         return NextResponse.redirect(redirectUrl);
+      }
+
+      if (profile.is_deleted) {
+        // Fail-closed gate: invalidate sessions and redirect to /
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/";
+        const redirectResponse = NextResponse.redirect(redirectUrl);
+        const allCookies = request.cookies.getAll();
+        for (const c of allCookies) {
+          if (c.name.includes("auth-token") || c.name.startsWith("sb-")) {
+            redirectResponse.cookies.delete(c.name);
+          }
+        }
+        return redirectResponse;
       }
     }
   }

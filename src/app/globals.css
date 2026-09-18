@@ -90,6 +90,55 @@
   border-color: var(--border);
 }
 
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Reduced motion: honor the OS-level preference globally. Non-essential
+   transitions/animations collapse to near-instant so state changes remain
+   legible without vestibular strain; spinners keep a static presence so
+   loading feedback is not lost. Functional opacity/color state changes
+   (hover, focus, pressed, disabled) are preserved. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@utility break-words {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@utility custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+}
+
 html {
   color-scheme: dark;
 }
@@ -107,3 +156,4 @@ a {
   color: inherit;
   text-decoration: none;
 }
+

@@ -10,7 +10,6 @@ import { InquiryStatusPill } from "./inquiry-status-pill";
 import { InquirySatisfactionBar } from "./inquiry-satisfaction-bar";
 import { InquiryResponseList } from "./inquiry-response-list";
 import { InquiryResponseForm } from "./inquiry-response-form";
-import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
 import { formatDate } from "@/lib/date";
 import type { InquiryItem } from "../types";
 import type { DiscussionClaim } from "@/features/discussions/types";
@@ -124,7 +123,6 @@ export function InquiryDetail({
                 </div>
               )}
               <span className="font-semibold text-foreground">{inquiry.username || "Anonymous"}</span>
-              {inquiry.createdBy && <AuthorTrustSignal userId={inquiry.createdBy} username={inquiry.username} />}
               {inquiry.inquirerSide && (
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-muted/60 text-muted-foreground border border-border/40">
                   {inquiry.inquirerSide}

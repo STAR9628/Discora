@@ -17,7 +17,8 @@ export interface Message {
   parentMessageId: string | null;
   content: string;
   identityMode: IdentityMode;
-  messageType: "message" | "question" | "system";
+  messageType: "message" | "question" | "system" | "claim";
+  convertedClaimId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,7 +30,8 @@ export interface DiscussionMessage {
   parentMessageId: string | null;
   content: string;
   identityMode: IdentityMode;
-  messageType: "message" | "question" | "system";
+  messageType: "message" | "question" | "system" | "claim";
+  convertedClaimId?: string | null;
   createdAt: string;
   updatedAt: string;
   userId: string | null; // Redacted (null) if identity_mode = 'anonymous'
@@ -70,7 +72,6 @@ export interface Debate {
   oppositionTitle: string;
   openingStatement: string | null;
   status: DebateStatus;
-  resolution: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   propositionClaimCount: number;
@@ -121,6 +122,8 @@ export interface Claim {
   disagreeCount?: number;
   consensusRatio?: number | null;
   userVote?: "agree" | "disagree" | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 export interface DiscussionClaim {
@@ -143,6 +146,8 @@ export interface DiscussionClaim {
   disagreeCount?: number;
   consensusRatio?: number | null;
   userVote?: "agree" | "disagree" | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 export interface Source {
@@ -261,7 +266,8 @@ export interface ModerationFlag {
   questionId: string | null;
   claimId: string | null;
   evidenceId: string | null;
-  entityType: "message" | "question" | "claim" | "evidence" | "unknown";
+  inquiryId: string | null;
+  entityType: "message" | "question" | "claim" | "evidence" | "inquiry" | "unknown";
   reason: string;
   status: ModerationStatus;
   createdAt: string;
@@ -269,4 +275,109 @@ export interface ModerationFlag {
   content: string | null;
   authorUsername: string | null;
   authorAvatarUrl: string | null;
+}
+
+export type ClaimRequestStatus = "pending" | "accepted" | "skipped" | "declined";
+
+export interface ClaimRequest {
+  id: string;
+  messageId: string;
+  requesterId: string;
+  roomId: string;
+  status: ClaimRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClaimRequestAggregated {
+  messageId: string;
+  roomId: string;
+  pendingCount: number;
+  acceptedCount: number;
+  skippedCount: number;
+  declinedCount: number;
+  totalCount: number;
+  latestRequestAt: string | null;
+  requesterDetails: Array<{
+    requesterId: string;
+    status: ClaimRequestStatus;
+    createdAt: string;
+  }> | null;
+}
+
+export interface ClaimRequestState {
+  pendingCount: number;
+  acceptedCount: number;
+  skippedCount: number;
+  declinedCount: number;
+  totalCount: number;
+  requesterDetails: Array<{
+    requesterId: string;
+    status: ClaimRequestStatus;
+    createdAt: string;
+  }> | null;
+}
+
+export interface Argument {
+  id: string;
+  roomId: string;
+  claimId: string;
+  createdBy: string | null;
+  content: string;
+  stance: "supporting" | "challenging";
+  identityMode: IdentityMode;
+  isRetracted: boolean;
+  deletedAt: string | null;
+  deletedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiscussionArgument {
+  id: string;
+  roomId: string;
+  claimId: string;
+  content: string;
+  stance: "supporting" | "challenging";
+  identityMode: IdentityMode;
+  isRetracted: boolean;
+  deletedAt: string | null;
+  deletedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+}
+
+export type ReactionTargetType = "message" | "claim" | "evidence" | "argument";
+export type ReactionType = "like" | "insightful" | "curious";
+
+export interface Reaction {
+  id: string;
+  userId: string;
+  targetType: ReactionTargetType;
+  targetId: string;
+  reactionType: ReactionType;
+  roomId: string;
+  createdAt: string;
+}
+
+export interface ReactionAggregate {
+  targetType: ReactionTargetType;
+  targetId: string;
+  reactionType: ReactionType;
+  count: number;
+  userHasReacted: boolean;
+}
+
+export interface SavedRoomAlias {
+  id: string;
+  targetType: "discussion" | "debate" | "claim" | "evidence";
+  targetId: string;
+  alias: string | null;
+  createdAt: string;
+  roomTitle: string;
+  roomSlug: string;
+  roomType: string;
 }

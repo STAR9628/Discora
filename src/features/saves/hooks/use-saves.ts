@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
 import { mapSupabaseError } from "@/lib/errors";
-import { isTargetSaved, saveTarget, unsaveTarget, listSavedTargets } from "../services/save-service";
-import type { SaveTargetType, SavedItem } from "../types";
+import { isTargetSaved, saveTarget, unsaveTarget, listSavedTargets, updateSavedRoomAlias, getSavedRoomAlias } from "../services/save-service";
+import type { SaveTargetType, SavedItem, UserSave } from "../types";
 
 async function hasRoomAccess(roomId: string): Promise<boolean> {
   const supabase = createBrowserSupabaseClient();
@@ -146,6 +146,7 @@ export function useRecentlySaved(limit = 5) {
                 slug: room.slug,
                 roomType: room.room_type as "discussion" | "debate",
                 roomTitle: room.title,
+                alias: (save as UserSave).alias ?? null,
               });
             }
           }
@@ -227,3 +228,32 @@ export function useRecentlySaved(limit = 5) {
     staleTime: 30_000,
   });
 }
+
+export function useSavedRoomAlias(targetType: SaveTargetType, targetId: string) {
+  const { user, status } = useAuth();
+  const userId = user?.id;
+
+  return useQuery({
+    queryKey: ["saved", "alias", userId, targetType, targetId],
+    queryFn: () => getSavedRoomAlias(userId!, targetType, targetId),
+    enabled: status === "authenticated" && !!userId && !!targetId,
+    staleTime: 30_000,
+  });
+}
+
+export function useUpdateSavedRoomAlias(targetType: SaveTargetType, targetId: string) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  return useMutation({
+    mutationFn: async (alias: string | null) => {
+      await updateSavedRoomAlias(targetType, targetId, alias);
+    },
+    onSuccess: (_, alias) => {
+      queryClient.setQueryData(["saved", "alias", userId, targetType, targetId], alias);
+      queryClient.invalidateQueries({ queryKey: ["saved", "items", userId] });
+    },
+  });
+}
+

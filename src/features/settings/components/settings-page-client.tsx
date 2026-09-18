@@ -6,8 +6,10 @@ import { useCurrentProfile, useUpdateProfile } from "@/features/profiles/hooks/u
 import { ProfileForm } from "@/features/profiles/components/profile-form";
 import { ReportHistory } from "@/features/safety/components/report-history";
 import { FeedbackModal } from "@/features/settings/components/feedback-modal";
+import { DeleteAccountDialog } from "@/features/settings/components/delete-account-dialog";
 import { useOnboarding } from "@/features/onboarding";
 import { useUserPreferences, useUpsertUserPreferences } from "@/features/preferences/hooks/use-preferences";
+import Link from "next/link";
 import {
   User,
   Eye,
@@ -20,6 +22,8 @@ import {
   Settings,
   MessageSquare,
   Compass,
+  FileText,
+  ArrowUpRight,
 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { privacySchema, type PrivacyFormValues } from "@/features/preferences/validation";
@@ -28,6 +32,7 @@ const SECTIONS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "privacy", label: "Privacy", icon: Eye },
   { id: "safety", label: "Data & Safety", icon: ShieldAlert },
+  { id: "legal", label: "Legal Documents", icon: FileText },
   { id: "danger", label: "Danger Zone", icon: Trash2 },
 ] as const;
 
@@ -234,7 +239,7 @@ function PrivacyPanel() {
           <div className="flex gap-2 rounded-md bg-blue-500/10 p-3 text-xs text-blue-400">
             <Info className="h-4 w-4 shrink-0" />
             <p>
-              <strong>Note:</strong> Storing this preference is preparation for future sprints. Discora does not support posting yet.
+              <strong>Note:</strong> This default applies to new messages you post. You can still switch identity per post in the composer.
             </p>
           </div>
 
@@ -424,6 +429,7 @@ function SafetyPanel() {
 }
 
 function DangerZonePanel() {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   return (
     <div className="space-y-6">
       <div className="mb-2">
@@ -439,24 +445,124 @@ function DangerZonePanel() {
           <div className="flex-1">
             <h3 className="text-lg font-bold tracking-tight">Delete Account</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Permanently delete your account and all associated data. This action cannot be undone.
+              Permanently delete your account. Your personal information is removed, things you wrote stay
+              readable as “Deleted User”, and your username is retired forever. This action cannot be undone.
             </p>
-            <div className="mt-4 flex gap-2 rounded-md bg-destructive/10 p-3 text-xs text-destructive">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <p>
-                Account deletion is not yet available. This feature will be implemented in a future release.
-              </p>
-            </div>
             <button
               type="button"
-              disabled
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-destructive/50 py-2.5 text-sm font-semibold text-destructive-foreground cursor-not-allowed opacity-50"
+              onClick={() => setIsDeleteOpen(true)}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-destructive py-2.5 text-sm font-semibold text-white cursor-pointer hover:opacity-90"
             >
               <Trash2 className="h-4 w-4" />
               Delete Account
             </button>
           </div>
         </div>
+      </div>
+      <DeleteAccountDialog open={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} />
+    </div>
+  );
+}
+
+function LegalPanel() {
+  return (
+    <div className="space-y-6">
+      <div className="mb-2">
+        <h2 className="text-xl font-bold tracking-tight">Legal Documents</h2>
+        <p className="text-sm text-muted-foreground">
+          Review foundational agreements, privacy notices, community standards, and statutory grievance mechanisms. For your own visibility controls, see Privacy.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-md md:p-8">
+        <div className="mb-6">
+          <h3 className="text-lg font-bold tracking-tight">Platform Governance</h3>
+          <p className="text-sm text-muted-foreground">
+            Official agreements and operational documentation governing your participation in Discora.
+          </p>
+        </div>
+
+        <nav aria-label="Legal documents" className="divide-y divide-border/40 rounded-lg border border-border bg-card/40">
+          <Link
+            href="/terms"
+            className="flex items-center justify-between p-4 transition-colors hover:bg-accent/40 group rounded-t-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  Terms of Service
+                </span>
+                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+                  Draft
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Participant rights, epistemic model, content licensing, and platform terms of use.
+              </p>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
+
+          <Link
+            href="/privacy"
+            className="flex items-center justify-between p-4 transition-colors hover:bg-accent/40 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  Privacy Policy
+                </span>
+                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+                  Draft
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Data collection, storage practices, and epistemic retention disclosures.
+              </p>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
+
+          <Link
+            href="/guidelines"
+            className="flex items-center justify-between p-4 transition-colors hover:bg-accent/40 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  Community Guidelines
+                </span>
+                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+                  Draft
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Epistemic conduct standards, AI assistive boundaries, and moderation principles.
+              </p>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
+
+          <Link
+            href="/grievance"
+            className="flex items-center justify-between p-4 transition-colors hover:bg-accent/40 group rounded-b-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  Grievance Redressal
+                </span>
+                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+                  Draft
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Statutory Grievance Officer details, reporting procedures, and resolution timelines.
+              </p>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </Link>
+        </nav>
       </div>
     </div>
   );
@@ -469,6 +575,7 @@ export function SettingsPageClient() {
     profile: <ProfilePanel />,
     privacy: <PrivacyPanel />,
     safety: <SafetyPanel />,
+    legal: <LegalPanel />,
     danger: <DangerZonePanel />,
   };
 

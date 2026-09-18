@@ -5,7 +5,8 @@ import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = getSafeRedirectUrl(requestUrl.searchParams.get("next"), "/");
+  const target = requestUrl.searchParams.get("next") || requestUrl.searchParams.get("redirectedFrom");
+  const next = getSafeRedirectUrl(target, "/about");
 
   if (code) {
     // Create the redirect response BEFORE exchanging the code

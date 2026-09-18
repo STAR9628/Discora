@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: inquiry ? `Inquiry: ${inquiry.content.slice(0, 50)}... | Discora` : "Inquiry | Discora",
+    title: inquiry ? `Inquiry: ${inquiry.content.slice(0, 50)}...` : "Inquiry",
     description: inquiry?.content || "View structured inquiry and responses on Discora.",
   };
 }

@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDebate, getDebateByRoomId, getDebates, joinDebate, leaveDebate, getDebateParticipants, getClaimsBySide, resolveDebate, switchDebateSide, getSideChangeHistory, createPrivateDebate, createRoomInvitation, setRoomAccessCode, removeDebateParticipant, publishDebateRoom, acceptInvitation, joinWithAccessCode, getRoomInvitations, revokeRoomInvitation, setParticipantInvitesEnabled } from "@/features/debates/services/debate-service";
+import { createDebate, getDebateByRoomId, getDebates, joinDebate, leaveDebate, getDebateParticipants, getClaimsBySide, switchDebateSide, getSideChangeHistory, createPrivateDebate, createRoomInvitation, setRoomAccessCode, removeDebateParticipant, publishDebateRoom, acceptInvitation, joinWithAccessCode, getRoomInvitations, revokeRoomInvitation, setParticipantInvitesEnabled, roomHasAccessCode } from "@/features/debates/services/debate-service";
 import type { DebateSortOption, DebateFeedItem } from "@/features/debates/services/debate-service";
+import type { DiscussionClaim } from "@/features/discussions/types";
 import { useState, useCallback } from "react";
 
 export function useDebates(
-  statusFilter: "active" | "resolved" | "closing_soon" = "active",
+  statusFilter: "active" | "closing_soon" = "active",
   sort: DebateSortOption = "most_active",
 ) {
   const [items, setItems] = useState<DebateFeedItem[]>([]);
@@ -100,37 +101,26 @@ export function useLeaveDebate(roomId: string) {
   });
 }
 
-export function useDebateParticipants(roomId: string) {
+export function useDebateParticipants(roomId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ["debateParticipants", roomId],
     queryFn: () => getDebateParticipants(roomId),
-    enabled: !!roomId,
+    enabled: !!roomId && enabled,
     staleTime: 30_000,
   });
 }
 
-export function useDebateClaimsBySide(roomId: string, side: "proposition" | "opposition") {
+export function useDebateClaimsBySide(
+  roomId: string,
+  side: "proposition" | "opposition",
+  initialData?: DiscussionClaim[],
+) {
   return useQuery({
     queryKey: ["debateClaims", roomId, side],
     queryFn: () => getClaimsBySide(roomId, side),
     enabled: !!roomId,
     staleTime: 30_000,
-  });
-}
-
-export function useResolveDebate(roomId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (resolution: {
-      winner: "proposition" | "opposition" | "draw";
-      summary: string;
-      resolvedBy: string;
-    }) => resolveDebate(roomId, resolution),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["debate", roomId] });
-      queryClient.invalidateQueries({ queryKey: ["debates"] });
-    },
+    initialData,
   });
 }
 
@@ -203,6 +193,7 @@ export function useSetRoomAccessCode() {
     mutationFn: (data: { roomId: string; code: string }) => setRoomAccessCode(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["room", variables.roomId] });
+      queryClient.invalidateQueries({ queryKey: ["room", variables.roomId, "hasAccessCode"] });
     },
   });
 }
@@ -274,6 +265,15 @@ export function useRevokeRoomInvitation() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["roomInvitations", variables.roomId] });
     },
+  });
+}
+
+export function useRoomHasAccessCode(roomId: string) {
+  return useQuery({
+    queryKey: ["room", roomId, "hasAccessCode"],
+    queryFn: () => roomHasAccessCode(roomId),
+    enabled: !!roomId,
+    staleTime: 30_000,
   });
 }
 

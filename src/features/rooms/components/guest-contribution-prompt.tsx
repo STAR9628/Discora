@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogIn, UserPlus, MessageSquare, Swords } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface GuestContributionPromptProps {
   roomType?: "discussion" | "debate";
@@ -28,36 +29,34 @@ export function GuestContributionPrompt({
   return (
     <div
       data-testid="guest-contribution-prompt"
-      className="rounded-2xl border border-border/70 bg-card/40 p-6 backdrop-blur-sm space-y-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:space-y-0"
+      className="rounded-2xl border border-border/80 bg-background/95 p-3.5 sm:p-4 backdrop-blur-md shadow-lg space-y-3 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:space-y-0"
     >
-      <div className="space-y-1 sm:max-w-xl">
-        <div className="flex items-center justify-center sm:justify-start gap-2 text-foreground font-bold text-sm">
-          <Icon className="h-4 w-4 text-primary" />
-          <span>{customTitle || `Want to contribute to this ${isDebate ? "debate" : "discussion"}?`}</span>
+      <div className="space-y-0.5 sm:max-w-md">
+        <div className="flex items-center justify-center sm:justify-start gap-2 text-foreground font-bold text-xs sm:text-sm">
+          <Icon className="h-4 w-4 text-primary shrink-0" />
+          <span>{customTitle || `Sign in to join this ${isDebate ? "debate" : "discussion"}`}</span>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
           {customDescription ||
             (isDebate
-              ? "Sign in to state your argument, support a side with evidence, or participate in the thread."
-              : "Sign in to share your perspective, help answer questions, or contribute evidence.")}
+              ? "Share arguments, support a side with evidence, or participate in the conversation."
+              : "Share insights, propose claims, or ask questions in this room.")}
         </p>
       </div>
 
       <div className="flex items-center justify-center sm:justify-end gap-2.5 shrink-0 pt-2 sm:pt-0">
-        <Link
-          href={registerHref}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card/60 px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
-        >
-          <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
-          <span>Create Account</span>
-        </Link>
-        <Link
-          href={loginHref}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
-        >
-          <LogIn className="h-3.5 w-3.5" />
-          <span>Sign In</span>
-        </Link>
+        <Button asChild variant="outline" size="sm" className="rounded-xl text-xs font-semibold">
+          <Link href={registerHref}>
+            <UserPlus className="h-3.5 w-3.5 text-muted-foreground" />
+            <span>Create Account</span>
+          </Link>
+        </Button>
+        <Button asChild variant="default" size="sm" className="rounded-xl text-xs font-semibold shadow-xs">
+          <Link href={loginHref}>
+            <LogIn className="h-3.5 w-3.5" />
+            <span>Sign In</span>
+          </Link>
+        </Button>
       </div>
     </div>
   );

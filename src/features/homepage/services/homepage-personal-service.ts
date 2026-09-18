@@ -94,6 +94,8 @@ export interface UnderstandingEvolved {
   consensusRatio: number | null;
   evidenceCount: number;
   latestEvidence: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export async function getMyOpenInquiries(): Promise<MyOpenInquiry[]> {
@@ -255,5 +257,7 @@ function mapUnderstandingEvolved(row: Record<string, unknown>): UnderstandingEvo
     consensusRatio: row.consensus_ratio !== null && row.consensus_ratio !== undefined ? Number(row.consensus_ratio) : null,
     evidenceCount: Number(row.evidence_count ?? 0),
     latestEvidence: row.latest_evidence ? String(row.latest_evidence) : null,
+    createdAt: String(row.created_at ?? ""),
+    updatedAt: String(row.updated_at ?? ""),
   };
 }

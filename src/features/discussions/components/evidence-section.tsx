@@ -5,12 +5,10 @@ import NextLink from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useEvidence, useCreateEvidence, useRetractEvidence, useVoteEvidence } from "@/features/discussions/hooks/use-discussions";
+import { useEvidence, useCreateEvidence, useRetractEvidence } from "@/features/discussions/hooks/use-discussions";
 import { evidenceSchema, type EvidenceFormValues } from "@/features/discussions/validation";
-import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, ThumbsUp, ThumbsDown, Flag, LogIn, FileText } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, Flag, LogIn, FileText } from "lucide-react";
 import type { DiscussionEvidence } from "../types";
-import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
-import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-reputation";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate } from "@/lib/date";
@@ -29,9 +27,6 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   const { data: evidenceList, isLoading, error } = useEvidence(claimId);
   const createMutation = useCreateEvidence(roomId, claimId);
   const retractMutation = useRetractEvidence(roomId, claimId);
-
-  const evidenceAuthorIds = evidenceList?.filter((e) => e.createdBy && e.identityMode !== "anonymous").map((e) => e.createdBy!) || [];
-  const { data: evAuthorRepScores } = useAuthorsReputation(evidenceAuthorIds);
 
   const [isFormOpen, setIsFormOpen] = useState(defaultOpen ?? false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -94,9 +89,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   const getDirectionStyles = (direction: string) => {
     switch (direction) {
       case "support":
-        return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
+        return "bg-slate-500/10 border-slate-500/25 text-slate-400";
       case "contradict":
-        return "bg-rose-500/10 border-rose-500/25 text-rose-400";
+        return "bg-amber-500/10 border-amber-500/25 text-amber-400";
       case "context":
         return "bg-slate-500/10 border-slate-500/25 text-slate-400";
       default:
@@ -111,13 +106,13 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           <h5 className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground/80">
             Evidence ({evidenceList?.length ?? 0})
           </h5>
-          <p className="text-[10px] text-muted-foreground/60 mt-0.5">Sources that support or challenge this claim</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Sources that support or challenge this claim</p>
         </div>
         
         {user && !isClaimRetracted && !isFormOpen && (
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline cursor-pointer"
           >
             <Plus className="h-3 w-3" />
             <span>Add Evidence</span>
@@ -462,11 +457,6 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                   </span>
                 </div>
 
-                {/* Voting Actions */}
-                {!ev.isRetracted && (
-                  <EvidenceVoting roomId={roomId} claimId={claimId} evidence={ev} />
-                )}
-
                 {/* Creator Details */}
                 <div className="flex items-center gap-2 pt-2 border-t border-border/20 text-[10px] text-muted-foreground">
                   <div className="h-4.5 w-4.5 overflow-hidden rounded-full border border-border/60 bg-muted flex items-center justify-center">
@@ -490,13 +480,6 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                   }`}>
                     {isEvAnon ? "Anonymous" : ev.username || "Unknown User"}
                   </span>
-                  {!isEvAnon && !isEvDeleted && ev.createdBy && ev.username && (
-                    <AuthorTrustSignal
-                      userId={ev.createdBy}
-                      username={ev.username}
-                      reputationScore={evAuthorRepScores?.get(ev.createdBy)}
-                    />
-                  )}
                   <span>•</span>
                   <span>
                     {formatDate(ev.createdAt, {
@@ -533,78 +516,6 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
         }}
         onCancel={() => setPendingRetractId(null)}
       />
-    </div>
-  );
-}
-
-interface EvidenceVotingProps {
-  roomId: string;
-  claimId: string;
-  evidence: DiscussionEvidence;
-}
-
-function EvidenceVoting({ roomId, claimId, evidence }: EvidenceVotingProps) {
-  const { user } = useAuth();
-  const voteMutation = useVoteEvidence(roomId, claimId, evidence.id);
-
-  const handleVote = async (type: "agree" | "disagree") => {
-    if (!user) {
-      toast.warning("You must be logged in to vote.");
-      return;
-    }
-    const nextVote = evidence.userVote === type ? null : type;
-    try {
-      await voteMutation.mutateAsync(nextVote);
-    } catch (err) {
-      toast.error("Failed to cast vote.", {
-        description: err instanceof Error ? err.message : "Please try again.",
-      });
-    }
-  };
-
-  const agreeActive = evidence.userVote === "agree";
-  const disagreeActive = evidence.userVote === "disagree";
-
-  return (
-    <div className="flex items-center gap-3 pt-1">
-      <div className="flex items-center gap-1 rounded bg-muted/30 p-0.5 border border-border/40">
-        <button
-          onClick={() => handleVote("agree")}
-          disabled={voteMutation.isPending}
-          className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
-            agreeActive
-              ? "bg-emerald-500/20 text-emerald-400"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-        >
-          <ThumbsUp className="h-3 w-3" />
-          <span>{evidence.agreeCount ?? 0}</span>
-        </button>
-
-        <div className="h-3 w-px bg-border/60" />
-
-        <button
-          onClick={() => handleVote("disagree")}
-          disabled={voteMutation.isPending}
-          className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold transition-all cursor-pointer ${
-            disagreeActive
-              ? "bg-rose-500/20 text-rose-400"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-        >
-          <ThumbsDown className="h-3 w-3" />
-          <span>{evidence.disagreeCount ?? 0}</span>
-        </button>
-      </div>
-
-      {evidence.consensusRatio !== null && evidence.consensusRatio !== undefined && (
-        <span
-          className="text-[9px] font-extrabold text-muted-foreground/80 cursor-help"
-          title={`${Math.round(evidence.consensusRatio)}% of voters agree with this evidence (${evidence.agreeCount ?? 0} agree, ${evidence.disagreeCount ?? 0} disagree)`}
-        >
-          {Math.round(evidence.consensusRatio)}% agree
-        </span>
-      )}
     </div>
   );
 }

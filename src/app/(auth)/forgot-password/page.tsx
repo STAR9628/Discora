@@ -9,7 +9,7 @@ export default function ForgotPasswordPage() {
           Reset your password
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Send a Supabase Auth password reset link to your email.
+          Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
         <div className="mt-6">
           <ForgotPasswordForm />

@@ -11,7 +11,7 @@ import {
   getInquiryCountsByRoom,
   getInquiriesByRoom,
 } from "../services/inquiry-service";
-import type { InquiryType } from "../types";
+import type { InquiryItem, InquiryResponse, InquiryType } from "../types";
 
 export function useInquiry(inquiryId: string) {
   return useQuery({
@@ -22,12 +22,13 @@ export function useInquiry(inquiryId: string) {
   });
 }
 
-export function useInquiries(roomId: string, enabled: boolean = true) {
+export function useInquiries(roomId: string, enabled: boolean = true, initialData?: InquiryItem[]) {
   return useQuery({
     queryKey: ["inquiries", roomId],
     queryFn: () => getInquiriesByRoom(roomId),
     staleTime: 10_000,
     enabled: !!roomId && enabled,
+    initialData,
   });
 }
 
@@ -110,20 +111,22 @@ export function useInquiriesForTarget(roomId: string, targetClaimId: string) {
   });
 }
 
-export function useInquiryCountsForRoom(roomId: string) {
+export function useInquiryCountsForRoom(roomId: string, initialData?: Record<string, number>) {
   return useQuery({
     queryKey: ["inquiryCounts", roomId],
     queryFn: () => getInquiryCountsByRoom(roomId),
     staleTime: 10_000,
     enabled: !!roomId,
+    initialData,
   });
 }
 
-export function useInquiryResponses(inquiryItemId: string) {
+export function useInquiryResponses(inquiryItemId: string, initialData?: InquiryResponse[]) {
   return useQuery({
     queryKey: ["inquiry-responses", inquiryItemId],
     queryFn: () => getInquiryResponses(inquiryItemId),
     staleTime: 10_000,
     enabled: !!inquiryItemId,
+    initialData,
   });
 }

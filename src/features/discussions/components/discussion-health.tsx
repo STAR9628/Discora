@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { DiscussionClaim, DiscussionQuestion, DiscussionEvidence, DiscussionClaimRelation } from "@/features/discussions/types";
 import { computeRelationCounts, findAllConnectedComponents } from "./graph-utils";
 import type { GraphEdge } from "./graph-utils";
-import { Activity, FileText, HelpCircle, Link2, AlertTriangle, Target, ThumbsUp, ThumbsDown, GitBranch } from "lucide-react";
+import { Activity, FileText, HelpCircle, Link2, AlertTriangle, Target, Check, X, GitBranch } from "lucide-react";
 
 interface DiscussionHealthProps {
   claims: DiscussionClaim[];
@@ -92,7 +92,7 @@ export function DiscussionHealth({ claims, questions, evidence, claimRelations }
   return (
     <div className="rounded-xl border border-border/60 bg-card/20 p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <Activity className="h-4 w-4 text-emerald-400" />
+        <Activity className="h-4 w-4 text-slate-400" />
         <h4 className="text-sm font-bold text-foreground">Discussion Health</h4>
       </div>
 
@@ -132,11 +132,11 @@ export function DiscussionHealth({ claims, questions, evidence, claimRelations }
       {(stats.supportsCount > 0 || stats.contradictsCount > 0 || stats.refinesCount > 0) && (
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <ThumbsUp className="h-3 w-3 text-green-400" />
+            <Check className="h-3 w-3 text-slate-400" />
             Supports: <span className="font-semibold text-foreground/80">{stats.supportsCount}</span>
           </span>
           <span className="flex items-center gap-1">
-            <ThumbsDown className="h-3 w-3 text-rose-400" />
+            <X className="h-3 w-3 text-amber-400" />
             Contradicts: <span className="font-semibold text-foreground/80">{stats.contradictsCount}</span>
           </span>
           <span className="flex items-center gap-1">
@@ -158,19 +158,19 @@ export function DiscussionHealth({ claims, questions, evidence, claimRelations }
         <div className="space-y-1 pt-1 border-t border-border/30">
           {stats.mostSupported && (
             <div className="text-[11px] text-muted-foreground flex items-start gap-2">
-              <ThumbsUp className="h-3 w-3 text-green-400 mt-0.5 shrink-0" />
+              <Check className="h-3 w-3 text-slate-400 mt-0.5 shrink-0" />
               <span>
-                Most Supported: <span className="text-foreground/80 font-medium">{truncate(claimContent.get(stats.mostSupported.id) || "", 80)}</span>
-                <span className="text-green-400/80 ml-1">({stats.mostSupported.count})</span>
+                Most Supported by Participants: <span className="text-foreground/80 font-medium">{truncate(claimContent.get(stats.mostSupported.id) || "", 80)}</span>
+                <span className="text-slate-400/80 ml-1">({stats.mostSupported.count})</span>
               </span>
             </div>
           )}
           {stats.mostContradicted && (
             <div className="text-[11px] text-muted-foreground flex items-start gap-2">
-              <ThumbsDown className="h-3 w-3 text-rose-400 mt-0.5 shrink-0" />
+              <X className="h-3 w-3 text-amber-400 mt-0.5 shrink-0" />
               <span>
-                Most Contradicted: <span className="text-foreground/80 font-medium">{truncate(claimContent.get(stats.mostContradicted.id) || "", 80)}</span>
-                <span className="text-rose-400/80 ml-1">({stats.mostContradicted.count})</span>
+                Most Challenged by Participants: <span className="text-foreground/80 font-medium">{truncate(claimContent.get(stats.mostContradicted.id) || "", 80)}</span>
+                <span className="text-amber-400/80 ml-1">({stats.mostContradicted.count})</span>
               </span>
             </div>
           )}
@@ -178,7 +178,7 @@ export function DiscussionHealth({ claims, questions, evidence, claimRelations }
             <div className="text-[11px] text-muted-foreground flex items-start gap-2">
               <GitBranch className="h-3 w-3 text-violet-400 mt-0.5 shrink-0" />
               <span>
-                Most Connected: <span className="text-foreground/80 font-medium">{truncate(claimContent.get(stats.mostConnected.id) || "", 80)}</span>
+                Most Connected Claims: <span className="text-foreground/80 font-medium">{truncate(claimContent.get(stats.mostConnected.id) || "", 80)}</span>
                 <span className="text-violet-400/80 ml-1">({stats.mostConnected.score} relations)</span>
               </span>
             </div>

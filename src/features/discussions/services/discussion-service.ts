@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
 import { mapSupabaseError } from "@/lib/errors";
-import type { Topic, Room, Discussion, Message, DiscussionMessage, Claim, DiscussionClaim, DiscussionEvidence, Question, DiscussionQuestion, QuestionType, ModerationFlag, SearchResult, SearchResultType, DiscussionClaimRelation, ClaimRelationType, ClaimContextType, Debate } from "../types";
+import type { Topic, Room, Discussion, Message, DiscussionMessage, Claim, DiscussionClaim, DiscussionEvidence, Question, DiscussionQuestion, QuestionType, ModerationFlag, SearchResult, SearchResultType, DiscussionClaimRelation, ClaimRelationType, ClaimContextType, Debate, ClaimRequestState, ReactionAggregate, ReactionTargetType, ClaimRequestStatus, DiscussionArgument } from "../types";
 
 export interface DbTopicRow {
   id: string;
@@ -45,7 +45,8 @@ export interface DbMessageRow {
   parent_message_id: string | null;
   content: string;
   identity_mode: "public" | "anonymous";
-  message_type: "message" | "question" | "system";
+  message_type: "message" | "question" | "system" | "claim";
+  converted_claim_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +57,8 @@ export interface DbDiscussionMessageRow {
   parent_message_id: string | null;
   content: string;
   identity_mode: "public" | "anonymous";
-  message_type: "message" | "question" | "system";
+  message_type: "message" | "question" | "system" | "claim";
+  converted_claim_id?: string | null;
   created_at: string;
   updated_at: string;
   user_id: string | null;
@@ -71,7 +73,6 @@ export interface DbDebateRow {
   opposition_title: string;
   opening_statement: string | null;
   status: string;
-  resolution: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   proposition_claim_count: number;
@@ -172,8 +173,7 @@ export function mapDebateRow(row: DbDebateRow): Debate {
     propositionTitle: row.proposition_title,
     oppositionTitle: row.opposition_title,
     openingStatement: row.opening_statement,
-    status: row.status as "active" | "resolved" | "closed",
-    resolution: row.resolution,
+    status: row.status as "active" | "closed",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     propositionClaimCount: row.proposition_claim_count,
@@ -207,6 +207,7 @@ export function mapMessageRow(row: DbMessageRow): Message {
     content: row.content,
     identityMode: row.identity_mode,
     messageType: row.message_type,
+    convertedClaimId: row.converted_claim_id || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -220,6 +221,7 @@ export function mapDiscussionMessageRow(row: DbDiscussionMessageRow): Discussion
     content: row.content,
     identityMode: row.identity_mode,
     messageType: row.message_type,
+    convertedClaimId: row.converted_claim_id || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     userId: row.user_id,
@@ -426,6 +428,7 @@ export async function postMessage(
     parentMessageId?: string | null;
     content: string;
     identityMode: "public" | "anonymous";
+    messageType?: "message" | "question";
   },
   overrideClient?: SupabaseClient,
 ): Promise<MutationIdResult> {
@@ -438,7 +441,7 @@ export async function postMessage(
       parent_message_id: data.parentMessageId || null,
       content: data.content,
       identity_mode: data.identityMode,
-      message_type: "message",
+      message_type: data.messageType || "message",
     })
     .select("id")
     .single();
@@ -518,6 +521,8 @@ export interface DbClaimRow {
   disagree_count?: number;
   consensus_ratio?: number | null;
   user_vote?: "agree" | "disagree" | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface DbDiscussionClaimRow {
@@ -540,6 +545,8 @@ export interface DbDiscussionClaimRow {
   disagree_count?: number;
   consensus_ratio?: number | null;
   user_vote?: "agree" | "disagree" | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export function mapQuestionRow(row: DbQuestionRow): Question {
@@ -591,6 +598,8 @@ export function mapClaimRow(row: DbClaimRow): Claim {
     disagreeCount: row.disagree_count,
     consensusRatio: row.consensus_ratio,
     userVote: row.user_vote,
+    deletedAt: row.deleted_at ?? null,
+    deletedBy: row.deleted_by ?? null,
   };
 }
 
@@ -615,6 +624,8 @@ export function mapDiscussionClaimRow(row: DbDiscussionClaimRow): DiscussionClai
     disagreeCount: row.disagree_count,
     consensusRatio: row.consensus_ratio,
     userVote: row.user_vote,
+    deletedAt: row.deleted_at ?? null,
+    deletedBy: row.deleted_by ?? null,
   };
 }
 
@@ -1102,55 +1113,216 @@ export async function castClaimVote(
 }
 
 /**
- * Cast or toggle a vote on evidence
+ * Convert a message to a claim in-place (author only)
  */
-export async function castEvidenceVote(
-  evidenceId: string,
-  voteType: "agree" | "disagree" | null,
+export async function convertMessageToClaim(
+  messageId: string,
+  claimType: "fact" | "opinion" | "prediction" | "proposal" | "observation",
+  contextType: ClaimContextType,
+  overrideClient?: SupabaseClient,
+): Promise<MutationIdResult> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase.rpc("convert_message_to_claim", {
+    p_message_id: messageId,
+    p_claim_type: claimType,
+    p_context_type: contextType,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to convert message to claim"));
+  }
+
+  return { id: data };
+}
+
+/**
+ * Create a claim request for a message
+ */
+export async function createClaimRequest(
+  messageId: string,
+  overrideClient?: SupabaseClient,
+): Promise<MutationIdResult> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase.rpc("create_claim_request", {
+    p_message_id: messageId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to create claim request"));
+  }
+
+  return { id: data };
+}
+
+/**
+ * Author decision on claim request (accept/skip/decline)
+ */
+export async function decideClaimRequest(
+  messageId: string,
+  decision: "accept" | "skip" | "decline",
+  overrideClient?: SupabaseClient,
+): Promise<MutationIdResult> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase.rpc("decide_claim_request", {
+    p_message_id: messageId,
+    p_decision: decision,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to decide on claim request"));
+  }
+
+  return { id: data };
+}
+
+/**
+ * Get claim request state for a message
+ */
+export async function getClaimRequestState(
+  messageId: string,
+  overrideClient?: SupabaseClient,
+): Promise<ClaimRequestState> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase.rpc("get_claim_request_state", {
+    p_message_id: messageId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to get claim request state"));
+  }
+
+  return data as ClaimRequestState;
+}
+
+/**
+ * Create a discussion argument
+ */
+export async function createArgument(
+  roomId: string,
+  claimId: string,
+  content: string,
+  stance: "supporting" | "challenging",
+  identityMode: "public" | "anonymous" = "public",
+  overrideClient?: SupabaseClient,
+): Promise<MutationIdResult> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase.rpc("create_argument", {
+    p_room_id: roomId,
+    p_claim_id: claimId,
+    p_content: content,
+    p_stance: stance,
+    p_identity_mode: identityMode,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to create argument"));
+  }
+
+  return { id: data };
+}
+
+/**
+ * Retract an argument
+ */
+export async function retractArgument(
+  argumentId: string,
   overrideClient?: SupabaseClient,
 ): Promise<void> {
   const supabase = getClient(overrideClient);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error("Must be authenticated to vote.");
+  const { error } = await supabase.rpc("retract_argument", {
+    p_argument_id: argumentId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to retract argument"));
+  }
+}
+
+export interface DbDiscussionArgumentRow {
+  id: string;
+  room_id: string;
+  claim_id: string;
+  content: string;
+  stance: "supporting" | "challenging";
+  identity_mode: "public" | "anonymous";
+  is_retracted: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+export function mapDiscussionArgumentRow(row: DbDiscussionArgumentRow): DiscussionArgument {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    claimId: row.claim_id,
+    content: row.content,
+    stance: row.stance,
+    identityMode: row.identity_mode,
+    isRetracted: row.is_retracted,
+    deletedAt: row.deleted_at,
+    deletedBy: row.deleted_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    createdBy: row.created_by,
+    username: row.username,
+    avatarUrl: row.avatar_url,
+  };
+}
+
+/**
+ * Fetch all non-retracted, non-deleted arguments for a room, chronological.
+ * Tombstoned/deleted rows stay visible only in their attached contexts, never
+ * as conversation nodes.
+ */
+export async function getRoomArguments(
+  roomId: string,
+  overrideClient?: SupabaseClient,
+): Promise<DiscussionArgument[]> {
+  const supabase = getClient(overrideClient);
+
+  const { data, error } = await supabase
+    .from("discussion_arguments")
+    .select("*")
+    .eq("room_id", roomId)
+    .eq("is_retracted", false)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to load arguments"));
   }
 
-  const { data: evidenceCheck } = await supabase
-    .from("discussion_evidence")
-    .select("is_retracted")
-    .eq("id", evidenceId)
-    .maybeSingle();
+  const rows = (data || []) as DbDiscussionArgumentRow[];
+  return rows.map(mapDiscussionArgumentRow);
+}
 
-  if (!evidenceCheck) {
-    throw new Error("This evidence is no longer accessible. The discussion room may have been archived.");
-  }
-  if (evidenceCheck.is_retracted) {
-    throw new Error("This evidence has been retracted. Voting is no longer available.");
+/**
+ * Toggle a reaction on a target (lightweight only: like/insightful/curious).
+ * Reactions are separate from Support/Challenge stance and carry no epistemic meaning.
+ */
+export async function toggleReaction(
+  targetType: "message" | "claim" | "evidence" | "argument",
+  targetId: string,
+  reactionType: "like" | "insightful" | "curious",
+  overrideClient?: SupabaseClient,
+): Promise<boolean> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase.rpc("toggle_reaction", {
+    p_target_type: targetType,
+    p_target_id: targetId,
+    p_reaction_type: reactionType,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to toggle reaction"));
   }
 
-  if (voteType === null) {
-    const { error } = await supabase
-      .from("evidence_votes")
-      .delete()
-      .eq("evidence_id", evidenceId)
-      .eq("user_id", user.id);
-    if (error) {
-      throw new Error(mapSupabaseError(error, "Failed to cast vote"));
-    }
-  } else {
-    const { error } = await supabase
-      .from("evidence_votes")
-      .upsert({
-        evidence_id: evidenceId,
-        user_id: user.id,
-        vote_type: voteType,
-      }, {
-        onConflict: "user_id,evidence_id"
-      });
-    if (error) {
-      throw new Error(mapSupabaseError(error, "Failed to cast vote"));
-    }
-  }
+  return data as boolean;
 }
 
 export interface DbModerationFlagRow {
@@ -1159,7 +1331,8 @@ export interface DbModerationFlagRow {
   question_id: string | null;
   claim_id: string | null;
   evidence_id: string | null;
-  entity_type: "message" | "question" | "claim" | "evidence" | "unknown";
+  inquiry_id: string | null;
+  entity_type: "message" | "question" | "claim" | "evidence" | "inquiry" | "unknown";
   reason: string;
   status: "pending" | "resolved_hidden" | "resolved_dismissed" | "resolved_restored";
   created_at: string;
@@ -1176,6 +1349,7 @@ function mapModerationFlagRow(row: DbModerationFlagRow): ModerationFlag {
     questionId: row.question_id,
     claimId: row.claim_id,
     evidenceId: row.evidence_id,
+    inquiryId: row.inquiry_id,
     entityType: row.entity_type,
     reason: row.reason,
     status: row.status,
@@ -2024,4 +2198,134 @@ export async function searchContent(
   const hasMore = offset + limit < totalCount;
 
   return { results, totalCount, query: trimmedQuery, hasMore };
+}
+
+export interface AggregatedClaimRequestRow {
+  messageId: string;
+  roomId: string;
+  pendingCount: number;
+  acceptedCount: number;
+  skippedCount: number;
+  declinedCount: number;
+  totalCount: number;
+  latestRequestAt: string;
+  requesterDetails: Array<{
+    requester_id: string;
+    status: ClaimRequestStatus;
+    created_at: string;
+  }> | null;
+}
+
+/**
+ * Fetch reactions for a list of targets from the reaction_aggregates view.
+ */
+export async function getReactionsForTargets(
+  targetType: ReactionTargetType,
+  targetIds: string[],
+  overrideClient?: SupabaseClient
+): Promise<ReactionAggregate[]> {
+  if (!targetIds.length) return [];
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase
+    .from("reaction_aggregates")
+    .select("target_type, target_id, reaction_type, count, user_has_reacted")
+    .eq("target_type", targetType)
+    .in("target_id", targetIds);
+
+  if (error) {
+    if (error.code === "PGRST205") {
+      // Pending migration on remote database - degrades gracefully
+    } else {
+      console.warn("Error fetching reactions:", error.message || error);
+    }
+    return [];
+  }
+
+  return (data || []).map((row: {
+    target_type: ReactionTargetType;
+    target_id: string;
+    reaction_type: "like" | "insightful" | "curious";
+    count: number | string;
+    user_has_reacted: boolean | null;
+  }) => ({
+    targetType: row.target_type,
+    targetId: row.target_id,
+    reactionType: row.reaction_type,
+    count: Number(row.count) || 0,
+    userHasReacted: Boolean(row.user_has_reacted),
+  }));
+}
+
+/**
+ * Fetch aggregated claim requests for multiple messages.
+ */
+export async function getClaimRequestsForMessages(
+  messageIds: string[],
+  overrideClient?: SupabaseClient
+): Promise<Map<string, AggregatedClaimRequestRow>> {
+  const map = new Map<string, AggregatedClaimRequestRow>();
+  if (!messageIds.length) return map;
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase
+    .from("claim_requests_aggregated")
+    .select("message_id, room_id, pending_count, accepted_count, skipped_count, declined_count, total_count, latest_request_at, requester_details")
+    .in("message_id", messageIds);
+
+  if (error) {
+    if (error.code === "PGRST205") {
+      // Pending migration on remote database - degrades gracefully
+    } else {
+      console.warn("Error fetching claim requests:", error.message || error);
+    }
+    return map;
+  }
+
+  for (const row of (data || [])) {
+    map.set(row.message_id, {
+      messageId: row.message_id,
+      roomId: row.room_id,
+      pendingCount: Number(row.pending_count) || 0,
+      acceptedCount: Number(row.accepted_count) || 0,
+      skippedCount: Number(row.skipped_count) || 0,
+      declinedCount: Number(row.declined_count) || 0,
+      totalCount: Number(row.total_count) || 0,
+      latestRequestAt: row.latest_request_at,
+      requesterDetails: row.requester_details,
+    });
+  }
+  return map;
+}
+
+/**
+ * Fetch set of message IDs for which the current user has created a claim request.
+ */
+export async function getMyClaimRequests(
+  messageIds: string[],
+  overrideClient?: SupabaseClient
+): Promise<Set<string>> {
+  const set = new Set<string>();
+  if (!messageIds.length) return set;
+  const supabase = getClient(overrideClient);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return set;
+
+  const { data, error } = await supabase
+    .from("claim_requests")
+    .select("message_id")
+    .eq("requester_id", user.id)
+    .in("message_id", messageIds);
+
+  if (error) {
+    if (error.code === "PGRST205") {
+      // Pending migration on remote database - degrades gracefully
+    } else {
+      console.warn("Error fetching my claim requests:", error.message || error);
+    }
+    return set;
+  }
+
+  for (const row of (data || [])) {
+    set.add(row.message_id);
+  }
+  return set;
 }

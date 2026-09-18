@@ -147,6 +147,7 @@ export async function listSavedTargets(
             slug: room.slug,
             roomType: room.room_type as "discussion" | "debate",
             roomTitle: room.title,
+            alias: (save as UserSave).alias ?? null,
           });
         }
       }
@@ -227,3 +228,41 @@ export async function listSavedTargets(
 
   return { items, nextCursor };
 }
+
+export async function updateSavedRoomAlias(
+  targetType: SaveTargetType,
+  targetId: string,
+  alias: string | null,
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("update_saved_room_alias", {
+    p_target_type: targetType,
+    p_target_id: targetId,
+    p_alias: alias,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to update saved room alias"));
+  }
+}
+
+export async function getSavedRoomAlias(
+  userId: string,
+  targetType: SaveTargetType,
+  targetId: string,
+  overrideClient?: SupabaseClient,
+): Promise<string | null> {
+  const supabase = getClient(overrideClient);
+  const { data, error } = await supabase
+    .from("user_saves")
+    .select("alias")
+    .eq("user_id", userId)
+    .eq("target_type", targetType)
+    .eq("target_id", targetId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data.alias ?? null;
+}
+

@@ -44,7 +44,7 @@ export function PositionHistory({ roomId }: PositionHistoryProps) {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {change.reason}
               </p>
-              <p className="text-[10px] text-muted-foreground/60">
+              <p className="text-xs text-muted-foreground">
                 {formatDate(change.createdAt, {
                   month: "short",
                   day: "numeric",

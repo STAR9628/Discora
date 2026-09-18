@@ -109,7 +109,7 @@ export function QuestionList({
       case "perspective":
         return "bg-orange-500/10 border-orange-500/25 text-orange-400";
       case "evidence":
-        return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
+        return "bg-slate-500/10 border-slate-500/25 text-slate-400";
       case "directional":
         return "bg-amber-500/10 border-amber-500/25 text-amber-400";
       case "reflective":

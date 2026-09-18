@@ -96,7 +96,7 @@ export function ReportHistory() {
                 <p className="text-xs text-muted-foreground line-clamp-2">
                   {report.reason}
                 </p>
-                <p className="text-[10px] text-muted-foreground/60">
+                <p className="text-xs text-muted-foreground">
                   Submitted {formatDate(report.createdAt)}
                 </p>
               </div>
@@ -106,7 +106,7 @@ export function ReportHistory() {
               </span>
             </div>
             {report.resolvedAt && (
-              <p className="mt-2 text-[10px] text-muted-foreground/40">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Resolved {formatDate(report.resolvedAt)}
               </p>
             )}

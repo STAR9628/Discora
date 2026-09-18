@@ -19,15 +19,15 @@ export function InquiryResponse({ content, username, avatarUrl, createdAt }: Inq
           // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
         ) : (
-          <User className="h-3 w-3 text-muted-foreground/60" />
+          <User className="h-3 w-3 text-muted-foreground" />
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-foreground">{username || "Unknown User"}</span>
-          <span className="text-[10px] text-muted-foreground/60">{formatDate(createdAt, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+          <span className="text-xs font-bold text-foreground">{username || "Unknown User"}</span>
+          <span className="text-xs text-muted-foreground">{formatDate(createdAt, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
         </div>
-        <p className="text-[12px] text-foreground/80 leading-relaxed mt-0.5">{content}</p>
+        <p className="text-xs text-foreground/85 leading-relaxed mt-0.5">{content}</p>
       </div>
     </div>
   );

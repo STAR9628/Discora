@@ -105,7 +105,7 @@ export function InquiryCreateDialog({
               >
                 <HelpCircle className="h-4 w-4 mb-1 text-amber-400" />
                 <span className="text-xs font-bold">Clarification</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">What do you mean?</span>
+                <span className="text-xs text-muted-foreground mt-0.5 line-clamp-1">What do you mean?</span>
               </button>
 
               <button
@@ -119,7 +119,7 @@ export function InquiryCreateDialog({
               >
                 <FileText className="h-4 w-4 mb-1 text-cyan-400" />
                 <span className="text-xs font-bold">Evidence Request</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">Where is source?</span>
+                <span className="text-xs text-muted-foreground mt-0.5 line-clamp-1">Where is source?</span>
               </button>
 
               <button
@@ -133,7 +133,7 @@ export function InquiryCreateDialog({
               >
                 <AlertCircle className="h-4 w-4 mb-1 text-purple-400" />
                 <span className="text-xs font-bold">Assumption Check</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">What is assumed?</span>
+                <span className="text-xs text-muted-foreground mt-0.5 line-clamp-1">What is assumed?</span>
               </button>
             </div>
           </div>
@@ -150,7 +150,7 @@ export function InquiryCreateDialog({
               rows={4}
               className="w-full rounded-xl border border-border/60 bg-card/40 p-3 text-xs md:text-sm text-foreground placeholder:text-muted-foreground/40 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/30"
             />
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground/60">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{content.trim().length} / 2000 chars (min 10)</span>
               <span>Rate limit: max 5/hr</span>
             </div>

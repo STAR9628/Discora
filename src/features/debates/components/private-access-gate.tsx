@@ -10,35 +10,96 @@ import { Loader2, Lock, KeyRound, Mail, AlertCircle } from "lucide-react";
 interface PrivateAccessGateProps {
   roomId: string;
   roomSlug: string;
-  initialInvitationToken?: string | null;
   onAccessGranted?: () => void;
 }
 
-export function PrivateAccessGate({ roomId, roomSlug, initialInvitationToken, onAccessGranted }: PrivateAccessGateProps) {
+// Phase 9D.3: one-time client-side continuation for the login redirect. This is
+// transport convenience only — never a credential. Authorization still happens
+// in the hardened accept RPC against the bound account.
+const PENDING_INVITE_KEY = "discora.pendingInvite";
+
+function readTokenFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  // Preferred transport: URL fragment (never sent to the server, no referrer).
+  const hashMatch = window.location.hash.match(/invitation=([^&]+)/);
+  if (hashMatch) {
+    try {
+      return decodeURIComponent(hashMatch[1]);
+    } catch {
+      return hashMatch[1];
+    }
+  }
+  // Legacy query-string links keep working; scrubbed immediately below.
+  return new URLSearchParams(window.location.search).get("invitation");
+}
+
+function scrubTokenFromUrl(): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  let changed = false;
+  if (/[#&]invitation=/.test(url.hash)) {
+    url.hash = url.hash
+      .replace(/([#&])invitation=[^&]*/g, (_m, prefix: string) => (prefix === "#" ? "#" : ""))
+      .replace(/#$/, "");
+    changed = true;
+  }
+  if (url.searchParams.has("invitation")) {
+    url.searchParams.delete("invitation");
+    changed = true;
+  }
+  if (changed) {
+    const cleanSearch = url.searchParams.toString();
+    window.history.replaceState(
+      {},
+      "",
+      url.pathname + (cleanSearch ? `?${cleanSearch}` : "") + url.hash,
+    );
+  }
+}
+
+function readPendingIntent(slug: string): string | null {
+  try {
+    const raw = sessionStorage.getItem(PENDING_INVITE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { slug?: unknown; token?: unknown };
+    return parsed.slug === slug && typeof parsed.token === "string" ? parsed.token : null;
+  } catch {
+    return null;
+  }
+}
+
+export function PrivateAccessGate({ roomId, roomSlug, onAccessGranted }: PrivateAccessGateProps) {
   const router = useRouter();
   const { user, status } = useAuth();
   const [accessCode, setAccessCode] = useState("");
-  const [invitationToken, setInvitationToken] = useState(initialInvitationToken || "");
-  const [activeTab, setActiveTab] = useState<"code" | "invite">(initialInvitationToken ? "invite" : "code");
+  const [invitationToken, setInvitationToken] = useState("");
+  const [activeTab, setActiveTab] = useState<"code" | "invite">("code");
 
   const joinWithCodeMutation = useJoinWithAccessCode();
   const acceptInvitationMutation = useAcceptInvitation();
 
-  // Privacy hardening: scrub the invitation token from the browser address bar
-  // immediately after capturing it into state so it is not visible, logged in history,
-  // or exposed via shoulder-surfing.
+  // Phase 9D.3: capture the token client-side (fragment preferred, legacy query
+  // fallback), stash a same-tab pending intent for the login redirect, then
+  // scrub every token trace from the address bar.
   React.useEffect(() => {
-    if (typeof window !== "undefined" && window.location.search.includes("invitation=")) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("invitation");
-      const cleanSearch = url.searchParams.toString();
-      window.history.replaceState(
-        {},
-        "",
-        url.pathname + (cleanSearch ? `?${cleanSearch}` : "") + url.hash
-      );
+    const fromUrl = readTokenFromLocation();
+    if (fromUrl) {
+      try {
+        sessionStorage.setItem(PENDING_INVITE_KEY, JSON.stringify({ slug: roomSlug, token: fromUrl }));
+      } catch {
+        // Storage unavailable: fall back to in-memory state for this page view.
+      }
+      setInvitationToken(fromUrl);
+      setActiveTab("invite");
+      scrubTokenFromUrl();
+      return;
     }
-  }, []);
+    const pending = readPendingIntent(roomSlug);
+    if (pending) {
+      setInvitationToken(pending);
+      setActiveTab("invite");
+    }
+  }, [roomSlug]);
 
   const handleJoinWithCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +125,16 @@ export function PrivateAccessGate({ roomId, roomSlug, initialInvitationToken, on
     }
     try {
       await acceptInvitationMutation.mutateAsync({ roomId, invitationToken: invitationToken.trim() });
+      try {
+        sessionStorage.removeItem(PENDING_INVITE_KEY);
+      } catch {
+        // Non-fatal: a stale same-tab intent simply prefills a future visit.
+      }
       toast.success("Invitation accepted. Welcome!");
       onAccessGranted?.();
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to accept invitation.");
+      toast.error(err instanceof Error ? err.message : "This invitation is not available.");
     }
   };
 
@@ -79,12 +145,11 @@ export function PrivateAccessGate({ roomId, roomSlug, initialInvitationToken, on
   React.useEffect(() => {
     if (status === "guest" && !guestRedirectRef.current) {
       guestRedirectRef.current = true;
-      const targetPath = initialInvitationToken
-        ? `/debates/${roomSlug}?invitation=${encodeURIComponent(initialInvitationToken)}`
-        : `/debates/${roomSlug}`;
-      router.push(`/login?redirectedFrom=${encodeURIComponent(targetPath)}`);
+      // Phase 9D.3: the pending intent (captured above) already holds the token
+      // client-side, so the login redirect carries a clean room URL only.
+      router.push(`/login?redirectedFrom=${encodeURIComponent(`/debates/${roomSlug}`)}`);
     }
-  }, [status, initialInvitationToken, roomSlug, router]);
+  }, [status, roomSlug, router]);
 
   if (status === "guest") {
     return null;

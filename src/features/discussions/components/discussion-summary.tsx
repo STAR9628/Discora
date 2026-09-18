@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { DiscussionClaim, DiscussionQuestion, DiscussionEvidence, DiscussionClaimRelation } from "@/features/discussions/types";
 import { computeRelationCounts, computeImportance } from "./graph-utils";
 import type { GraphEdge } from "./graph-utils";
-import { FileText, HelpCircle, ThumbsUp, ThumbsDown, AlertCircle, CheckCircle, Clock, Activity } from "lucide-react";
+import { FileText, HelpCircle, Check, X, AlertCircle, CheckCircle, Clock, Activity } from "lucide-react";
 
 interface DiscussionSummaryProps {
   claims: DiscussionClaim[];
@@ -81,7 +81,7 @@ export function DiscussionSummary({ claims, questions, evidence, claimRelations 
       status = { label: "Developing", color: "text-amber-400", icon: Activity };
     }
     if (totalRelations > 20 || activeClaims.length > 20) {
-      status = { label: "Mature", color: "text-green-400", icon: CheckCircle };
+      status = { label: "Mature", color: "text-slate-400", icon: CheckCircle };
     }
 
     const mainQuestion = activeQuestions.length > 0
@@ -154,13 +154,13 @@ export function DiscussionSummary({ claims, questions, evidence, claimRelations 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {summary.supportedClaims.length > 0 && (
             <div>
-              <div className="text-[10px] font-semibold text-green-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <ThumbsUp className="h-3 w-3" /> Most Supported
+              <div className="text-[10px] font-semibold text-slate-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Check className="h-3 w-3" /> Most Supported by Participants
               </div>
               <div className="space-y-1">
                 {summary.supportedClaims.map((c) => (
                   <div key={c.id} className="flex items-start gap-1.5 text-[11px]">
-                    <span className="text-green-400/80 font-bold shrink-0">{c.count}</span>
+                    <span className="text-slate-400/80 font-bold shrink-0">{c.count}</span>
                     <span className="text-foreground/70">{truncate(claimContent.get(c.id) || "", 80)}</span>
                   </div>
                 ))}
@@ -169,13 +169,13 @@ export function DiscussionSummary({ claims, questions, evidence, claimRelations 
           )}
           {summary.contestedClaims.length > 0 && (
             <div>
-              <div className="text-[10px] font-semibold text-rose-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
-                <ThumbsDown className="h-3 w-3" /> Most Contested
+              <div className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <X className="h-3 w-3" /> Most Challenged by Participants
               </div>
               <div className="space-y-1">
                 {summary.contestedClaims.map((c) => (
                   <div key={c.id} className="flex items-start gap-1.5 text-[11px]">
-                    <span className="text-rose-400/80 font-bold shrink-0">{c.count}</span>
+                    <span className="text-amber-400/80 font-bold shrink-0">{c.count}</span>
                     <span className="text-foreground/70">{truncate(claimContent.get(c.id) || "", 80)}</span>
                   </div>
                 ))}

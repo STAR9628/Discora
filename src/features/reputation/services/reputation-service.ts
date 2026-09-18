@@ -19,10 +19,6 @@ interface DbDiscussionClaimRow {
   created_by: string | null;
   username: string | null;
   avatar_url: string | null;
-  agree_count: number;
-  disagree_count: number;
-  consensus_ratio: number | null;
-  user_vote: string | null;
 }
 
 interface DbDiscussionEvidenceRow {
@@ -44,10 +40,6 @@ interface DbDiscussionEvidenceRow {
   source_url: string | null;
   source_file_path: string | null;
   source_is_retracted: boolean;
-  agree_count: number;
-  disagree_count: number;
-  consensus_ratio: number | null;
-  user_vote: string | null;
 }
 
 interface DbDiscussionQuestionRow {
@@ -88,10 +80,6 @@ function mapClaimRow(row: DbDiscussionClaimRow): DiscussionClaim {
     createdBy: row.created_by,
     username: row.username,
     avatarUrl: row.avatar_url,
-    agreeCount: row.agree_count,
-    disagreeCount: row.disagree_count,
-    consensusRatio: row.consensus_ratio,
-    userVote: row.user_vote as "agree" | "disagree" | null,
   };
 }
 
@@ -115,10 +103,6 @@ function mapEvidenceRow(row: DbDiscussionEvidenceRow): DiscussionEvidence {
     sourceUrl: row.source_url,
     sourceFilePath: row.source_file_path,
     sourceIsRetracted: row.source_is_retracted,
-    agreeCount: row.agree_count,
-    disagreeCount: row.disagree_count,
-    consensusRatio: row.consensus_ratio,
-    userVote: row.user_vote as "agree" | "disagree" | null,
   };
 }
 
@@ -232,41 +216,15 @@ export async function getUserContributions(
   }
 
   const participations = (participationRes.data || []) as { room_id: string; side: string }[];
-  let debateWins = 0;
-  let debateLosses = 0;
-  if (participations.length > 0) {
-    const participantRoomIds = participations.map((p) => p.room_id);
-    const { data: resolutions } = await supabase
-      .from("discussion_debates")
-      .select("id, resolution")
-      .in("id", participantRoomIds)
-      .not("resolution", "is", null);
-
-    for (const row of (resolutions || []) as { id: string; resolution: Record<string, unknown> | null }[]) {
-      const res = row.resolution as { winner?: string } | null;
-      if (!res || !res.winner || res.winner === "draw") continue;
-      const userSide = participations.find((p) => p.room_id === row.id)?.side;
-      if (userSide === res.winner) debateWins++;
-      else debateLosses++;
-    }
-  }
-
-  // Calculate evidence vote counts from discussion_evidence (which includes authoritative aggregated agree/disagree counts)
-  const evidenceList = (evidenceRes.data || []).map(mapEvidenceRow);
-  const evidenceAgreeCount = evidenceList.reduce((sum, e) => sum + (e.agreeCount || 0), 0);
-  const evidenceDisagreeCount = evidenceList.reduce((sum, e) => sum + (e.disagreeCount || 0), 0);
+  const debateParticipations = participations.map((p) => p.room_id);
 
   return {
     claims: (claimsRes.data || []).map(mapClaimRow),
-    evidence: evidenceList,
+    evidence: (evidenceRes.data || []).map(mapEvidenceRow),
     questions: (questionsRes.data || []).map(mapQuestionRow),
     discussionCount: discussionsRes.data?.length || 0,
     debateCount: debatesRes.data?.length || 0,
-    debateParticipations: participations.map((p) => p.room_id),
-    debateWins,
-    debateLosses,
-    evidenceAgreeCount,
-    evidenceDisagreeCount,
+    debateParticipations,
   };
 }
 

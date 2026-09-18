@@ -3,7 +3,6 @@
 import React from "react";
 import { MessageSquare, User, Loader2 } from "lucide-react";
 import { useInquiryResponses } from "../hooks/use-inquiries";
-import { AuthorTrustSignal } from "@/features/reputation/components/author-trust-signal";
 import { formatDate } from "@/lib/date";
 
 interface InquiryResponseListProps {
@@ -59,9 +58,8 @@ export function InquiryResponseList({ inquiryItemId }: InquiryResponseListProps)
                   </div>
                 )}
                 <span className="font-semibold text-foreground">{resp.username || "Anonymous"}</span>
-                {resp.createdBy && <AuthorTrustSignal userId={resp.createdBy} username={resp.username} />}
               </div>
-              <span className="text-[11px] text-muted-foreground/60">{formatDate(resp.createdAt)}</span>
+              <span className="text-xs text-muted-foreground">{formatDate(resp.createdAt)}</span>
             </div>
 
             <p className="text-xs md:text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">

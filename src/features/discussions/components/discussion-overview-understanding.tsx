@@ -6,23 +6,49 @@ import {
   useRoomEvidence,
   useQuestions,
   useClaimRelations,
+  useRoomArguments,
 } from "@/features/discussions/hooks/use-discussions";
 import { useInquiryCountsForRoom } from "@/features/debates/hooks/use-inquiries";
 import { StateOfUnderstanding } from "./state-of-understanding";
+import type {
+  DiscussionArgument,
+  DiscussionClaim,
+  DiscussionClaimRelation,
+  DiscussionEvidence,
+  DiscussionQuestion,
+} from "@/features/discussions/types";
 
 export function DiscussionOverviewUnderstanding({
   roomId,
   slug,
+  initialClaims,
+  initialEvidence,
+  initialQuestions,
+  initialRelations,
+  initialInquiryCounts,
+  initialArguments,
 }: {
   roomId: string;
   slug: string;
+  /**
+   * Server-rendered SoU inputs (public rooms only). Same calls the client
+   * makes, executed once on the server so SSR HTML carries the deterministic
+   * understanding; client interactivity continues unchanged.
+   */
+  initialClaims?: DiscussionClaim[];
+  initialEvidence?: DiscussionEvidence[];
+  initialQuestions?: DiscussionQuestion[];
+  initialRelations?: DiscussionClaimRelation[];
+  initialInquiryCounts?: Record<string, number>;
+  initialArguments?: DiscussionArgument[];
 }) {
   const router = useRouter();
-  const { data: claims, isLoading: isClaimsLoading } = useClaims(roomId);
-  const { data: roomEvidence, isLoading: isEvidenceLoading } = useRoomEvidence(roomId);
-  const { data: questions, isLoading: isQuestionsLoading } = useQuestions(roomId);
-  const { data: claimRelations } = useClaimRelations(roomId);
-  const { data: inquiryCounts } = useInquiryCountsForRoom(roomId);
+  const { data: claims, isLoading: isClaimsLoading } = useClaims(roomId, undefined, true, initialClaims);
+  const { data: roomEvidence, isLoading: isEvidenceLoading } = useRoomEvidence(roomId, true, initialEvidence);
+  const { data: questions, isLoading: isQuestionsLoading } = useQuestions(roomId, true, initialQuestions);
+  const { data: claimRelations } = useClaimRelations(roomId, true, initialRelations);
+  const { data: inquiryCounts } = useInquiryCountsForRoom(roomId, initialInquiryCounts);
+  const { data: roomArguments } = useRoomArguments(roomId, true, initialArguments);
 
   const isLoading = isClaimsLoading || isEvidenceLoading || isQuestionsLoading;
 
@@ -57,6 +83,7 @@ export function DiscussionOverviewUnderstanding({
       questions={questions}
       claimRelations={claimRelations}
       inquiryCounts={inquiryCounts}
+      arguments={roomArguments}
       isLoading={isLoading}
       onNavigateToClaim={handleNavigateToClaim}
       onNavigateToEvidence={handleNavigateToEvidence}

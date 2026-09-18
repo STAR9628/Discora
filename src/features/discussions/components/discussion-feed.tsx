@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTopics, useInfiniteDiscussions } from "@/features/discussions/hooks/use-discussions";
-import { MessageSquare, Calendar, SlidersHorizontal, Plus, Loader2, Sparkles, ArrowRight, AlertCircle, Swords } from "lucide-react";
+import { MessageSquare, Calendar, SlidersHorizontal, Plus, Loader2, Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 import { formatDate } from "@/lib/date";
+import { Button } from "@/components/ui/button";
 
 export function DiscussionFeed() {
   const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>(undefined);
@@ -32,22 +33,14 @@ export function DiscussionFeed() {
             Open-exploration conversations with many viewpoints and no winner. Share perspectives and evidence.
           </p>
         </div>
-          <div className="flex gap-2">
-            <Link
-              href="/discussions/create"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
-            >
+        <div className="flex shrink-0">
+          <Button asChild size="default" className="rounded-xl font-semibold shadow-xs">
+            <Link href="/discussions/create">
               <Plus className="h-4 w-4" />
               <span>New Discussion</span>
             </Link>
-            <Link
-              href="/debates/create"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-400 shadow-md transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Swords className="h-4 w-4" />
-              <span>New Debate</span>
-            </Link>
-          </div>
+          </Button>
+        </div>
       </div>
 
       {/* Topic Filter Pills */}
@@ -72,9 +65,9 @@ export function DiscussionFeed() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedTopicId(undefined)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all cursor-pointer ${
+              className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all duration-150 active:scale-[0.96] cursor-pointer ${
                 selectedTopicId === undefined
-                  ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                  ? "bg-primary border-primary text-primary-foreground shadow-xs"
                   : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
               }`}
             >
@@ -86,9 +79,9 @@ export function DiscussionFeed() {
                 <button
                   key={topic.id}
                   onClick={() => setSelectedTopicId(topic.id)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all cursor-pointer ${
+                  className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all duration-150 active:scale-[0.96] cursor-pointer ${
                     isSelected
-                      ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary border-primary text-primary-foreground shadow-xs"
                       : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
                   }`}
                 >
@@ -157,7 +150,7 @@ export function DiscussionFeed() {
             return (
               <article
                 key={room.id}
-                className="group relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card/45 p-6 backdrop-blur-sm shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-border"
+                className="group relative flex flex-col justify-between rounded-2xl border border-border/70 bg-card/40 p-6 backdrop-blur-sm shadow-xs transition-all duration-200 hover:border-border hover:bg-card/70"
               >
                 <div className="space-y-3">
                   {/* Topic and date tags */}

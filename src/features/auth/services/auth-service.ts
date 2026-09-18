@@ -39,7 +39,12 @@ export async function registerWithEmail(
     email: values.email,
     password: values.password,
     options: {
-      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+      emailRedirectTo: `${getSiteUrl()}/auth/callback?next=/about`,
+      // 18+ attestation for the server-side signup boundary (Auth
+      // before-user-created hook). The registration form gates on the
+      // checkbox; this carries the attestation to the backend so direct
+      // API signups without it are rejected. Must be boolean true.
+      data: { age_confirmed: true },
     },
   });
 

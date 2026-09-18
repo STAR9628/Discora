@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useRoomEvidence } from "@/features/discussions/hooks/use-discussions";
-import { AlertCircle, Link2 } from "lucide-react";
+import { AlertCircle, Link2, ArrowRight } from "lucide-react";
 
 interface RoomSourcesTabProps {
   roomId: string;
+  /** Base path of the room's evidence lens, e.g. `/discussions/[slug]`. Enables source → citing-evidence reverse links. */
+  evidenceLensBasePath?: string | null;
 }
 
-export function RoomSourcesTab({ roomId }: RoomSourcesTabProps) {
+export function RoomSourcesTab({ roomId, evidenceLensBasePath }: RoomSourcesTabProps) {
   const { data: evidence, isLoading, error } = useRoomEvidence(roomId);
 
   if (isLoading) {
@@ -39,6 +42,7 @@ export function RoomSourcesTab({ roomId }: RoomSourcesTabProps) {
     filePath: string | null;
     isRetracted: boolean;
     citationsCount: number;
+    evidenceIds: string[];
   }[] = [];
   const seenSourceIds = new Set<string>();
 
@@ -53,10 +57,14 @@ export function RoomSourcesTab({ roomId }: RoomSourcesTabProps) {
           filePath: ev.sourceFilePath,
           isRetracted: ev.sourceIsRetracted,
           citationsCount: 1,
+          evidenceIds: [ev.id],
         });
       } else {
         const srcObj = uniqueSources.find((s) => s.id === ev.sourceId);
-        if (srcObj) srcObj.citationsCount += 1;
+        if (srcObj) {
+          srcObj.citationsCount += 1;
+          srcObj.evidenceIds.push(ev.id);
+        }
       }
     }
   });
@@ -98,6 +106,29 @@ export function RoomSourcesTab({ roomId }: RoomSourcesTabProps) {
                   <Link2 className="h-3.5 w-3.5" />
                   <span className="truncate max-w-[280px] sm:max-w-md">{src.url}</span>
                 </a>
+              )}
+              {evidenceLensBasePath && src.evidenceIds.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-[10px] font-semibold text-muted-foreground/70">
+                    Cited by:
+                  </span>
+                  {src.evidenceIds.slice(0, 2).map((evidenceId) => (
+                    <Link
+                      key={evidenceId}
+                      href={`${evidenceLensBasePath}/evidence?highlight=${evidenceId}`}
+                      className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-background/40 hover:bg-card/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                      title="View citing evidence"
+                    >
+                      <span>Evidence</span>
+                      <ArrowRight className="h-2.5 w-2.5" />
+                    </Link>
+                  ))}
+                  {src.evidenceIds.length > 2 && (
+                    <span className="text-[10px] text-muted-foreground/70">
+                      +{src.evidenceIds.length - 2} more
+                    </span>
+                  )}
+                </div>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">

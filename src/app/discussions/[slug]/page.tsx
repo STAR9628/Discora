@@ -2,10 +2,19 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/services/supabase/server";
-import { getDiscussionBySlug } from "@/features/discussions/services/discussion-service";
+import {
+  getClaimRelations,
+  getClaims,
+  getDiscussionBySlug,
+  getEvidenceForRoom,
+  getQuestions,
+  getRoomArguments,
+} from "@/features/discussions/services/discussion-service";
+import { getInquiryCountsByRoom } from "@/features/inquiries/services/inquiry-service";
 import { RoomSectionShell } from "@/features/rooms/components/room-section-shell";
 import { DiscussionOverviewUnderstanding } from "@/features/discussions/components/discussion-overview-understanding";
 import { SaveButton } from "@/features/saves/components/save-button";
+import { isPubliclyVisibleRoom } from "@/lib/seo/public-room";
 
 type PageProps = {
   params: Promise<{
@@ -25,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: discussionItem ? `${discussionItem.room.title} | Discora` : "Discussion | Discora",
+    title: discussionItem ? discussionItem.room.title : "Discussion",
     description:
       discussionItem?.room.description ||
       "Browse and participate in structured, open-exploration discussions on Discora.",
@@ -52,6 +61,36 @@ export default async function DiscussionRoomPage({ params }: PageProps) {
     redirect(`/debates/${slug}`);
   }
 
+  // Public-room SSR: the same SoU inputs the client fetches, executed once on
+  // the server so initial HTML carries the deterministic understanding.
+  // Gated + fail-open; SoU computation itself is unchanged (pure function).
+  let initial:
+    | {
+        claims: Awaited<ReturnType<typeof getClaims>>;
+        roomEvidence: Awaited<ReturnType<typeof getEvidenceForRoom>>;
+        questions: Awaited<ReturnType<typeof getQuestions>>;
+        relations: Awaited<ReturnType<typeof getClaimRelations>>;
+        inquiryCounts: Awaited<ReturnType<typeof getInquiryCountsByRoom>>;
+        roomArguments: Awaited<ReturnType<typeof getRoomArguments>>;
+      }
+    | undefined;
+  if (isPubliclyVisibleRoom(discussionItem.room)) {
+    try {
+      const supabaseSSR = await createServerSupabaseClient();
+      const [claims, roomEvidence, questions, relations, inquiryCounts, roomArguments] = await Promise.all([
+        getClaims(discussionItem.room.id, undefined, supabaseSSR),
+        getEvidenceForRoom(discussionItem.room.id, supabaseSSR),
+        getQuestions(discussionItem.room.id, supabaseSSR),
+        getClaimRelations(discussionItem.room.id, supabaseSSR),
+        getInquiryCountsByRoom(discussionItem.room.id, supabaseSSR),
+        getRoomArguments(discussionItem.room.id, supabaseSSR),
+      ]);
+      initial = { claims, roomEvidence, questions, relations, inquiryCounts, roomArguments };
+    } catch {
+      // Fall through to client-side fetching.
+    }
+  }
+
   const sections = [
     ["Claims", "Inspect the room's reasoning and linked support.", "claims"],
     ["Evidence", "Inspect supporting, contradicting, and contextual evidence.", "evidence"],
@@ -75,6 +114,12 @@ export default async function DiscussionRoomPage({ params }: PageProps) {
           <DiscussionOverviewUnderstanding
             roomId={discussionItem.room.id}
             slug={slug}
+            initialClaims={initial?.claims}
+            initialEvidence={initial?.roomEvidence}
+            initialQuestions={initial?.questions}
+            initialRelations={initial?.relations}
+            initialInquiryCounts={initial?.inquiryCounts}
+            initialArguments={initial?.roomArguments}
           />
         }
       >

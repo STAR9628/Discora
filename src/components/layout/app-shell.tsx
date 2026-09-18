@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -13,12 +13,45 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Restore sidebar collapsed preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("discora_sidebar_collapsed");
+      if (saved === "true") {
+        setIsSidebarCollapsed(true);
+      }
+    } catch {
+      // Ignore localStorage read errors in private browsing
+    }
+  }, []);
+
+  const handleToggleCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("discora_sidebar_collapsed", String(next));
+      } catch {
+        // Ignore localStorage write errors
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <div className="flex h-full">
-        <Sidebar onOpenFeedback={() => setIsFeedbackOpen(true)} />
-        <div className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0 md:pl-64">
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+          onOpenFeedback={() => setIsFeedbackOpen(true)}
+        />
+        <div
+          className={`flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0 transition-[padding] duration-200 ease-in-out ${
+            isSidebarCollapsed ? "md:pl-16" : "md:pl-64"
+          }`}
+        >
           <Header />
           <main className="flex-1">{children}</main>
         </div>

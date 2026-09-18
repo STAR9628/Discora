@@ -89,7 +89,7 @@ function getContextIcon(type: ClaimContextType) {
 
 function getContextColor(type: ClaimContextType): string {
   switch (type) {
-    case "supporting_idea": return "text-emerald-400";
+    case "supporting_idea": return "text-slate-400";
     case "counterpoint": return "text-violet-400";
     case "observation": return "text-sky-400";
     case "open_question": return "text-amber-400";
@@ -194,7 +194,7 @@ function CompactClaimCard({
           <span className="inline-flex items-center rounded bg-blue-500/10 px-1 py-[1px] text-[7px] font-semibold uppercase tracking-wider text-blue-400/80">Root</span>
         )}
         {isLeaf && (
-          <span className="inline-flex items-center rounded bg-emerald-500/10 px-1 py-[1px] text-[7px] font-semibold uppercase tracking-wider text-emerald-400/80">Leaf</span>
+          <span className="inline-flex items-center rounded bg-slate-500/10 px-1 py-[1px] text-[7px] font-semibold uppercase tracking-wider text-slate-400/80">Leaf</span>
         )}
         {isHub && (
           <span className="inline-flex items-center rounded bg-amber-500/10 px-1 py-[1px] text-[7px] font-semibold uppercase tracking-wider text-amber-400/80">Hub</span>
@@ -219,22 +219,22 @@ function CompactClaimCard({
       {hasAnyRelation && (
         <div className="flex flex-wrap gap-1 mt-1.5">
           {relationCounts.outgoingSupports > 0 && (
-            <span className="inline-flex items-center gap-0.5 rounded border border-emerald-500/15 bg-emerald-500/5 px-1 py-[1px] text-[8px] leading-none text-emerald-400/80">
+            <span className="inline-flex items-center gap-0.5 rounded border border-slate-500/15 bg-slate-500/5 px-1 py-[1px] text-[8px] leading-none text-slate-400/80">
               {"\u2191"} {relationCounts.outgoingSupports}
             </span>
           )}
           {relationCounts.incomingSupports > 0 && (
-            <span className="inline-flex items-center gap-0.5 rounded border border-emerald-500/15 bg-emerald-500/5 px-1 py-[1px] text-[8px] leading-none text-emerald-400/60">
+            <span className="inline-flex items-center gap-0.5 rounded border border-slate-500/15 bg-slate-500/5 px-1 py-[1px] text-[8px] leading-none text-slate-400/60">
               {"\u2193"} {relationCounts.incomingSupports}
             </span>
           )}
           {relationCounts.outgoingContradicts > 0 && (
-            <span className="inline-flex items-center gap-0.5 rounded border border-rose-500/15 bg-rose-500/5 px-1 py-[1px] text-[8px] leading-none text-rose-400/80">
+            <span className="inline-flex items-center gap-0.5 rounded border border-amber-500/15 bg-amber-500/5 px-1 py-[1px] text-[8px] leading-none text-amber-400/80">
               {"\u00d7"} {relationCounts.outgoingContradicts}
             </span>
           )}
           {relationCounts.incomingContradicts > 0 && (
-            <span className="inline-flex items-center gap-0.5 rounded border border-rose-500/15 bg-rose-500/5 px-1 py-[1px] text-[8px] leading-none text-rose-400/60">
+            <span className="inline-flex items-center gap-0.5 rounded border border-amber-500/15 bg-amber-500/5 px-1 py-[1px] text-[8px] leading-none text-amber-400/60">
               {"\u00d7\u2190"} {relationCounts.incomingContradicts}
             </span>
           )}
@@ -888,11 +888,11 @@ export const GraphView = memo(function GraphView({
           <span>Questions: <span className="font-semibold text-foreground/80">{graphStats.questionCount}</span></span>
           <span>Relations: <span className="font-semibold text-foreground/80">{graphStats.relationCount}</span></span>
           <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500/70" />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500/70" />
             <span className="font-semibold text-foreground/80">{graphStats.supportsCount}</span>
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-500/70" />
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500/70" />
             <span className="font-semibold text-foreground/80">{graphStats.contradictsCount}</span>
           </span>
           <span className="inline-flex items-center gap-1">
@@ -913,10 +913,10 @@ export const GraphView = memo(function GraphView({
         {(advancedStats.mostSupportedClaim || advancedStats.mostContradictedClaim || advancedStats.mostRefinedClaim || advancedStats.highestImportanceClaim) && (
           <div className="flex items-center gap-3 flex-wrap text-[10px] text-muted-foreground mt-1.5 pt-1.5 border-t border-border/30">
             {advancedStats.mostSupportedClaim && (
-              <span>Most Supported: <span className="font-semibold text-emerald-400/90">{advancedStats.mostSupportedClaim.count}</span></span>
+              <span>Most Supported: <span className="font-semibold text-slate-400/90">{advancedStats.mostSupportedClaim.count}</span></span>
             )}
             {advancedStats.mostContradictedClaim && (
-              <span>Most Contradicted: <span className="font-semibold text-rose-400/90">{advancedStats.mostContradictedClaim.count}</span></span>
+              <span>Most Contradicted: <span className="font-semibold text-amber-400/90">{advancedStats.mostContradictedClaim.count}</span></span>
             )}
             {advancedStats.mostRefinedClaim && (
               <span>Most Refined: <span className="font-semibold text-violet-400/90">{advancedStats.mostRefinedClaim.count}</span></span>
@@ -935,14 +935,14 @@ export const GraphView = memo(function GraphView({
       <div className="flex items-center gap-4 text-[10px] text-muted-foreground px-1">
         <span className="font-semibold text-foreground/70 uppercase tracking-wider">Legend</span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-5 rounded-full bg-green-500" />
-          <svg width="8" height="6" className="text-green-500"><polygon points="0,0 8,3 0,6" fill="currentColor" /></svg>
-          <span className="font-medium text-green-500">Supports</span>
+          <span className="inline-block h-0.5 w-5 rounded-full bg-slate-500" />
+          <svg width="8" height="6" className="text-slate-500"><polygon points="0,0 8,3 0,6" fill="currentColor" /></svg>
+          <span className="font-medium text-slate-500">Supports</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-5 rounded-full bg-rose-500" />
-          <svg width="8" height="6" className="text-rose-500"><polygon points="0,0 8,3 0,6" fill="currentColor" /></svg>
-          <span className="font-medium text-rose-500">Contradicts</span>
+          <span className="inline-block h-0.5 w-5 rounded-full bg-amber-500" />
+          <svg width="8" height="6" className="text-amber-500"><polygon points="0,0 8,3 0,6" fill="currentColor" /></svg>
+          <span className="font-medium text-amber-500">Contradicts</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-0.5 w-5 rounded-full bg-violet-500" />

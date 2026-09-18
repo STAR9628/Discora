@@ -18,7 +18,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, HelpCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { ReportDialog } from "./report-dialog";
-import type { DiscussionQuestion } from "../types";
+import type { DiscussionClaim, DiscussionEvidence, DiscussionQuestion } from "../types";
+import type { SectionPage } from "@/features/discussions/services/discussion-service";
 
 const DEFAULT_PAGE_SIZE = 15;
 
@@ -47,24 +48,27 @@ function LoadMoreButton({
 }
 
 export function DiscussionClaimsSection({
-  roomId,
-  highlightId,
-  autoOpenEvidence,
-}: {
-  roomId: string;
-  highlightId?: string | null;
-  autoOpenEvidence?: boolean;
-}) {
-  const searchParams = useSearchParams();
-  const shouldAutoOpenEvidence = autoOpenEvidence || searchParams.get("addEvidence") === "true";
-  const {
-    items: claims,
-    isLoading,
-    error,
-    hasMore,
-    isLoadingMore,
-    loadMore,
-  } = usePaginatedClaims(roomId, { pageSize: DEFAULT_PAGE_SIZE });
+    roomId,
+    highlightId,
+    autoOpenEvidence,
+    initialClaimsPage,
+  }: {
+    roomId: string;
+    highlightId?: string | null;
+    autoOpenEvidence?: boolean;
+    /** Server-rendered first claims page (public rooms only); see usePaginatedClaims. */
+    initialClaimsPage?: SectionPage<DiscussionClaim>;
+  }) {
+    const searchParams = useSearchParams();
+    const shouldAutoOpenEvidence = autoOpenEvidence || searchParams.get("addEvidence") === "true";
+    const {
+      items: claims,
+      isLoading,
+      error,
+      hasMore,
+      isLoadingMore,
+      loadMore,
+    } = usePaginatedClaims(roomId, { pageSize: DEFAULT_PAGE_SIZE, initialPage: initialClaimsPage });
 
   const inLoadedPage = claims.some((c) => c.id === highlightId);
   const targetQuery = useClaimTarget(!inLoadedPage ? highlightId : null, roomId);
@@ -122,7 +126,16 @@ export function DiscussionClaimsSection({
   );
 }
 
-export function DiscussionEvidenceSection({ roomId, highlightId }: { roomId: string; highlightId?: string | null }) {
+export function DiscussionEvidenceSection({
+  roomId,
+  highlightId,
+  initialEvidencePage,
+}: {
+  roomId: string;
+  highlightId?: string | null;
+  /** Server-rendered first evidence page (public rooms only); see usePaginatedEvidence. */
+  initialEvidencePage?: SectionPage<DiscussionEvidence>;
+}) {
   const {
     items: evidence,
     isLoading,
@@ -130,7 +143,7 @@ export function DiscussionEvidenceSection({ roomId, highlightId }: { roomId: str
     hasMore,
     isLoadingMore,
     loadMore,
-  } = usePaginatedEvidence(roomId, { pageSize: DEFAULT_PAGE_SIZE });
+  } = usePaginatedEvidence(roomId, { pageSize: DEFAULT_PAGE_SIZE, initialPage: initialEvidencePage });
 
   const claimIds = useMemo(() => [...new Set(evidence.map((e) => e.claimId))], [evidence]);
   const { data: claims = [] } = useClaimsByIds(claimIds, roomId);
@@ -187,7 +200,14 @@ export function DiscussionEvidenceSection({ roomId, highlightId }: { roomId: str
   );
 }
 
-export function DiscussionQuestionsSection({ roomId }: { roomId: string }) {
+export function DiscussionQuestionsSection({
+  roomId,
+  initialQuestionsPage,
+}: {
+  roomId: string;
+  /** Server-rendered first questions page (public rooms only); see usePaginatedQuestions. */
+  initialQuestionsPage?: SectionPage<DiscussionQuestion>;
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const questionId = searchParams.get("question");
@@ -198,7 +218,7 @@ export function DiscussionQuestionsSection({ roomId }: { roomId: string }) {
     hasMore,
     isLoadingMore,
     loadMore,
-  } = usePaginatedQuestions(roomId, { pageSize: DEFAULT_PAGE_SIZE });
+  } = usePaginatedQuestions(roomId, { pageSize: DEFAULT_PAGE_SIZE, initialPage: initialQuestionsPage });
 
   const inLoadedPage = questions.some((q) => q.id === questionId);
   const targetQuery = useQuestionTarget(!inLoadedPage ? questionId : null, roomId);

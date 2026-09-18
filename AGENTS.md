@@ -183,7 +183,6 @@ Debates also expose a `questions` section, but it is actually the inquiry interf
 - `create_discussion_room`
 - `create_debate_room`
 - `switch_debate_side`
-- `resolve_debate`
 - `create_inquiry`
 - `respond_to_inquiry`
 - `satisfy_inquiry`

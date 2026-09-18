@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useDebateContext } from "@/features/debates/components/debate-data-provider";
-import { useCreateRoomInvitation, useSetRoomAccessCode, useRemoveDebateParticipant, usePublishDebateRoom, useRoomInvitations, useRevokeRoomInvitation, useSetParticipantInvitesEnabled, type RoomInvitation } from "@/features/debates/hooks/use-debates";
+import { useCreateRoomInvitation, useSetRoomAccessCode, useRemoveDebateParticipant, usePublishDebateRoom, useRoomInvitations, useRevokeRoomInvitation, useSetParticipantInvitesEnabled, useRoomHasAccessCode, type RoomInvitation } from "@/features/debates/hooks/use-debates";
 import { toast } from "@/components/ui/toast";
 import { Loader2, Copy, Check, UserPlus, Trash2, Send, Users, Lock, Globe, X } from "lucide-react";
 
@@ -13,7 +13,6 @@ export function PrivateDebateManagement() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [showAccessForm, setShowAccessForm] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
   const [latestInvitationLink, setLatestInvitationLink] = useState<string | null>(null);
   const [copiedInvitation, setCopiedInvitation] = useState(false);
 
@@ -22,6 +21,8 @@ export function PrivateDebateManagement() {
   const removeParticipantMutation = useRemoveDebateParticipant();
   const publishMutation = usePublishDebateRoom();
   const { data: invitations = [] } = useRoomInvitations(room.id);
+  // Phase 9D.3: presence only — the code hash is never delivered to the client.
+  const { data: hasAccessCode } = useRoomHasAccessCode(room.id);
   const revokeInvitationMutation = useRevokeRoomInvitation();
   const setParticipantInvitesEnabledMutation = useSetParticipantInvitesEnabled();
 
@@ -79,7 +80,9 @@ export function PrivateDebateManagement() {
         roomId: room.id,
         invitedEmail: inviteEmail.trim(),
       });
-      const link = `${window.location.origin}/debates/${room.slug}?invitation=${encodeURIComponent(result.invitationToken)}`;
+      // Phase 9D.3: fragment transport — the token never reaches the server,
+      // server logs, referrers, or SSR payloads as part of navigation.
+      const link = `${window.location.origin}/debates/${room.slug}#invitation=${encodeURIComponent(result.invitationToken)}`;
       setLatestInvitationLink(link);
       toast.success("Invitation created.");
       setInviteEmail("");
@@ -112,15 +115,6 @@ export function PrivateDebateManagement() {
       toast.success("Room published. It is now public.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to publish room.");
-    }
-  };
-
-  const handleCopyCode = () => {
-    if (room.accessCode) {
-      navigator.clipboard.writeText(room.accessCode);
-      setCopiedCode(true);
-      toast.success("Access code copied to clipboard.");
-      setTimeout(() => setCopiedCode(false), 2000);
     }
   };
 
@@ -244,22 +238,11 @@ export function PrivateDebateManagement() {
           Share this code with participants so they can join the private debate.
         </p>
 
-        {room.accessCode ? (
+        {hasAccessCode ? (
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-mono text-foreground">
-              {room.accessCode}
-            </code>
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className="rounded-lg border border-border bg-card hover:bg-accent/40 p-2 cursor-pointer"
-            >
-              {copiedCode ? (
-                <Check className="h-3.5 w-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-            </button>
+            <div className="flex-1 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              Access code is set. For security the code itself is never displayed — set a new one to replace it.
+            </div>
             <button
               type="button"
               onClick={handleClearAccessCode}
@@ -279,7 +262,7 @@ export function PrivateDebateManagement() {
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card hover:bg-accent/40 px-4 py-2 text-xs font-semibold text-foreground cursor-pointer"
           >
             <Lock className="h-3.5 w-3.5" />
-            <span>{room.accessCode ? "Change Access Code" : "Set Access Code"}</span>
+            <span>{hasAccessCode ? "Change Access Code" : "Set Access Code"}</span>
           </button>
         ) : (
           <div className="flex items-center gap-2">

@@ -7,27 +7,14 @@ export interface UserContributions {
   discussionCount: number;
   debateCount: number;
   debateParticipations: string[];
-  debateWins: number;
-  debateLosses: number;
-  evidenceAgreeCount: number;
-  evidenceDisagreeCount: number;
 }
 
 export interface ReputationOptions {
   claimCreatedWeight: number;
   evidenceSubmittedWeight: number;
   questionAskedWeight: number;
-  highConsensusBonus: number;
-  agreeVoteMultiplier: number;
-  disagreeVotePenalty: number;
-  retractedClaimPenalty: number;
-  retractedEvidencePenalty: number;
   debateCreatedWeight: number;
   debateJoinedWeight: number;
-  debateWonWeight: number;
-  debateLostPenalty: number;
-  evidenceApprovedWeight: number;
-  evidenceDisputedPenalty: number;
 }
 
 export interface ReputationScore {
@@ -43,18 +30,6 @@ export interface ReputationFactor {
   value: number;
   weight: number;
   contribution: number;
-}
-
-export interface ClaimCredibility {
-  score: number;
-  level: "high" | "medium" | "low";
-  factors: {
-    evidenceCount: number;
-    evidenceQuality: number;
-    supportRatio: number;
-    contradictionRatio: number;
-    authorReputation: number;
-  };
 }
 
 export interface ExpertiseArea {

@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useRoomEvidence, useVoteEvidence, useRetractEvidence } from "@/features/discussions/hooks/use-discussions";
+import { useRoomEvidence, useRetractEvidence } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionEvidence, DiscussionClaim } from "@/features/discussions/types";
-import { FileText, ThumbsUp, ThumbsDown, GitBranch, ExternalLink, Search, RotateCcw, AlertCircle } from "lucide-react";
+import { FileText, Check, X, GitBranch, ExternalLink, Search, RotateCcw, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SaveButton } from "@/features/saves/components/save-button";
@@ -190,7 +190,7 @@ export function RoomEvidenceSection({
 function EvidenceCardItem({
   evidence,
   claimContent,
-  roomId,
+  roomId: _roomId,
   currentUserId,
   onNavigateToClaim,
   onReportEvidence,
@@ -204,22 +204,21 @@ function EvidenceCardItem({
   onReportEvidence?: (evidence: DiscussionEvidence) => void;
   onRetractRequest: (evidence: DiscussionEvidence) => void;
 }) {
-  const voteMutation = useVoteEvidence(roomId, evidence.claimId, evidence.id);
   const isAuthor = currentUserId && evidence.createdBy === currentUserId;
 
   const directionBadge = (dir: string) => {
     switch (dir) {
       case "support":
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/25">
-            <ThumbsUp className="h-2.5 w-2.5" />
+          <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-2 py-0.5 text-[10px] font-bold text-slate-400 border border-slate-500/25">
+            <Check className="h-2.5 w-2.5" />
             Supports
           </span>
         );
       case "contradict":
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-400 border border-rose-500/25">
-            <ThumbsDown className="h-2.5 w-2.5" />
+          <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/25">
+            <X className="h-2.5 w-2.5" />
             Contradicts
           </span>
         );
@@ -279,36 +278,6 @@ function EvidenceCardItem({
         )}
 
         <div className="flex items-center gap-3">
-          {/* Votes */}
-          <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-0.5">
-            <button
-              onClick={() => voteMutation.mutate(evidence.userVote === "agree" ? null : "agree")}
-              disabled={voteMutation.isPending}
-              className={`p-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                evidence.userVote === "agree"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Agree with evidence validity"
-            >
-              <ThumbsUp className="h-3 w-3" />
-              <span>{evidence.agreeCount}</span>
-            </button>
-            <button
-              onClick={() => voteMutation.mutate(evidence.userVote === "disagree" ? null : "disagree")}
-              disabled={voteMutation.isPending}
-              className={`p-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                evidence.userVote === "disagree"
-                  ? "bg-rose-500/20 text-rose-400"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Disagree with evidence validity"
-            >
-              <ThumbsDown className="h-3 w-3" />
-              <span>{evidence.disagreeCount}</span>
-            </button>
-          </div>
-
           {/* Retract button if author */}
           {isAuthor && !evidence.isRetracted && (
             <button

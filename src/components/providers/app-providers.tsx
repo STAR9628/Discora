@@ -6,6 +6,9 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/features/auth/providers/auth-provider";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
 
+import { MotionConfig } from "motion/react";
+import { NetworkStatusProvider } from "@/components/providers/network-status-provider";
+
 type AppProvidersProps = {
   children: ReactNode;
 };
@@ -18,10 +21,14 @@ export function AppProviders({ children }: AppProvidersProps) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      <QueryProvider>
-        <AuthProvider>{children}</AuthProvider>
-      </QueryProvider>
-      <ToasterProvider />
+      <MotionConfig reducedMotion="user">
+        <QueryProvider>
+          <AuthProvider>
+            <NetworkStatusProvider>{children}</NetworkStatusProvider>
+          </AuthProvider>
+        </QueryProvider>
+        <ToasterProvider />
+      </MotionConfig>
     </ThemeProvider>
   );
 }

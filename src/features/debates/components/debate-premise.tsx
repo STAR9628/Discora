@@ -15,7 +15,7 @@ export function DebatePremise() {
   const displayText = isLong && !isExpanded ? `${statement.slice(0, 250)}...` : statement;
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card/40 p-4 md:p-5 backdrop-blur-sm space-y-2">
+    <div className="w-full min-w-0 max-w-full rounded-xl border border-border/70 bg-card/40 p-4 md:p-5 backdrop-blur-sm space-y-2 overflow-hidden">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
           <Quote className="h-3.5 w-3.5 text-primary" />
@@ -36,7 +36,7 @@ export function DebatePremise() {
         </div>
       </div>
 
-      <p className="text-xs md:text-sm leading-relaxed text-foreground/85 whitespace-pre-wrap pl-3 border-l-2 border-primary/50">
+      <p className="text-xs md:text-sm leading-relaxed text-foreground/85 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] pl-3 border-l-2 border-primary/50 min-w-0 max-w-full">
         {displayText}
       </p>
     </div>

@@ -56,6 +56,9 @@ export type UserProfile = BaseEntity & {
   lastUsernameChange: string | null;
   joinedAt: string;
   role?: UserRole;
+  isFoundingMember?: boolean;
+  isDeleted?: boolean;
+  ageConfirmed?: boolean;
 };
 
 export type UserPreferences = {
@@ -93,7 +96,7 @@ export type Room = BaseEntity & {
 
 export type DebateSide = "proposition" | "opposition" | "neutral";
 
-export type DebateStatus = "active" | "resolved" | "closed";
+export type DebateStatus = "active" | "closed";
 
 /**
  * @future Superseded at runtime by `EvidenceCategory` and DB `evidence_type`.

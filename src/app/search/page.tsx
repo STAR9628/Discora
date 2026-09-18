@@ -4,6 +4,7 @@ import { SearchPageClient } from "@/features/discussions/components/search/searc
 export const metadata = {
   title: "Search — Discora",
   description: "Full-text search across discussions, claims, evidence, and questions.",
+  robots: { index: false, follow: true },
 };
 
 export default function SearchPage() {

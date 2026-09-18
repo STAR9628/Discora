@@ -180,3 +180,7 @@ export function useDiscussionData() {
   }
   return ctx;
 }
+
+export function useOptionalDiscussionData() {
+  return useContext(DiscussionDataContext);
+}

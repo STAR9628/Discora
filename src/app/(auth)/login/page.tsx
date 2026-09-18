@@ -8,7 +8,7 @@ export default function LoginPage() {
         <p className="text-sm font-medium text-primary">Account access</p>
         <h1 className="mt-3 text-2xl font-semibold tracking-normal">Login</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Access your Discora account through Supabase Auth.
+          Sign in to your Discora account to participate.
         </p>
         <div className="mt-6">
           <Suspense fallback={null}>

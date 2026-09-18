@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   HelpCircle,
@@ -717,37 +718,22 @@ function NewEvidenceTopics() {
   );
 }
 
-function getConsensusInsight(item: UnderstandingEvolved): string {
-  if (item.consensusRatio === null) return "No consensus data yet";
-  if (item.consensusRatio >= 60) {
-    return item.myVote === "agree"
-      ? `Current consensus aligns with your position (${item.consensusRatio}% agree)`
-      : `Current consensus challenges your position (${item.consensusRatio}% agree)`;
-  }
-  if (item.consensusRatio <= 40) {
-    return item.myVote === "agree"
-      ? `Current consensus challenges your position (${item.consensusRatio}% agree)`
-      : `Current consensus aligns with your position (${item.consensusRatio}% agree)`;
-  }
-  return `Discussion remains divided (${item.consensusRatio}% agree)`;
+function getEvidenceChangeLabel(item: UnderstandingEvolved): string {
+  if (item.latestEvidence) return "New evidence added";
+  return "Claim updated";
 }
 
-function getConsensusBadge(item: UnderstandingEvolved): {
-  label: string;
-  className: string;
-} | null {
-  if (item.consensusRatio === null) return null;
-  if (item.consensusRatio >= 60) {
-    return item.myVote === "agree"
-      ? { label: "Aligns with your vote", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" }
-      : { label: "Challenges your vote", className: "bg-rose-500/10 text-rose-400 border-rose-500/20" };
+function getEvidenceChangeBadge(item: UnderstandingEvolved): { label: string; className: string } {
+  if (item.latestEvidence) {
+    return {
+      label: "New evidence",
+      className: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    };
   }
-  if (item.consensusRatio <= 40) {
-    return item.myVote === "agree"
-      ? { label: "Challenges your vote", className: "bg-rose-500/10 text-rose-400 border-rose-500/20" }
-      : { label: "Aligns with your vote", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
-  }
-  return { label: "Divided", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  return {
+    label: "Updated",
+    className: "bg-muted/40 text-muted-foreground border-border",
+  };
 }
 
 type GroupedUnderstanding = {
@@ -776,9 +762,10 @@ function groupUnderstandingEvolved(
 
   for (const [roomId, claims] of groups) {
     const sorted = [...claims].sort((a, b) => {
-      const aRatio = a.consensusRatio ?? 50;
-      const bRatio = b.consensusRatio ?? 50;
-      return Math.abs(bRatio - 50) - Math.abs(aRatio - 50);
+      // Neutral ordering: most recently updated claims first (replaces vote-derived |consensusRatio - 50|)
+      const aDate = new Date(a.updatedAt || a.createdAt).getTime();
+      const bDate = new Date(b.updatedAt || b.createdAt).getTime();
+      return bDate - aDate;
     });
 
     result.push({
@@ -790,10 +777,11 @@ function groupUnderstandingEvolved(
     });
   }
 
+  // Sort rooms by most recent claim update
   result.sort((a, b) => {
-    const aRatio = a.significantClaim.consensusRatio ?? 50;
-    const bRatio = b.significantClaim.consensusRatio ?? 50;
-    return Math.abs(bRatio - 50) - Math.abs(aRatio - 50);
+    const aDate = new Date(a.significantClaim.updatedAt || a.significantClaim.createdAt).getTime();
+    const bDate = new Date(b.significantClaim.updatedAt || b.significantClaim.createdAt).getTime();
+    return bDate - aDate;
   });
 
   return result.slice(0, 5);
@@ -820,8 +808,8 @@ function UnderstandingEvolved() {
         <div className="space-y-3">
           {grouped.map((group) => {
             const item = group.significantClaim;
-            const insight = getConsensusInsight(item);
-            const badge = getConsensusBadge(item);
+            const changeLabel = getEvidenceChangeLabel(item);
+            const badge = getEvidenceChangeBadge(item);
             return (
               <Link
                 key={group.roomId}
@@ -842,7 +830,7 @@ function UnderstandingEvolved() {
                   {item.claimContent}
                 </p>
                 <p className="text-xs text-muted-foreground italic">
-                  {insight}
+                  {changeLabel}
                 </p>
                 {item.latestEvidence && (
                   <div className="mt-1 rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground italic">
@@ -949,16 +937,53 @@ function PersonalizedUpdates() {
 }
 
 export function LoggedInHomepage() {
+  const [tab, setTab] = useState<"deliberations" | "commons">("deliberations");
+
   return (
     <div className="mx-auto max-w-6xl space-y-8 py-8 pb-16">
       <WelcomeBar />
       <FirstUserBanner />
       <QuickActions />
-      <RecentlySavedSection />
-      <RecentlyEngagedSection />
-      <PersonalizedUpdates />
-      <RecentDiscussions />
-      <RecentDebates />
+
+      <div className="flex items-center gap-2 border-b border-border/60">
+        <button
+          type="button"
+          onClick={() => setTab("deliberations")}
+          className={`px-4 py-2 text-sm font-bold transition-colors ${
+            tab === "deliberations"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          My Deliberations
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("commons")}
+          className={`px-4 py-2 text-sm font-bold transition-colors ${
+            tab === "commons"
+              ? "text-primary border-b-2 border-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Public Commons
+        </button>
+      </div>
+
+      {tab === "deliberations" && (
+        <div className="space-y-8 animate-in fade-in duration-200">
+          <RecentlySavedSection />
+          <RecentlyEngagedSection />
+          <PersonalizedUpdates />
+        </div>
+      )}
+
+      {tab === "commons" && (
+        <div className="space-y-8 animate-in fade-in duration-200">
+          <RecentDiscussions />
+          <RecentDebates />
+        </div>
+      )}
     </div>
   );
 }

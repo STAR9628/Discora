@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Bookmark, Loader2 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useToggleSave } from "../hooks/use-saves";
 import type { SaveTargetType } from "../types";
 
@@ -31,19 +32,28 @@ export function SaveButton({ targetType, targetId, className = "", showLabel = f
     toggle();
   };
 
-  if (status !== "authenticated" && !isRedirecting) {
+  const wrapWithTooltip = (element: React.ReactElement, content: string) => {
+    if (showLabel) return element;
     return (
+      <Tooltip content={content} side="bottom" align="center">
+        {element}
+      </Tooltip>
+    );
+  };
+
+  if (status !== "authenticated" && !isRedirecting) {
+    const unauthButton = (
       <button
         type="button"
         onClick={handleClick}
-        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer ${className}`}
-        aria-label="Sign in to save"
-        title="Sign in to save"
+        className={`relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer after:absolute after:-inset-2 after:content-[''] ${className}`}
+        aria-label="Save to your library"
       >
         <Bookmark className="h-4 w-4" />
         {showLabel && <span>Save</span>}
       </button>
     );
+    return wrapWithTooltip(unauthButton, "Save to your library");
   }
 
   if (isRedirecting) {
@@ -51,6 +61,7 @@ export function SaveButton({ targetType, targetId, className = "", showLabel = f
       <button
         type="button"
         disabled
+        aria-label="Signing in..."
         className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground cursor-not-allowed opacity-70 ${className}`}
       >
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -59,15 +70,16 @@ export function SaveButton({ targetType, targetId, className = "", showLabel = f
     );
   }
 
-  return (
+  const tooltipLabel = isSaved ? "Remove from your library" : "Save to your library";
+
+  const button = (
     <button
       type="button"
       onClick={handleClick}
       disabled={isLoading}
       aria-pressed={isSaved}
-      aria-label={isSaved ? "Remove from saved" : "Save"}
-      title={isSaved ? "Remove from saved" : "Save"}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+      aria-label={tooltipLabel}
+      className={`relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50 after:absolute after:-inset-2 after:content-[''] ${
         isSaved
           ? "text-primary bg-primary/10"
           : "text-muted-foreground hover:text-foreground"
@@ -81,4 +93,6 @@ export function SaveButton({ targetType, targetId, className = "", showLabel = f
       {showLabel && <span>{isSaved ? "Saved" : "Save"}</span>}
     </button>
   );
+
+  return wrapWithTooltip(button, tooltipLabel);
 }

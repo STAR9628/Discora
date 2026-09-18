@@ -4,7 +4,7 @@ import { useMemo, useState, useCallback, useEffect, useRef, memo } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useQuestions, useClaims, useRoomEvidence, useClaimRelations } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionQuestion, DiscussionClaim, DiscussionEvidence, ClaimContextType } from "@/features/discussions/types";
-import { HelpCircle, FileText, Link2, AlertCircle, ChevronRight, ArrowUpRight, ThumbsUp, ThumbsDown, Lightbulb, Eye, Target, Search, BarChart3, Plus, Minus, Sparkles, GitBranch, X, ExternalLink, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { HelpCircle, FileText, Link2, AlertCircle, ChevronRight, ArrowUpRight, Lightbulb, Eye, Target, Search, BarChart3, Plus, Minus, Sparkles, GitBranch, Check, X, ExternalLink, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { GraphView } from "./graph-view";
 import { DiscussionHealth } from "./discussion-health";
 import { DiscussionSummary } from "./discussion-summary";
@@ -189,8 +189,8 @@ function SourceChip({ title, url }: { title: string; url: string | null }) {
 
 function EvidenceCard({ evidence }: { evidence: DiscussionEvidence }) {
   const directionColors: Record<string, string> = {
-    support: "border-l-green-500/60 bg-green-500/[0.03]",
-    contradict: "border-l-red-500/60 bg-red-500/[0.03]",
+    support: "border-l-slate-500/60 bg-slate-500/[0.03]",
+    contradict: "border-l-amber-500/60 bg-amber-500/[0.03]",
     context: "border-l-blue-400/60 bg-blue-400/[0.03]",
   };
   const directionLabels: Record<string, string> = {
@@ -199,8 +199,8 @@ function EvidenceCard({ evidence }: { evidence: DiscussionEvidence }) {
     context: "Context",
   };
   const directionBadgeColors: Record<string, string> = {
-    support: "bg-green-500/10 text-green-400 border-green-500/20",
-    contradict: "bg-red-500/10 text-red-400 border-red-500/20",
+    support: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    contradict: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     context: "bg-blue-400/10 text-blue-400 border-blue-400/20",
   };
 
@@ -254,11 +254,11 @@ function ClaimCard({ claim, evidenceList, relationCounts, onClaimClick }: ClaimN
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <ThumbsUp className="h-3 w-3 text-green-400" />
+          <Check className="h-3 w-3 text-slate-400" />
           <span>{claim.agreeCount ?? 0}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <ThumbsDown className="h-3 w-3 text-red-400" />
+          <X className="h-3 w-3 text-amber-400" />
           <span>{claim.disagreeCount ?? 0}</span>
         </div>
         {ratio !== null && (
@@ -271,11 +271,11 @@ function ClaimCard({ claim, evidenceList, relationCounts, onClaimClick }: ClaimN
       {ratio !== null && (
         <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted/30">
           <div
-            className="bg-green-500/60 transition-all"
+            className="bg-slate-500/60 transition-all"
             style={{ width: `${agreeBar}%` }}
           />
           <div
-            className="bg-red-500/60 transition-all"
+            className="bg-amber-500/60 transition-all"
             style={{ width: `${disagreeBar}%` }}
           />
         </div>
@@ -287,13 +287,13 @@ function ClaimCard({ claim, evidenceList, relationCounts, onClaimClick }: ClaimN
         return (
           <div className="flex items-center gap-1.5 flex-wrap">
             {relationCounts.outgoingSupports > 0 && (
-              <span className="inline-flex items-center gap-1 rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-                <ThumbsUp className="h-3 w-3" />Supports {relationCounts.outgoingSupports}
+              <span className="inline-flex items-center gap-1 rounded border border-slate-500/20 bg-slate-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                <Check className="h-3 w-3" />Supports {relationCounts.outgoingSupports}
               </span>
             )}
             {relationCounts.outgoingContradicts > 0 && (
-              <span className="inline-flex items-center gap-1 rounded border border-rose-500/20 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400">
-                <ThumbsDown className="h-3 w-3" />Contradicts {relationCounts.outgoingContradicts}
+              <span className="inline-flex items-center gap-1 rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
+                <X className="h-3 w-3" />Contradicts {relationCounts.outgoingContradicts}
               </span>
             )}
             {relationCounts.outgoingRefines > 0 && (
@@ -400,7 +400,7 @@ function getContextLabel(type: ClaimContextType): string {
 
 function getContextColor(type: ClaimContextType): string {
   switch (type) {
-    case "supporting_idea": return "text-emerald-400";
+    case "supporting_idea": return "text-slate-400";
     case "counterpoint": return "text-violet-400";
     case "observation": return "text-sky-400";
     case "open_question": return "text-amber-400";
@@ -758,13 +758,13 @@ export const MapTab = memo(function MapTab({ roomId }: MapTabProps) {
                 Claim
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-green-500/60" />
-                Supports
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-2 rounded-full bg-red-500/60" />
-                Contradicts
-              </span>
+              <span className="inline-block h-2 w-2 rounded-full bg-slate-500/60" />
+              Supports
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500/60" />
+              Contradicts
+            </span>
             </div>
           )}
         </div>

@@ -266,7 +266,7 @@ export function CreateDebateForm() {
             <span className="h-2 w-2 rounded-full bg-rose-500" />
             <span className="font-semibold text-rose-400">Opposition &mdash; <span className="text-foreground/70">Opposes the motion</span></span>
           </p>
-          <p className="text-[10px] text-muted-foreground/60 pt-1">You will automatically join the Proposition side. Other participants can join either side.</p>
+          <p className="text-xs text-muted-foreground pt-1">You will automatically join the Proposition side. Other participants can join either side.</p>
         </div>
 
         <div className="space-y-2">

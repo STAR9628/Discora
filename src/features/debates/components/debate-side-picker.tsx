@@ -21,7 +21,7 @@ export function DebateSidePicker({ roomId, debate }: DebateSidePickerProps) {
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
 
   const userParticipation = participants?.find((p) => p.userId === user?.id);
-  const isResolved = debate.status === "resolved" || debate.status === "closed";
+  const isResolved = debate.status === "closed";
 
   const latestChange = sideChanges && sideChanges.length > 0 ? sideChanges[0] : null;
   const cooldownEnd = latestChange ? new Date(new Date(latestChange.createdAt).getTime() + 24 * 60 * 60 * 1000) : null;

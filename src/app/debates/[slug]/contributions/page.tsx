@@ -1,5 +1,19 @@
-import { notFound } from "next/navigation";
-import { createServerSupabaseClient } from "@/services/supabase/server";
-import { getDebateBySlug } from "@/features/debates/services/debate-service";
-import { DebateRoom } from "@/features/debates/components/debate-room";
-export default async function Page({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ highlight?: string }> }) { const item = await getDebateBySlug((await params).slug, await createServerSupabaseClient()); if (!item) notFound(); return <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8"><DebateRoom initialData={item} initialSection="contributions" highlightId={(await searchParams).highlight} /></main>; }
+import { redirect } from "next/navigation";
+
+export default async function DebateContributionsRedirectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { slug } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const query = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (typeof v === "string") query.set(k, v);
+    else if (Array.isArray(v)) v.forEach((val) => query.append(k, val));
+  }
+  const queryString = query.toString();
+  redirect(`/debates/${slug}${queryString ? `?${queryString}` : ""}`);
+}

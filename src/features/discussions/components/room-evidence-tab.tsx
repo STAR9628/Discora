@@ -78,8 +78,8 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
 
   const getDirectionStyles = (direction: string) => {
     switch (direction) {
-      case "support": return "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
-      case "contradict": return "bg-rose-500/10 border-rose-500/25 text-rose-400";
+      case "support": return "bg-slate-500/10 border-slate-500/25 text-slate-400";
+      case "contradict": return "bg-amber-500/10 border-amber-500/25 text-amber-400";
       case "context": return "bg-slate-500/10 border-slate-500/25 text-slate-400";
       default: return "bg-muted border-border text-muted-foreground";
     }

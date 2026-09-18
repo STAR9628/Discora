@@ -132,13 +132,13 @@ export function DebateSidePickerModal() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-blue-400">PROPOSITION</span>
-                <span className="text-[10px] text-muted-foreground">Affirmative position</span>
+                <span className="text-xs font-black uppercase tracking-wider text-blue-400">PROPOSITION</span>
+                <span className="text-xs text-muted-foreground">Affirmative position</span>
               </div>
               <span className="block text-xs font-bold text-foreground mt-1 leading-tight">
                 {debate.propositionTitle || "Supports Motion"}
               </span>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Contribute claims and evidence that support this thesis.
               </p>
             </button>
@@ -153,13 +153,13 @@ export function DebateSidePickerModal() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase text-rose-400">OPPOSITION</span>
-                <span className="text-[10px] text-muted-foreground">Counter position</span>
+                <span className="text-xs font-black uppercase tracking-wider text-rose-400">OPPOSITION</span>
+                <span className="text-xs text-muted-foreground">Counter position</span>
               </div>
               <span className="block text-xs font-bold text-foreground mt-1 leading-tight">
                 {debate.oppositionTitle || "Opposes Motion"}
               </span>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Contribute claims and evidence that challenge this thesis.
               </p>
             </button>
@@ -167,7 +167,7 @@ export function DebateSidePickerModal() {
 
           {/* Progressive Context for First-Time Joiners */}
           {!userParticipation && (
-            <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-2 rounded-xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5 text-primary shrink-0" />
               <span>You can update your position at any time as new evidence is evaluated.</span>
             </div>

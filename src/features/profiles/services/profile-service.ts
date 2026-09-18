@@ -14,6 +14,9 @@ export interface DbProfileRow {
   joined_at: string;
   created_at: string;
   updated_at: string;
+  is_founding_member?: boolean;
+  is_deleted?: boolean;
+  age_confirmed?: boolean;
 }
 
 // Helper to map DB snake_case columns to TS camelCase fields
@@ -29,6 +32,9 @@ export function mapProfileRow(row: DbProfileRow): UserProfile {
     joinedAt: row.joined_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isFoundingMember: Boolean(row.is_founding_member),
+    isDeleted: Boolean(row.is_deleted),
+    ageConfirmed: Boolean(row.age_confirmed),
   };
 }
 
@@ -54,7 +60,11 @@ export async function getProfileByUsername(
     throw new Error(mapSupabaseError(error, "Failed to load profile"));
   }
 
-  return data ? mapProfileRow(data) : null;
+  if (!data || data.is_deleted) {
+    return null;
+  }
+
+  return mapProfileRow(data);
 }
 
 /**
@@ -89,6 +99,8 @@ export async function createProfile(
     bio?: string | null;
     defaultIdentityMode: "public" | "anonymous";
     avatarUrl?: string | null;
+    /** Whether the user has confirmed 18+ eligibility. Defaults to false. */
+    ageConfirmed?: boolean;
   },
   overrideClient?: SupabaseClient,
 ): Promise<UserProfile> {
@@ -102,6 +114,7 @@ export async function createProfile(
       bio: data.bio || null,
       avatar_url: data.avatarUrl || null,
       default_identity_mode: data.defaultIdentityMode,
+      age_confirmed: data.ageConfirmed ?? false,
     })
     .select("*")
     .single();

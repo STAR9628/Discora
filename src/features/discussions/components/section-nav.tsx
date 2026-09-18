@@ -76,7 +76,7 @@ export function SectionNav({
       aria-label="Discussion navigation sections"
       className="sticky top-0 z-30 rounded-xl border border-border/80 bg-background/90 p-1.5 backdrop-blur-md shadow-md"
     >
-      <div role="tablist" className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <div role="tablist" className="flex items-center gap-1 overflow-x-auto no-scrollbar [mask-image:linear-gradient(to_right,transparent_0%,black_8%,black_92%,transparent_100%)]">
         {sections.map((sec) => {
           const Icon = sec.icon;
           const isActive = activeSection === sec.id;

@@ -19,11 +19,12 @@ import type {
   DiscussionEvidence,
   DiscussionQuestion,
   DiscussionClaimRelation,
+  DiscussionArgument,
 } from "@/features/discussions/types";
 import {
   deriveStateOfUnderstanding,
-  formatCommunityStance,
 } from "./understanding-utils";
+import { RoomStateBanner, ClaimRelationChips } from "./sou-shared";
 
 interface StateOfUnderstandingProps {
   claims: DiscussionClaim[] | undefined;
@@ -31,6 +32,7 @@ interface StateOfUnderstandingProps {
   questions: DiscussionQuestion[] | undefined;
   claimRelations?: DiscussionClaimRelation[] | undefined;
   inquiryCounts?: Record<string, number> | undefined;
+  arguments?: DiscussionArgument[] | undefined;
   isLoading?: boolean;
   onNavigateToClaim?: (claimId: string, options?: { autoOpenEvidence?: boolean }) => void;
   onNavigateToEvidence?: (evidenceId?: string) => void;
@@ -43,6 +45,7 @@ export function StateOfUnderstanding({
   questions,
   claimRelations,
   inquiryCounts,
+  arguments: roomArguments,
   isLoading,
   onNavigateToClaim,
   onNavigateToEvidence,
@@ -58,8 +61,9 @@ export function StateOfUnderstanding({
       questions,
       claimRelations,
       inquiryCounts,
+      arguments: roomArguments,
     });
-  }, [claims, roomEvidence, questions, claimRelations, inquiryCounts]);
+  }, [claims, roomEvidence, questions, claimRelations, inquiryCounts, roomArguments]);
 
   const handleClaimClick = (claimId: string, options?: { autoOpenEvidence?: boolean }) => {
     if (onNavigateToClaim) {
@@ -172,7 +176,7 @@ export function StateOfUnderstanding({
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold text-[11px] border ${
               metrics.evidenceCoveragePercentage >= 50
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                ? "bg-slate-500/10 border-slate-500/30 text-slate-400"
                 : metrics.evidenceCoveragePercentage > 0
                 ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
                 : "bg-muted/40 border-border text-muted-foreground"
@@ -203,6 +207,9 @@ export function StateOfUnderstanding({
         </div>
       </div>
 
+      {/* Room-level SoU (whole-room scope): presence-derived, never a verdict. */}
+      <RoomStateBanner roomState={metrics.roomState} />
+
       {/* 2. Mobile Segmented Control (< 1024px) */}
       <div className="lg:hidden grid grid-cols-3 rounded-xl border border-border/60 bg-muted/20 p-1 text-xs font-semibold gap-1">
         <button
@@ -210,7 +217,7 @@ export function StateOfUnderstanding({
           onClick={() => setMobileTab("supported")}
           className={`min-h-[44px] min-w-0 w-full flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 rounded-lg px-1 py-1.5 text-center transition-all cursor-pointer ${
             mobileTab === "supported"
-              ? "bg-card text-emerald-400 font-bold shadow-sm"
+              ? "bg-card text-slate-400 font-bold shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -224,7 +231,7 @@ export function StateOfUnderstanding({
           onClick={() => setMobileTab("contested")}
           className={`min-h-[44px] min-w-0 w-full flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 rounded-lg px-1 py-1.5 text-center transition-all cursor-pointer ${
             mobileTab === "contested"
-              ? "bg-card text-rose-400 font-bold shadow-sm"
+              ? "bg-card text-amber-400 font-bold shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -253,31 +260,31 @@ export function StateOfUnderstanding({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Column 1: Supported by Current Evidence */}
         <div
-          className={`rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3 ${
+          className={`rounded-xl border border-slate-500/30 bg-slate-500/5 p-4 space-y-3 ${
             mobileTab !== "supported" ? "hidden lg:block" : "block"
           }`}
         >
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-slate-400 shrink-0" />
               <h3 className="text-xs sm:text-sm font-bold text-foreground">
                 Supported by Current Evidence
               </h3>
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>{metrics.supportedClaims.length} verified claim{metrics.supportedClaims.length === 1 ? "" : "s"}</span>
-              <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-400/90">
-                0 contradictions
+              <span>{metrics.supportedClaims.length} supported claim{metrics.supportedClaims.length === 1 ? "" : "s"}</span>
+              <span className="rounded bg-slate-500/10 px-1.5 py-0.5 font-medium text-slate-400/90">
+                Citing sources
               </span>
             </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-            Claims supported by cited sources with no active contradictory citations.
+            Claims backed by cited sources with no active contradictory citations.
           </p>
 
           {metrics.supportedClaims.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-emerald-500/20 p-4 text-center text-xs text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-slate-500/20 p-4 text-center text-xs text-muted-foreground">
               No claims are currently supported by cited evidence.
             </div>
           ) : (
@@ -286,14 +293,14 @@ export function StateOfUnderstanding({
                 <div
                   key={item.claim.id}
                   onClick={() => handleClaimClick(item.claim.id)}
-                  className="group rounded-lg border border-border/60 bg-card/50 p-3 space-y-2 hover:border-emerald-500/40 hover:bg-card/75 transition-all cursor-pointer"
+                  className="group rounded-lg border border-border/60 bg-card/50 p-3 space-y-2 hover:border-slate-500/40 hover:bg-card/75 transition-all cursor-pointer"
                 >
                   <p className="text-xs text-foreground font-medium line-clamp-2 leading-snug">
                     {item.claim.content}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                    <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 font-bold text-emerald-400 border border-emerald-500/20">
+                    <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 font-bold text-slate-400 border border-slate-500/20">
                       {item.supportingEvidenceCount} citation{item.supportingEvidenceCount === 1 ? "" : "s"}
                     </span>
 
@@ -306,13 +313,31 @@ export function StateOfUnderstanding({
                       </span>
                     ))}
 
-                    <span className="text-[9px] text-muted-foreground ml-auto">
-                      {formatCommunityStance(item.totalVotes, item.agreementPercentage)}
-                    </span>
+                    {item.openInquiryCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-400 border border-amber-500/20 text-[9px]"
+                        title={`${item.openInquiryCount} targeted inquir${item.openInquiryCount === 1 ? "y" : "ies"} open for this claim`}
+                      >
+                        <HelpCircle className="h-2.5 w-2.5" />
+                        {item.openInquiryCount} inquir{item.openInquiryCount === 1 ? "y" : "ies"}
+                      </span>
+                    )}
+
+                    {item.totalArgumentCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded bg-muted/50 px-1.5 py-0.5 font-medium text-muted-foreground border border-border text-[9px]"
+                        title={`${item.totalArgumentCount} argument${item.totalArgumentCount === 1 ? "" : "s"} attached (${item.supportingArgumentCount} supporting, ${item.challengingArgumentCount} challenging)`}
+                      >
+                        <Scale className="h-2.5 w-2.5" />
+                        {item.totalArgumentCount} arg{item.totalArgumentCount === 1 ? "" : "s"}
+                      </span>
+                    )}
+
+                    <ClaimRelationChips summary={item} />
                   </div>
 
                   <div className="flex items-center justify-between pt-1 border-t border-border/30 text-[10px] text-muted-foreground">
-                    <span className="text-[9px] text-emerald-400/90 italic truncate max-w-[200px]">
+                    <span className="text-[9px] text-slate-400/90 italic truncate max-w-[200px]">
                       {item.statusReason}
                     </span>
                     <span className="inline-flex items-center gap-1 text-primary group-hover:underline text-[10px] font-semibold shrink-0">
@@ -327,32 +352,32 @@ export function StateOfUnderstanding({
 
         {/* Column 2: Contested / Mixed Evidence */}
         <div
-          className={`rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 space-y-3 ${
+          className={`rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3 ${
             mobileTab !== "contested" ? "hidden lg:block" : "block"
           }`}
         >
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+              <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
               <h3 className="text-xs sm:text-sm font-bold text-foreground">
                 Contested / Mixed Evidence
               </h3>
             </div>
             <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>{metrics.contestedClaims.length} active dispute{metrics.contestedClaims.length === 1 ? "" : "s"}</span>
-              <span className="rounded bg-rose-500/10 px-1.5 py-0.5 font-medium text-rose-400/90">
-                Opposing citations
+              <span>{metrics.contestedClaims.length} contested claim{metrics.contestedClaims.length === 1 ? "" : "s"}</span>
+              <span className="rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-400/90">
+                Mixed citations
               </span>
             </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-            Claims facing contradictory sources, mixed evidence, or divided stance.
+            Claims with contradictory sources, mixed evidence, or divided stance.
           </p>
 
           {metrics.contestedClaims.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-rose-500/20 p-4 text-center text-xs text-muted-foreground">
-              No claims currently face active contradictory citations.
+            <div className="rounded-lg border border-dashed border-amber-500/20 p-4 text-center text-xs text-muted-foreground">
+              No claims currently have contradictory citations.
             </div>
           ) : (
             <div className="space-y-3">
@@ -360,29 +385,47 @@ export function StateOfUnderstanding({
                 <div
                   key={item.claim.id}
                   onClick={() => handleClaimClick(item.claim.id)}
-                  className="group rounded-lg border border-border/60 bg-card/50 p-3 space-y-2 hover:border-rose-500/40 hover:bg-card/75 transition-all cursor-pointer"
+                  className="group rounded-lg border border-border/60 bg-card/50 p-3 space-y-2 hover:border-amber-500/40 hover:bg-card/75 transition-all cursor-pointer"
                 >
                   <p className="text-xs text-foreground font-medium line-clamp-2 leading-snug">
                     {item.claim.content}
                   </p>
 
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                    <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-1.5 py-0.5 font-bold text-rose-400 border border-rose-500/20">
+                    <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 font-bold text-amber-400 border border-amber-500/20">
                       {item.contradictingEvidenceCount} counter-citation{item.contradictingEvidenceCount === 1 ? "" : "s"}
                     </span>
                     {item.supportingEvidenceCount > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 font-bold text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 font-bold text-slate-400 border border-slate-500/20">
                         {item.supportingEvidenceCount} supporting
                       </span>
                     )}
 
-                    <span className="text-[9px] text-muted-foreground ml-auto">
-                      {formatCommunityStance(item.totalVotes, item.agreementPercentage)}
-                    </span>
+                    {item.openInquiryCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-400 border border-amber-500/20 text-[9px]"
+                        title={`${item.openInquiryCount} targeted inquir${item.openInquiryCount === 1 ? "y" : "ies"} open for this claim`}
+                      >
+                        <HelpCircle className="h-2.5 w-2.5" />
+                        {item.openInquiryCount} inquir{item.openInquiryCount === 1 ? "y" : "ies"}
+                      </span>
+                    )}
+
+                    {item.totalArgumentCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded bg-muted/50 px-1.5 py-0.5 font-medium text-muted-foreground border border-border text-[9px]"
+                        title={`${item.totalArgumentCount} argument${item.totalArgumentCount === 1 ? "" : "s"} attached (${item.supportingArgumentCount} supporting, ${item.challengingArgumentCount} challenging)`}
+                      >
+                        <Scale className="h-2.5 w-2.5" />
+                        {item.totalArgumentCount} arg{item.totalArgumentCount === 1 ? "" : "s"}
+                      </span>
+                    )}
+
+                    <ClaimRelationChips summary={item} />
                   </div>
 
                   <div className="flex items-center justify-between pt-1 border-t border-border/30 text-[10px] text-muted-foreground">
-                    <span className="text-[9px] text-rose-400/90 italic truncate max-w-[200px]">
+                    <span className="text-[9px] text-amber-400/90 italic truncate max-w-[200px]">
                       {item.statusReason}
                     </span>
                     <span className="inline-flex items-center gap-1 text-primary group-hover:underline text-[10px] font-semibold shrink-0">
@@ -480,9 +523,27 @@ export function StateOfUnderstanding({
                       </span>
                     ))}
 
-                    <span className="text-[9px] text-muted-foreground ml-auto">
-                      {formatCommunityStance(item.totalVotes, item.agreementPercentage)}
-                    </span>
+                    {item.openInquiryCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-400 border border-amber-500/20 text-[9px]"
+                        title={`${item.openInquiryCount} targeted inquir${item.openInquiryCount === 1 ? "y" : "ies"} open for this claim`}
+                      >
+                        <HelpCircle className="h-2.5 w-2.5" />
+                        {item.openInquiryCount} inquir{item.openInquiryCount === 1 ? "y" : "ies"}
+                      </span>
+                    )}
+
+                    {item.totalArgumentCount > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded bg-muted/50 px-1.5 py-0.5 font-medium text-muted-foreground border border-border text-[9px]"
+                        title={`${item.totalArgumentCount} argument${item.totalArgumentCount === 1 ? "" : "s"} attached (${item.supportingArgumentCount} supporting, ${item.challengingArgumentCount} challenging)`}
+                      >
+                        <Scale className="h-2.5 w-2.5" />
+                        {item.totalArgumentCount} arg{item.totalArgumentCount === 1 ? "" : "s"}
+                      </span>
+                    )}
+
+                    <ClaimRelationChips summary={item} />
                   </div>
 
                   <div className="flex items-center justify-between pt-1 border-t border-border/30 text-[10px] text-muted-foreground">

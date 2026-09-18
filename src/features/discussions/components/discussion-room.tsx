@@ -458,6 +458,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
                 claimedMessageIds={claimedMessageIds}
                 messageToClaimMap={messageToClaimMap}
                 messageEvidenceMap={messageEvidenceMap}
+                roomId={room.id}
                 onReply={handlePostReply}
                 onEdit={handleUpdateMessage}
                 onExtractClaim={handleExtractClaim}

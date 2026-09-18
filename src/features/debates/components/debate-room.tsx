@@ -2,52 +2,122 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { usePostMessage, useUpdateMessage, useRoomEvidence, usePaginatedEvidence, usePaginatedThreads, useRoomMessageCount, useThreadTarget } from "@/features/discussions/hooks/use-discussions";
-import type { DiscussionMessage, DiscussionClaim } from "@/features/discussions/types";
+import {
+  usePostMessage,
+  useUpdateMessage,
+  useRoomEvidence,
+  usePaginatedEvidence,
+  usePaginatedThreads,
+  useRoomMessageCount,
+  useThreadTarget,
+  useReactions,
+  useToggleReaction,
+  useClaimRequests,
+  useCreateClaimRequest,
+  useDecideClaimRequest,
+  useConvertMessageToClaim,
+  useRoomArguments,
+  useRetractRoomEvidence,
+  useRetractArgument,
+} from "@/features/discussions/hooks/use-discussions";
+import type { DiscussionMessage, DiscussionClaim, ReactionType } from "@/features/discussions/types";
 import type { DebateRoomData } from "@/features/debates/services/debate-service";
-import { MessageSquare, AlertCircle, Compass, Loader2, Send, X, Sparkles } from "lucide-react";
+import { AlertCircle, Compass, Loader2, X, Sparkles } from "lucide-react";
 import { ExtractClaimModal } from "@/features/discussions/components/extract-claim-modal";
 import { ReportDialog } from "@/features/discussions/components/report-dialog";
-import { useAuthorsReputation } from "@/features/reputation/hooks/use-batch-reputation";
 import { CommentItem } from "@/features/discussions/components/comment-item";
+import { StructuredContributionNode } from "@/features/discussions/components/structured-contribution-node";
+import { CreateArgumentDialog } from "@/features/discussions/components/create-argument-dialog";
+import { InquiryConversationNode } from "@/features/inquiries/components/inquiry-conversation-node";
+import { InquiryCreateDialog } from "@/features/debates/components/inquiry-create-dialog";
+import { useInquiries } from "@/features/inquiries/hooks/use-inquiries";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { buildConversationFeed, truncateClaimLabel } from "@/features/discussions/utils/build-conversation-feed";
 import { RoomEvidenceTab } from "@/features/discussions/components/room-evidence-tab";
+import { RoomSourcesTab } from "@/features/discussions/components/room-sources-tab";
 import { buildCommentTree } from "@/features/discussions/utils/build-comment-tree";
-import { DebateScorecard } from "@/features/debates/components/debate-scorecard";
-import { DebateResolution } from "@/features/debates/components/debate-resolution";
-import { PositionHistory } from "@/features/debates/components/position-history";
-import { DebateDataProvider, useDebateContext } from "./debate-data-provider";
+import { ArgumentEvidenceOverview } from "./argument-evidence-overview";
+import { DebateDataProvider, useDebateContext, normalizeDebateLens } from "./debate-data-provider";
 import { DebateHeaderV2 } from "./debate-header-v2";
 import { DebatePremise } from "./debate-premise";
 import { DebateSectionNav } from "./debate-section-nav";
-import { DebateArgumentList } from "./debate-argument-list";
+import { DebateClaimsLensSection } from "./debate-claims-lens-section";
 import { DebateInquiriesTab } from "./debate-inquiries-tab";
 import { DebateSidePickerModal } from "./debate-side-picker-modal";
-import { GuestContributionPrompt } from "@/features/rooms/components/guest-contribution-prompt";
+import { UnifiedComposer } from "@/features/rooms/components/unified-composer";
 import { PrivateDebateManagement } from "./private-debate-management";
 import { PrivateAccessGate } from "./private-access-gate";
 import { RoomGuideCard } from "@/features/onboarding";
 import { toast } from "@/components/ui/toast";
+import { CompactStickyRoomHeader } from "@/features/rooms/components/compact-sticky-room-header";
+import { SaveButton } from "@/features/saves/components/save-button";
+import { ShareButton } from "@/components/share/share-button";
+import { RoomHeaderActions } from "@/components/share/room-header-actions";
 
 interface DebateRoomProps {
   initialData: DebateRoomData;
   highlightId?: string | null;
+  autoOpenEvidence?: boolean;
   initialSection?: import("./debate-data-provider").DebateSection;
-  invitationToken?: string | null;
   gateMode?: boolean;
+  /**
+   * Server-rendered first pages (public rooms only). Seeds SSR HTML with real
+   * debate substance; client interactivity continues unchanged. Never pass
+   * private-room data here.
+   */
+  initialThreadsPage?: import("@/features/discussions/hooks/use-discussions").ThreadPage;
+  initialCollections?: import("./debate-data-provider").DebateInitialCollections;
+  initialRoomArguments?: import("@/features/discussions/types").DiscussionArgument[];
+  initialEvidencePage?: import("@/features/discussions/services/discussion-service").SectionPage<
+    import("@/features/discussions/types").DiscussionEvidence
+  >;
+  initialPropositionPage?: import("@/features/discussions/services/discussion-service").SectionPage<
+    import("@/features/discussions/types").DiscussionClaim
+  >;
+  initialOppositionPage?: import("@/features/discussions/services/discussion-service").SectionPage<
+    import("@/features/discussions/types").DiscussionClaim
+  >;
 }
 
-function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: string | null; invitationToken?: string | null }) {
+function InnerDebateRoom({
+  highlightId,
+  autoOpenEvidence,
+  initialThreadsPage,
+  initialRoomArguments,
+  initialEvidencePage,
+  initialPropositionPage,
+  initialOppositionPage,
+}: {
+  highlightId?: string | null;
+  autoOpenEvidence?: boolean;
+  initialThreadsPage?: import("@/features/discussions/hooks/use-discussions").ThreadPage;
+  initialRoomArguments?: import("@/features/discussions/types").DiscussionArgument[];
+  initialEvidencePage?: import("@/features/discussions/services/discussion-service").SectionPage<
+    import("@/features/discussions/types").DiscussionEvidence
+  >;
+  initialPropositionPage?: import("@/features/discussions/services/discussion-service").SectionPage<
+    import("@/features/discussions/types").DiscussionClaim
+  >;
+  initialOppositionPage?: import("@/features/discussions/services/discussion-service").SectionPage<
+    import("@/features/discussions/types").DiscussionClaim
+  >;
+}) {
   const {
     room,
-    debate,
     activeSection,
     setActiveSection,
     claims,
+    propositionClaims,
+    oppositionClaims,
+    roomEvidence,
+    inquiries,
     userParticipation,
   } = useDebateContext();
   const { user } = useAuth();
+  const sentinelRef = React.useRef<HTMLDivElement>(null);
 
-  const isContributions = activeSection === "contributions";
+  const currentLens = normalizeDebateLens(activeSection);
+  const isContributions = currentLens === "conversation";
 
   const {
     items: messages,
@@ -56,13 +126,46 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
     hasMore: threadsHasMore,
     isLoadingMore: threadsLoadingMore,
     loadMore: loadMoreThreads,
-  } = usePaginatedThreads(room.id, { enabled: isContributions });
+  } = usePaginatedThreads(room.id, { enabled: isContributions, initialPage: initialThreadsPage });
   const { data: messageCount } = useRoomMessageCount(room.id, isContributions);
   const postMutation = usePostMessage();
   const updateMutation = useUpdateMessage(room.id);
-  const { data: roomEvidence } = useRoomEvidence(room.id, isContributions);
+  const { data: contributionsRoomEvidence } = useRoomEvidence(room.id, isContributions);
+  const { data: contributionsRoomArguments } = useRoomArguments(room.id, isContributions || currentLens === "understanding", initialRoomArguments);
+  const { data: contributionsRoomInquiries } = useInquiries(room.id, isContributions);
+  const retractEvidenceMutation = useRetractRoomEvidence(room.id);
+  const retractArgumentMutation = useRetractArgument(room.id);
 
-  const debateEvidence = usePaginatedEvidence(room.id, { enabled: activeSection === "evidence" });
+  const claimById = useMemo(() => {
+    const map = new Map<string, DiscussionClaim>();
+    for (const c of claims) {
+      map.set(c.id, c);
+    }
+    return map;
+  }, [claims]);
+
+  // Message IDs for reactions and claim requests in Debate conversation
+  const messageIds = useMemo(() => (messages || []).map((m) => m.id), [messages]);
+  const { data: reactionsData } = useReactions("message", messageIds, isContributions && messageIds.length > 0);
+  const toggleReactionMutation = useToggleReaction("message", room.id);
+
+  // Evidence + Argument nodes: chronological conversation citizens (Phase G)
+  const visibleDebateEvidence = useMemo(
+    () => (contributionsRoomEvidence || []).filter((ev) => !ev.isRetracted),
+    [contributionsRoomEvidence],
+  );
+  const debateEvidenceIds = useMemo(() => visibleDebateEvidence.map((ev) => ev.id), [visibleDebateEvidence]);
+  const debateArgumentIds = useMemo(() => (contributionsRoomArguments || []).map((arg) => arg.id), [contributionsRoomArguments]);
+  const { data: debateEvidenceReactions } = useReactions("evidence", debateEvidenceIds, isContributions && debateEvidenceIds.length > 0);
+  const { data: debateArgumentReactions } = useReactions("argument", debateArgumentIds, isContributions && debateArgumentIds.length > 0);
+  const toggleDebateEvidenceReaction = useToggleReaction("evidence", room.id);
+  const toggleDebateArgumentReaction = useToggleReaction("argument", room.id);
+  const { requestsMap, myRequests } = useClaimRequests(room.id, messageIds, isContributions && messageIds.length > 0);
+  const createClaimRequestMutation = useCreateClaimRequest(room.id);
+  const decideClaimRequestMutation = useDecideClaimRequest(room.id);
+  const convertMessageMutation = useConvertMessageToClaim(room.id);
+
+  const debateEvidence = usePaginatedEvidence(room.id, { enabled: currentLens === "evidence", initialPage: initialEvidencePage });
 
   const highlightInLoadedThread = messages.some((m) => m.id === highlightId);
   const threadTargetQuery = useThreadTarget(!highlightInLoadedThread ? highlightId : null, room.id);
@@ -105,10 +208,10 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
 
   const messageEvidenceMap = useMemo(() => {
     const map = new Map<string, number>();
-    if (roomEvidence) {
+    if (contributionsRoomEvidence) {
       for (const c of claims) {
         if (c.originMessageId) {
-          const count = roomEvidence.filter((ev) => ev.claimId === c.id).length;
+          const count = contributionsRoomEvidence.filter((ev) => ev.claimId === c.id).length;
           if (count > 0) {
             map.set(c.originMessageId, count);
           }
@@ -116,16 +219,16 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
       }
     }
     return map;
-  }, [roomEvidence, claims]);
-
-  const msgAuthorIds = useMemo(
-    () => messages?.filter((m) => m.userId && m.identityMode !== "anonymous").map((m) => m.userId!) || [],
-    [messages],
-  );
-  const { data: msgAuthorRepScores } = useAuthorsReputation(msgAuthorIds);
+  }, [contributionsRoomEvidence, claims]);
 
   const [extractComment, setExtractComment] = useState<DiscussionMessage | null>(null);
   const [isExtractOpen, setIsExtractOpen] = useState(false);
+  const [argumentClaim, setArgumentClaim] = useState<DiscussionClaim | null>(null);
+  const [inquiryClaim, setInquiryClaim] = useState<DiscussionClaim | null>(null);
+  const [pendingRetract, setPendingRetract] = useState<{
+    kind: "evidence" | "argument";
+    id: string;
+  } | null>(null);
 
   const handleExtractClaim = useCallback((msg: DiscussionMessage) => {
     setExtractComment(msg);
@@ -149,44 +252,10 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
     });
   }, []);
 
-  const [mainContent, setMainContent] = useState("");
-  const [mainAnonymous, setMainAnonymous] = useState(false);
-  const [mainError, setMainError] = useState<string | null>(null);
   const [showPostFeedback, setShowPostFeedback] = useState(false);
 
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [activeEditId, setActiveEditId] = useState<string | null>(null);
-
-  const handlePostMain = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMainError(null);
-
-    const trimmed = mainContent.trim();
-    if (trimmed.length < 1) {
-      setMainError("Message content cannot be empty.");
-      return;
-    }
-    if (trimmed.length > 2000) {
-      setMainError("Message exceeds limit of 2000 characters.");
-      return;
-    }
-
-    try {
-      await postMutation.mutateAsync({
-        roomId: room.id,
-        content: trimmed,
-        identityMode: mainAnonymous ? "anonymous" : "public",
-      });
-      setMainContent("");
-      setMainAnonymous(false);
-      setShowPostFeedback(true);
-      toast.success("Contribution posted successfully.", {
-        description: "Your contribution is part of the debate. You can elevate key points into claims or inquiries.",
-      });
-    } catch (err) {
-      setMainError(err instanceof Error ? err.message : "Failed to post message.");
-    }
-  }, [mainContent, mainAnonymous, postMutation, room.id]);
 
   const handlePostReply = useCallback(async (parentId: string, content: string, anonymous: boolean) => {
     const trimmed = content.trim();
@@ -219,6 +288,44 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
     [messages, resolvedThread, highlightInLoadedThread],
   );
 
+  // Chronological feed: threaded messages interleaved with evidence/argument/inquiry nodes.
+  const debateFeed = useMemo(
+    () => buildConversationFeed(commentTree, visibleDebateEvidence, contributionsRoomArguments || [], contributionsRoomInquiries || []),
+    [commentTree, visibleDebateEvidence, contributionsRoomArguments, contributionsRoomInquiries],
+  );
+  const loadedDebateMessageIds = useMemo(() => new Set(messages.map((m) => m.id)), [messages]);
+
+  const jumpToDebateClaim = useCallback((claimId: string) => {
+    const originId = claimById.get(claimId)?.originMessageId;
+    const target =
+      (originId ? document.getElementById(`msg-${originId}`) : null) ||
+      document.getElementById(`claim-${claimId}`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("ring-2", "ring-primary", "shadow-lg", "shadow-primary/20", "transition-all", "duration-300");
+      setTimeout(() => target.classList.remove("ring-2", "ring-primary", "shadow-lg", "shadow-primary/20"), 4000);
+    } else {
+      setActiveSection("claims");
+    }
+  }, [claimById, setActiveSection]);
+
+  const replyToDebateStructured = useCallback(async (claimId: string, text: string, isAnonymous: boolean) => {
+    const trimmed = text.trim();
+    if (trimmed.length < 1) throw new Error("Reply content cannot be empty.");
+    if (trimmed.length > 2000) throw new Error("Reply exceeds 2000 characters.");
+    const originId = claimById.get(claimId)?.originMessageId;
+    const anchor = originId && loadedDebateMessageIds.has(originId) ? originId : null;
+    await postMutation.mutateAsync({
+      roomId: room.id,
+      parentMessageId: anchor,
+      content: trimmed,
+      identityMode: isAnonymous ? "anonymous" : "public",
+    });
+    setActiveReplyId(null);
+    setShowPostFeedback(true);
+    toast.success("Reply posted.");
+  }, [claimById, loadedDebateMessageIds, postMutation, room.id]);
+
   // Private room access gate (client-side fallback if user is removed or not participant)
   if (room.visibility === "private" && !userParticipation) {
     return (
@@ -226,43 +333,78 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
         <PrivateAccessGate
           roomId={room.id}
           roomSlug={room.slug}
-          initialInvitationToken={invitationToken}
         />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto relative">
+      {/* Scroll Sentinel for Compact Sticky Header */}
+      <div ref={sentinelRef} className="h-px w-full pointer-events-none -mt-6" aria-hidden="true" />
+
+      {/* Compact Sticky Contextual Header */}
+      <CompactStickyRoomHeader
+        roomType="debate"
+        title={room.title}
+        headerAction={
+          <RoomHeaderActions showLabel={false}>
+            <SaveButton targetType="debate" targetId={room.id} showLabel={false} />
+            {room.visibility === "public" && (
+              <ShareButton
+                ariaLabel="Share this debate"
+                shareTitle={room.title}
+                shareText="I think this debate would be interesting to discuss together."
+                sharePath={`/debates/${room.slug}`}
+                showLabel={false}
+              />
+            )}
+          </RoomHeaderActions>
+        }
+        sentinelRef={sentinelRef}
+      />
+
       {/* 1. Compact Header Banner */}
       <DebateHeaderV2 />
 
-      {/* 2. Opening Premise */}
-      <DebatePremise />
+      {/* 2. Opening Premise - only when not in conversation to keep conversation feed dominant */}
+      {currentLens !== "conversation" && <DebatePremise />}
 
       {/* 3. Sticky Section Navigation */}
       <DebateSectionNav />
 
       {/* 4. Main Section Render */}
-      {activeSection === "overview" && (
+      {currentLens === "understanding" && (
         <div className="space-y-6 animate-in fade-in duration-200">
           <RoomGuideCard roomType="debate" />
-          <DebateScorecard roomId={room.id} debateId={debate.id} />
-          <DebateResolution roomId={room.id} debate={debate} roomCreatedBy={room.createdBy} />
-          <PositionHistory roomId={room.id} />
-          <div className="rounded-xl border border-border/60 bg-card/25 p-4 text-sm text-muted-foreground">Inspect the Arguments section to compare the current proposition and opposition claims.</div>
+          <ArgumentEvidenceOverview
+            roomId={room.id}
+            claims={claims}
+            propositionClaims={propositionClaims}
+            oppositionClaims={oppositionClaims}
+            roomEvidence={roomEvidence}
+            inquiries={inquiries}
+            arguments={contributionsRoomArguments}
+            onNavigateToClaim={jumpToDebateClaim}
+          />
+          <div className="rounded-xl border border-border/60 bg-card/25 p-4 text-sm text-muted-foreground">Inspect the Claims section to compare the current proposition and opposition claims.</div>
         </div>
       )}
 
-      {activeSection === "arguments" && (
-        <DebateArgumentList highlightId={highlightId} />
+      {currentLens === "claims" && (
+        <DebateClaimsLensSection
+          highlightId={highlightId}
+          autoOpenEvidence={autoOpenEvidence}
+          initialPropositionPage={initialPropositionPage}
+          initialOppositionPage={initialOppositionPage}
+        />
       )}
 
-      {activeSection === "evidence" && (
+      {currentLens === "evidence" && (
         <div className="animate-in fade-in duration-200">
           <RoomEvidenceTab
             roomId={room.id}
-            onGoToClaims={() => setActiveSection("arguments")}
+            onGoToClaims={() => setActiveSection("claims")}
             evidenceList={debateEvidence.items}
             isLoading={debateEvidence.isLoading}
           />
@@ -281,20 +423,22 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
         </div>
       )}
 
-      {activeSection === "inquiries" && (
+      {currentLens === "sources" && (
+        <div className="animate-in fade-in duration-200">
+          <RoomSourcesTab roomId={room.id} evidenceLensBasePath={`/debates/${room.slug}`} />
+        </div>
+      )}
+
+      {(currentLens === "inquiries" || currentLens === "questions") && (
         <DebateInquiriesTab />
       )}
 
-      {activeSection === "contributions" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between border-b border-border/70 pb-3">
-            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <span>Contributions</span>
-              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {messageCount ?? messages.length}
-              </span>
-            </h2>
+      {currentLens === "conversation" && (
+        <div className="space-y-6 pb-36 sm:pb-44 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-1 text-xs text-muted-foreground/75 select-none">
+            <span className="font-semibold tracking-tight">
+              {messageCount ?? messages.length} {(messageCount ?? messages.length) === 1 ? "contribution" : "contributions"}
+            </span>
           </div>
 
           {/* P1.2 Contextual Post-Contribution Guidance Banner */}
@@ -306,7 +450,7 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
                   <span>Your contribution is now part of the debate.</span>
                 </p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Next step (optional): If your post makes a distinct empirical or logical assertion, you can click &ldquo;Extract Claim&rdquo; below your comment to elevate it into debate arguments, or submit a Structured Inquiry.
+                  Next step (optional): If your post makes a distinct empirical or logical assertion, you can click &ldquo;Make this a Claim&rdquo; below your comment to elevate it into debate arguments, or submit a Structured Inquiry.
                 </p>
               </div>
               <button
@@ -334,7 +478,72 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
               </div>
             ) : (
               <div className="space-y-4">
-                {commentTree.map((node) => (
+                {debateFeed.map((item) => {
+                  if (item.kind === "inquiry") {
+                    const inquiry = item.inquiry;
+                    const claim = claimById.get(inquiry.targetClaimId);
+                    return (
+                      <InquiryConversationNode
+                        key={item.key}
+                        inquiry={inquiry}
+                        currentUserId={user?.id}
+                        claimLabel={claim ? truncateClaimLabel(claim.content) : "this claim"}
+                        onJumpToClaim={() => jumpToDebateClaim(inquiry.targetClaimId)}
+                      />
+                    );
+                  }
+                  if (item.kind !== "thread") {
+                    const isEvidence = item.kind === "evidence";
+                    const entry = isEvidence ? item.evidence : item.argument;
+                    const claim = claimById.get(entry.claimId);
+                    const relationLabel = isEvidence
+                      ? item.evidence.direction === "contradict"
+                        ? "Evidence challenging"
+                        : item.evidence.direction === "context"
+                          ? "Context for"
+                          : "Evidence for"
+                      : item.argument.stance === "challenging"
+                        ? "Argument challenging"
+                        : "Argument supporting";
+                    return (
+                      <StructuredContributionNode
+                        key={item.key}
+                        kind={item.kind}
+                        id={entry.id}
+                        content={entry.content}
+                        createdAt={entry.createdAt}
+                        username={entry.username}
+                        avatarUrl={entry.avatarUrl}
+                        isAnonymous={entry.identityMode === "anonymous"}
+                        isAuthor={Boolean(user?.id && entry.createdBy && entry.createdBy === user.id)}
+                        currentUserId={user?.id}
+                        claimLabel={claim ? truncateClaimLabel(claim.content) : "this claim"}
+                        relationLabel={relationLabel}
+                        sourceTitle={isEvidence ? item.evidence.sourceTitle : null}
+                        sourceUrl={isEvidence ? item.evidence.sourceUrl : null}
+                        reactions={isEvidence ? debateEvidenceReactions || [] : debateArgumentReactions || []}
+                        onToggleReaction={(targetId, reactionType: ReactionType) => {
+                          if (!user) return;
+                          (isEvidence ? toggleDebateEvidenceReaction : toggleDebateArgumentReaction).mutate({ targetId, reactionType });
+                        }}
+                        onReply={user ? (text, isAnonymous) => replyToDebateStructured(entry.claimId, text, isAnonymous) : undefined}
+                        onJumpToClaim={() => jumpToDebateClaim(entry.claimId)}
+                        onReport={user && isEvidence ? () => setReportState({
+                          evidenceId: item.evidence.id,
+                          contentPreview: item.evidence.content,
+                          entityTypeLabel: "Evidence",
+                        }) : undefined}
+                        onRetract={
+                          user?.id && entry.createdBy && entry.createdBy === user.id
+                            ? () => setPendingRetract({ kind: item.kind, id: entry.id })
+                            : undefined
+                        }
+                        isPendingAction={isEvidence ? retractEvidenceMutation.isPending : retractArgumentMutation.isPending}
+                      />
+                    );
+                  }
+                  const node = item.node;
+                  return (
                   <CommentItem
                     key={node.message.id}
                     node={node}
@@ -347,16 +556,85 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
                     claimedMessageIds={claimedMessageIds}
                     messageToClaimMap={messageToClaimMap}
                     messageEvidenceMap={messageEvidenceMap}
-                    authorRepScores={msgAuthorRepScores}
+                    roomId={room.id}
                     onReply={handlePostReply}
                     onEdit={handleUpdateMessage}
                     onExtractClaim={handleExtractClaim}
                     onReport={handleReport}
-                    onNavigateToClaims={() => setActiveSection("arguments")}
-                    onNavigateToClaim={() => setActiveSection("arguments")}
+                    onNavigateToClaims={() => setActiveSection("claims")}
+                    onNavigateToClaim={() => setActiveSection("claims")}
                     onNavigateToEvidence={() => setActiveSection("evidence")}
+                    reactions={reactionsData || []}
+                    onToggleReaction={(targetId, reactionType) => {
+                      if (!user) return;
+                      toggleReactionMutation.mutate({ targetId, reactionType });
+                    }}
+                    claimRequestState={requestsMap.get(node.message.id)}
+                    hasUserRequestedClaim={myRequests.has(node.message.id)}
+                    claimRequestsMap={requestsMap}
+                    myClaimRequests={myRequests}
+                    isRequestActionPending={decideClaimRequestMutation.isPending}
+                    onRequestClaim={(msgId) => {
+                      if (!user) return;
+                      createClaimRequestMutation.mutate(msgId, {
+                        onSuccess: () => {
+                          toast.success("Claim requested.", {
+                            description: "The author has been notified to examine this as a Claim.",
+                          });
+                        },
+                        onError: (e) => {
+                          toast.error("Request failed.", {
+                            description: (e as Error).message,
+                          });
+                        },
+                      });
+                    }}
+                    onDecideClaimRequest={(msgId, decision) => {
+                      decideClaimRequestMutation.mutate({ messageId: msgId, decision }, {
+                        onSuccess: () => {
+                          if (decision === "accept") {
+                            toast.success("Converted to Claim.", {
+                              description: "Your message is now an examined Claim in this debate.",
+                            });
+                          } else if (decision === "skip") {
+                            toast.info("Request skipped.");
+                          } else {
+                            toast.info("Request declined.");
+                          }
+                        },
+                        onError: (e) => {
+                          toast.error("Decision failed.", {
+                            description: (e as Error).message,
+                          });
+                        },
+                      });
+                    }}
+                    onConvertToClaim={(msgId) => {
+                      convertMessageMutation.mutate({ messageId: msgId, claimType: "opinion", contextType: "observation" }, {
+                        onSuccess: () => {
+                          toast.success("Converted to Claim.", {
+                            description: "Your contribution is now an examined Claim in this debate.",
+                          });
+                        },
+                        onError: (e) => {
+                          toast.error("Conversion failed.", {
+                            description: (e as Error).message,
+                          });
+                        },
+                      });
+                    }}
+                    onNavigateToInquiries={(claimId) => {
+                      const claim = claimById.get(claimId);
+                      if (claim) {
+                        setInquiryClaim(claim);
+                      } else {
+                        setActiveSection("inquiries");
+                      }
+                    }}
+                    onCreateArgument={(claim) => setArgumentClaim(claim)}
                   />
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -393,63 +671,13 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
             )}
           </div>
 
-          {/* P0.1 Authenticated Form or Guest Participation Prompt */}
-          {user ? (
-            <div className="border-t border-border/50 pt-6 space-y-4">
-              <h3 className="text-sm font-bold text-foreground">Contribute to the Discussion Thread</h3>
-              <form onSubmit={handlePostMain} className="space-y-4">
-                {mainError && (
-                  <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{mainError}</span>
-                  </div>
-                )}
-
-                <div className="relative">
-                  <textarea
-                    rows={3}
-                    value={mainContent}
-                    onChange={(e) => setMainContent(e.target.value)}
-                    placeholder="State your argument, reference evidence, or respond to the thread..."
-                    className="w-full rounded-xl border border-input bg-background/50 p-3 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-                    disabled={postMutation.isPending}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={mainAnonymous}
-                      onChange={(e) => setMainAnonymous(e.target.checked)}
-                      className="rounded border-input text-primary accent-primary h-3.5 w-3.5 cursor-pointer"
-                      disabled={postMutation.isPending}
-                    />
-                    <span>Post Anonymously</span>
-                  </label>
-
-                  <button
-                    type="submit"
-                    disabled={postMutation.isPending || mainContent.trim().length === 0}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-50 cursor-pointer"
-                  >
-                    {postMutation.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <>
-                        <Send className="h-3.5 w-3.5" />
-                        <span>Submit Post</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <div className="border-t border-border/50 pt-6">
-              <GuestContributionPrompt roomType="debate" />
-            </div>
-          )}
+          {/* Unified Message / Claim / Question Composer (Fixed to viewport bottom) */}
+          <UnifiedComposer
+            roomId={room.id}
+            roomType="debate"
+            participantSide={userParticipation?.side}
+            onSuccess={() => setShowPostFeedback(true)}
+          />
         </div>
       )}
 
@@ -477,6 +705,65 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
         roomId={room.id}
       />
 
+      {/* Claim-contextual argument creation */}
+      {argumentClaim && (
+        <CreateArgumentDialog
+          isOpen={!!argumentClaim}
+          onClose={() => setArgumentClaim(null)}
+          roomId={room.id}
+          claimId={argumentClaim.id}
+          claimPreview={argumentClaim.content}
+        />
+      )}
+
+      {/* Claim-contextual targeted inquiry creation (preserves claim context) */}
+      {inquiryClaim && (
+        <InquiryCreateDialog
+          roomId={room.id}
+          targetClaimId={inquiryClaim.id}
+          isOpen={!!inquiryClaim}
+          onClose={() => setInquiryClaim(null)}
+        />
+      )}
+
+      {/* Retract confirmation for conversation nodes */}
+      <ConfirmDialog
+        open={!!pendingRetract}
+        title={pendingRetract?.kind === "evidence" ? "Retract evidence?" : "Retract reasoning?"}
+        description={
+          pendingRetract?.kind === "evidence"
+            ? "This evidence will be retracted. The claim relationship is preserved for context."
+            : "This reasoning will be retracted. The claim relationship is preserved for context."
+        }
+        confirmLabel="Retract"
+        variant="danger"
+        onCancel={() => setPendingRetract(null)}
+        onConfirm={() => {
+          if (!pendingRetract) return;
+          if (pendingRetract.kind === "evidence") {
+            retractEvidenceMutation.mutate(pendingRetract.id, {
+              onSuccess: () => {
+                toast.success("Evidence retracted.");
+                setPendingRetract(null);
+              },
+              onError: (e) => {
+                toast.error("Retraction failed.", { description: (e as Error).message });
+              },
+            });
+          } else {
+            retractArgumentMutation.mutate(pendingRetract.id, {
+              onSuccess: () => {
+                toast.success("Reasoning retracted.");
+                setPendingRetract(null);
+              },
+              onError: (e) => {
+                toast.error("Retraction failed.", { description: (e as Error).message });
+              },
+            });
+          }
+        }}
+      />
+
       {/* Private Debate Management */}
       {room.visibility === "private" && userParticipation && (
         <div className="mt-8 pt-6 border-t border-border/50">
@@ -487,22 +774,41 @@ function InnerDebateRoom({ highlightId, invitationToken }: { highlightId?: strin
   );
 }
 
-export function DebateRoom({ initialData, highlightId, initialSection, invitationToken, gateMode }: DebateRoomProps) {
+export function DebateRoom({
+  initialData,
+  highlightId,
+  autoOpenEvidence,
+  initialSection,
+  gateMode,
+  initialThreadsPage,
+  initialCollections,
+  initialRoomArguments,
+  initialEvidencePage,
+  initialPropositionPage,
+  initialOppositionPage,
+}: DebateRoomProps) {
   if (gateMode) {
     return (
       <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <PrivateAccessGate
           roomId={initialData.room.id}
           roomSlug={initialData.room.slug}
-          initialInvitationToken={invitationToken}
         />
       </div>
     );
   }
 
   return (
-    <DebateDataProvider initialData={initialData} initialSection={initialSection}>
-      <InnerDebateRoom highlightId={highlightId} invitationToken={invitationToken} />
+    <DebateDataProvider initialData={initialData} initialSection={initialSection} initialCollections={initialCollections}>
+      <InnerDebateRoom
+        highlightId={highlightId}
+        autoOpenEvidence={autoOpenEvidence}
+        initialThreadsPage={initialThreadsPage}
+        initialRoomArguments={initialRoomArguments}
+        initialEvidencePage={initialEvidencePage}
+        initialPropositionPage={initialPropositionPage}
+        initialOppositionPage={initialOppositionPage}
+      />
     </DebateDataProvider>
   );
 }

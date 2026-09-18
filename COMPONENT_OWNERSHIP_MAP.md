@@ -60,12 +60,11 @@ These components remain shared — both DiscussionRoom and DebateRoom import the
 ### Debate-Only Components (already separated)
 
 | Component | File | Lines | Purpose |
-|-----------|------|-------|---------|
+| |-----------|------|-------|---------|
 | `DebateHeader` | `src/features/debates/components/debate-header.tsx` | 114 | Motion + side cards |
 | `DebateSidePicker` | `src/features/debates/components/debate-side-picker.tsx` | 113 | Join/leave/switch sides |
 | `DebateSideSelector` | `src/features/debates/components/debate-side-selector.tsx` | - | Filter claims by side |
-| `DebateScorecard` | `src/features/debates/components/debate-scorecard.tsx` | 75 | Live vote score |
-| `DebateResolution` | `src/features/debates/components/debate-resolution.tsx` | 174 | Declare resolution |
+| `ArgumentEvidenceOverview` | `src/features/debates/components/argument-evidence-overview.tsx` | - | Claims/evidence/inquiry overview |
 
 ### NEW: DebateRoom Component
 
