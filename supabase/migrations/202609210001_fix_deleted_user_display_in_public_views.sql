@@ -185,6 +185,8 @@ grant select on public.discussion_evidence to anon, authenticated;
 -- ============================================================================
 -- 4. discussion_questions
 -- ============================================================================
+drop view if exists public.discussion_questions;
+
 create or replace view public.discussion_questions
 with (security_invoker = false)
 as
