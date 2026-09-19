@@ -3,7 +3,7 @@ import Link from "next/link";
 import { OperatorPlaceholder, LegalCallout, ResponsiveTable } from "@/components/legal/legal-components";
 
 export const metadata: Metadata = {
-  title: "Grievance Redressal Policy (Draft) — Discora",
+  title: "Grievance Redressal Policy (Draft)",
   description:
     "Statutory grievance redressal mechanism under Rule 3(2) of the Information Technology Rules, 2021.",
 };

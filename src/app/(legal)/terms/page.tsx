@@ -3,7 +3,7 @@ import Link from "next/link";
 import { OperatorPlaceholder, LegalCallout } from "@/components/legal/legal-components";
 
 export const metadata: Metadata = {
-  title: "Terms of Service (Draft) — Discora",
+  title: "Terms of Service (Draft)",
   description:
     "Terms of Service, user agreement, and platform participation contract for Discora Public Beta.",
 };

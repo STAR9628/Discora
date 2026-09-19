@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { SearchPageClient } from "@/features/discussions/components/search/search-page-client";
 
 export const metadata = {
-  title: "Search — Discora",
+  title: "Search",
   description: "Full-text search across discussions, claims, evidence, and questions.",
   robots: { index: false, follow: true },
 };

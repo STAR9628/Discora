@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/services/supabase/server";
 import { ModerationDashboard } from "./moderation-dashboard";
 
 export const metadata = {
-  title: "Moderation Dashboard | Discora",
+  title: "Moderation Dashboard",
   description: "Review flagged content and manage moderation actions.",
 };
 

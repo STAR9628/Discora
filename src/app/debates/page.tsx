@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BrowseDebates } from "@/features/debates/components/browse-debates";
 
 export const metadata: Metadata = {
-  title: "Debates | Discora",
+  title: "Debates",
   description: "Browse active and resolved structured debates on Discora.",
 };
 

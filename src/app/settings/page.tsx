@@ -14,6 +14,6 @@ export default async function SettingsPage() {
 }
 
 export const metadata = {
-  title: "Settings | Discora",
+  title: "Settings",
   description: "Manage your Discora account, profile, and preferences.",
 };

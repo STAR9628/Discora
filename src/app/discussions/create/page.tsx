@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/services/supabase/server";
 import { CreateDiscussionForm } from "@/features/discussions/components/create-discussion-form";
 
 export const metadata: Metadata = {
-  title: "Create Discussion | Discora",
+  title: "Create Discussion",
   description: "Start a new structured, open-exploration discussion on Discora.",
 };
 

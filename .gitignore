@@ -26,6 +26,7 @@ dev-server.*.log
 Thumbs.db
 *.tsbuildinfo
 .eslintcache
+.kilo/
 
 .discora-qa-credentials
 .playwright-cli/
@@ -34,3 +35,17 @@ test-results/
 
 # local database backups (never commit production data)
 /backups/
+/backup-encrypted/
+/.watchdog/
+/.restore/
+
+# disaster recovery operator configuration & secrets (never commit real credentials)
+.operator/dr.env
+.operator/dr-age-identity.txt
+.operator/*.local
+.operator/*secret*
+.operator/*private*
+.operator/*credential*
+.operator/*identity*
+
+

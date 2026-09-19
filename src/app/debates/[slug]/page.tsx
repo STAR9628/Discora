@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!debateData || !isPublicRoom) {
     return {
-      title: "Debate | Discora",
+      title: "Debate",
       description: "Browse and participate in structured debates on Discora.",
       metadataBase: new URL(siteUrl),
       robots: { index: false },

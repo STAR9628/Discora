@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requireOwner } from "@/lib/security/owner-guard";
 
 export const metadata: Metadata = {
-  title: "Admin Console | Discora",
+  title: "Admin Console",
   description: "Operational Console & Platform Safety Oversight",
   robots: {
     index: false,

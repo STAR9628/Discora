@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/services/supabase/server";
 import { FriendsPageClient } from "@/features/friends/components/friends-page-client";
 
 export const metadata: Metadata = {
-  title: "Friends | Discora",
+  title: "Friends",
   description: "Manage your private Discora connections.",
   robots: { index: false },
 };

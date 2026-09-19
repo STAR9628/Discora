@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { DiscussionFeed } from "@/features/discussions/components/discussion-feed";
 
 export const metadata: Metadata = {
-  title: "Discussions | Discora",
-  description: "Browse and join structured, open-exploration discussions under standard categories on Discora.",
+  title: "Discussions",
+  description: "Browse and join structured discussions on Discora. Evidence over popularity.",
 };
 
 export default function DiscussionsPage() {

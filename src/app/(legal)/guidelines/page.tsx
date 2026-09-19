@@ -3,7 +3,7 @@ import Link from "next/link";
 import { OperatorPlaceholder, LegalCallout } from "@/components/legal/legal-components";
 
 export const metadata: Metadata = {
-  title: "Community Guidelines (Draft) — Discora",
+  title: "Community Guidelines (Draft)",
   description:
     "Standards of epistemic integrity, constructive disagreement, and discourse safety on Discora.",
 };

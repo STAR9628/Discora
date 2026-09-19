@@ -3,7 +3,7 @@ import Link from "next/link";
 import { OperatorPlaceholder, ResponsiveTable } from "@/components/legal/legal-components";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy (Draft) — Discora",
+  title: "Privacy Policy (Draft)",
   description:
     "Data processing, epistemic privacy, device storage, and subprocessor notice for Discora Public Beta.",
 };
