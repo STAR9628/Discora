@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2, CheckCircle } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
@@ -10,7 +10,6 @@ import { createBrowserSupabaseClient } from "@/services/supabase/client";
 const CONFIRM_PHRASE = "I CONFIRM I AM 18 OR OLDER";
 
 export function AttestAgePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { user, signOut } = useAuth();
   const [confirmed, setConfirmed] = useState(false);
@@ -48,9 +47,13 @@ export function AttestAgePageContent() {
       if (error) throw error;
 
       setSuccess(true);
+      // Use a full-page navigation instead of router.push so that the
+      // Next.js router cache is completely cleared and any server component
+      // (e.g. /u/[username]) re-fetches with fresh cookies. This prevents
+      // "Resource Not Found" caused by a stale router cache seeing the
+      // pre-attestation state.
       setTimeout(() => {
-        router.push(redirectTo);
-        router.refresh();
+        window.location.href = redirectTo;
       }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save confirmation. Please try again.");
@@ -61,6 +64,9 @@ export function AttestAgePageContent() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      {/* Navigation is intentionally locked until attestation is complete.
+          All sidebar/header link clicks trigger the middleware age gate and
+          redirect back here. Complete the form below to unlock navigation. */}
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="flex items-center gap-3 mb-6">
           <AlertTriangle className="h-6 w-6 text-amber-500 shrink-0" />
@@ -77,6 +83,13 @@ export function AttestAgePageContent() {
           <p>
             You signed in with Google. To continue into Discora, you must explicitly confirm that you are at least 18 years old.
           </p>
+          <div className="flex gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 p-3 text-xs text-amber-600 dark:text-amber-400">
+            <span className="shrink-0 mt-0.5">⚠</span>
+            <span>
+              <strong>Navigation is locked</strong> until you complete this step.
+              Clicking other links will return you here. Complete the form below to unlock Discora.
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground">
             This is a product eligibility attestation, not a legal age verification system.
           </p>
@@ -128,7 +141,7 @@ export function AttestAgePageContent() {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => signOut().then(() => router.push("/"))}
+              onClick={() => signOut().then(() => { window.location.href = "/"; })}
               disabled={busy}
               className="flex-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent disabled:opacity-50"
             >

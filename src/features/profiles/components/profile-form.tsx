@@ -230,10 +230,15 @@ export function ProfileForm() {
             />
           </div>
         ) : (
-          <div className="flex items-center gap-2 rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-            <AtSign className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{profile?.username}</span>
-          </div>
+          <>
+            <div className="flex items-center gap-2 rounded-md border border-input bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              <AtSign className="h-4 w-4 shrink-0" />
+              <span className="font-medium">{profile?.username}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Usernames cannot be changed after registration.
+            </p>
+          </>
         )}
         {errors.username && (
           <p className="text-xs text-destructive">{errors.username.message}</p>

@@ -9,7 +9,11 @@ import { CirclePlus, Home, Search, User, Users, Loader2, MessageSquare, Scale, S
 import { IncomingRequestsBadge } from "@/features/friends/components/friends-page-client";
 import { useState, useRef, useEffect } from "react";
 
-export function MobileNav() {
+interface MobileNavProps {
+  onOpenFeedback?: () => void;
+}
+
+export function MobileNav({ onOpenFeedback }: MobileNavProps = {}) {
   const pathname = usePathname();
   const { status } = useAuth();
   const { data: profile, isLoading: isProfileLoading, error: profileError } = useCurrentProfile();
@@ -115,6 +119,22 @@ export function MobileNav() {
                 <span>How Discora Works</span>
               </button>
             </li>
+            {onOpenFeedback && (
+              <li role="none">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    onOpenFeedback();
+                  }}
+                  className="flex min-h-[44px] w-full items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-accent/60 hover:text-foreground active:bg-accent transition-colors cursor-pointer"
+                  role="menuitem"
+                >
+                  <MessageSquare aria-hidden="true" className="h-4 w-4 shrink-0 text-primary" />
+                  <span>Feedback</span>
+                </button>
+              </li>
+            )}
           </ul>
         </div>
       )}

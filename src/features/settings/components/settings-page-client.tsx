@@ -580,7 +580,7 @@ export function SettingsPageClient() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl">
+    <div className="mx-auto flex flex-col md:flex-row min-h-[calc(100vh-4rem)] w-full max-w-6xl">
       {/* Sidebar — hidden on mobile, visible md+ */}
       <nav className="hidden w-56 shrink-0 border-r border-border py-8 pr-4 md:block">
         <div className="mb-6 flex items-center gap-2 px-3">
@@ -637,7 +637,7 @@ export function SettingsPageClient() {
       </div>
 
       {/* Content panel */}
-      <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-24 md:py-8 sm:px-6 lg:px-8">
         {panelContent[activeSection]}
       </div>
     </div>

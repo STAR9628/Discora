@@ -61,7 +61,7 @@ export async function loginWithGoogle(options?: { redirectTo?: string }): Promis
 
   if (options?.redirectTo) {
     const safeTarget = getSafeRedirectUrl(options.redirectTo, "/");
-    if (safeTarget && safeTarget !== "/") {
+    if (safeTarget) {
       callbackUrl += `?next=${encodeURIComponent(safeTarget)}`;
     }
   }

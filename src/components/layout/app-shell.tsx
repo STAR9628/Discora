@@ -56,7 +56,7 @@ export function AppShell({ children }: AppShellProps) {
           <main className="flex-1">{children}</main>
         </div>
       </div>
-      <MobileNav />
+      <MobileNav onOpenFeedback={() => setIsFeedbackOpen(true)} />
       <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
       <DiscoveryDeckModal />
     </div>
