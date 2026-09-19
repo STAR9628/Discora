@@ -22,9 +22,10 @@ type RoomSectionShellProps = {
   headerAction?: React.ReactNode;
 };
 
-export function normalizeRoomLens(section: RoomSection): RoomLens {
+export function normalizeRoomLens(section: RoomSection): RoomLens | null {
   switch (section) {
     case "overview":
+      return null;
     case "contributions":
     case "conversation":
       return "conversation";
@@ -41,7 +42,7 @@ export function normalizeRoomLens(section: RoomSection): RoomLens {
     case "understanding":
       return "understanding";
     default:
-      return "conversation";
+      return null;
   }
 }
 
@@ -63,12 +64,18 @@ export function RoomSectionShell({
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // In conversation view, lenses reveal on hover/focus/tap so conversation is dominant.
+  // In overview or conversation view, lenses reveal on hover/focus/tap so main content is dominant.
   // When explicitly on specialized lenses (claims, evidence, etc.), remain revealed for easy navigation.
-  const isRevealed = activeLens !== "conversation" || isHovered || isFocused || isMobileOpen;
+  const isRevealed =
+    (activeLens !== null && activeLens !== "conversation") || isHovered || isFocused || isMobileOpen;
 
   const lenses: { id: RoomLens; label: string; href: string; icon: React.ElementType }[] = [
-    { id: "conversation", label: "Conversation", href: `${basePath}/${slug}`, icon: MessageSquare },
+    {
+      id: "conversation",
+      label: roomType === "discussion" ? "Contributions" : "Conversation",
+      href: roomType === "discussion" ? `${basePath}/${slug}/contributions` : `${basePath}/${slug}`,
+      icon: MessageSquare,
+    },
     { id: "claims", label: "Claims", href: `${basePath}/${slug}/claims`, icon: FileText },
     { id: "evidence", label: "Evidence", href: `${basePath}/${slug}/evidence`, icon: Layers },
     { id: "sources", label: "Sources", href: `${basePath}/${slug}/sources`, icon: Link2 },
@@ -115,13 +122,13 @@ export function RoomSectionShell({
               <span className="inline-flex items-center rounded-md border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
                 {roomType}
               </span>
-              {activeLens !== "conversation" && (
+              {activeLens !== null && activeLens !== "conversation" && (
                 <span className="text-xs font-semibold text-muted-foreground">
                   · {lenses.find((l) => l.id === activeLens)?.label}
                 </span>
               )}
             </div>
-            {activeLens !== "conversation" && (premise || description) && (
+            {activeLens !== null && activeLens !== "conversation" && (premise || description) && (
               <p className="mt-2 max-w-4xl text-xs sm:text-sm leading-relaxed text-muted-foreground line-clamp-2 sm:line-clamp-none">
                 {premise || description}
               </p>

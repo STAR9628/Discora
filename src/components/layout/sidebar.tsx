@@ -42,7 +42,7 @@ interface SidebarProps {
 
 export function Sidebar({
   onOpenFeedback,
-  isCollapsed = false,
+  isCollapsed = true,
   onToggleCollapse,
 }: SidebarProps = {}) {
   const pathname = usePathname();
@@ -81,11 +81,11 @@ export function Sidebar({
   // Epistemic Room Lenses: Discussion Questions remain Questions, Debate Questions are Inquiries
   const roomLenses = (isDiscussionRoom || isDebateRoom) && roomSlug ? [
     {
-      label: "Conversation",
-      href: isDiscussionRoom ? `/discussions/${roomSlug}` : `/debates/${roomSlug}`,
+      label: isDiscussionRoom ? "Contributions" : "Conversation",
+      href: isDiscussionRoom ? `/discussions/${roomSlug}/contributions` : `/debates/${roomSlug}`,
       icon: MessageSquare,
       isActive: isDiscussionRoom
-        ? pathname === `/discussions/${roomSlug}` || pathname === `/discussions/${roomSlug}/contributions`
+        ? pathname === `/discussions/${roomSlug}/contributions`
         : pathname === `/debates/${roomSlug}` || pathname === `/debates/${roomSlug}/contributions`,
     },
     {

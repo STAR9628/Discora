@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
 import { DiscussionDataProvider } from "@/features/discussions/components/discussion-data-provider";
-import { RoomSectionShell, type RoomLens } from "@/features/rooms/components/room-section-shell";
+import { RoomSectionShell, type RoomSection } from "@/features/rooms/components/room-section-shell";
 import { SaveButton } from "@/features/saves/components/save-button";
 import { ShareButton } from "@/components/share/share-button";
 import { RoomHeaderActions } from "@/components/share/room-header-actions";
@@ -17,39 +17,42 @@ export function DiscussionRoomLayout({ discussionItem, children }: DiscussionRoo
   const pathname = usePathname();
   const slug = discussionItem.room.slug;
 
-  // Determine active lens from pathname
-  const activeLens: RoomLens = (() => {
-    if (pathname === `/discussions/${slug}` || pathname === `/discussions/${slug}/contributions`) {
-      return "conversation";
+  // Determine active section from pathname
+  const activeSection: RoomSection = (() => {
+    if (pathname === `/discussions/${slug}` || pathname === `/discussions/${slug}/`) {
+      return "overview";
     }
-    if (pathname === `/discussions/${slug}/claims`) {
+    if (pathname.startsWith(`/discussions/${slug}/contributions`)) {
+      return "contributions";
+    }
+    if (pathname.startsWith(`/discussions/${slug}/claims`)) {
       return "claims";
     }
-    if (pathname === `/discussions/${slug}/evidence`) {
+    if (pathname.startsWith(`/discussions/${slug}/evidence`)) {
       return "evidence";
     }
-    if (pathname === `/discussions/${slug}/sources`) {
+    if (pathname.startsWith(`/discussions/${slug}/sources`)) {
       return "sources";
     }
-    if (pathname === `/discussions/${slug}/questions`) {
+    if (pathname.startsWith(`/discussions/${slug}/questions`)) {
       return "questions";
     }
-    if (pathname === `/discussions/${slug}/understanding`) {
+    if (pathname.startsWith(`/discussions/${slug}/understanding`)) {
       return "understanding";
     }
-    return "conversation";
+    return "overview";
   })();
 
   return (
     <DiscussionDataProvider roomId={discussionItem.room.id}>
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <RoomSectionShell
           roomType="discussion"
           slug={slug}
           title={discussionItem.room.title}
           description={discussionItem.room.description}
           premise={discussionItem.discussion?.openingStatement}
-          section={activeLens}
+          section={activeSection}
           headerAction={
             <RoomHeaderActions showLabel>
               <SaveButton targetType="discussion" targetId={discussionItem.room.id} />
@@ -66,7 +69,7 @@ export function DiscussionRoomLayout({ discussionItem, children }: DiscussionRoo
         >
           {children}
         </RoomSectionShell>
-      </main>
+      </div>
     </DiscussionDataProvider>
   );
 }

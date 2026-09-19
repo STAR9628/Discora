@@ -13,14 +13,14 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   // Restore sidebar collapsed preference from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem("discora_sidebar_collapsed");
-      if (saved === "true") {
-        setIsSidebarCollapsed(true);
+      if (saved === "false") {
+        setIsSidebarCollapsed(false);
       }
     } catch {
       // Ignore localStorage read errors in private browsing

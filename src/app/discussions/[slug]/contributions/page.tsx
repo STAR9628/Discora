@@ -6,7 +6,6 @@ import {
   getDiscussionBySlug,
   getMessagesPaginated,
 } from "@/features/discussions/services/discussion-service";
-import { RoomSectionShell } from "@/features/rooms/components/room-section-shell";
 import { DiscussionContributionsSection } from "@/features/discussions/components/discussion-contributions-section";
 import { isPubliclyVisibleRoom } from "@/lib/seo/public-room";
 
@@ -55,21 +54,10 @@ export default async function Page({
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <RoomSectionShell
-        roomType="discussion"
-        slug={slug}
-        title={item.room.title}
-        description={item.room.description}
-        premise={item.discussion?.openingStatement}
-        section="contributions"
-      >
-        <DiscussionContributionsSection
-          roomId={item.room.id}
-          initialMessagesPage={initialMessagesPage}
-          initialClaims={initialClaims}
-        />
-      </RoomSectionShell>
-    </main>
+    <DiscussionContributionsSection
+      roomId={item.room.id}
+      initialMessagesPage={initialMessagesPage}
+      initialClaims={initialClaims}
+    />
   );
 }

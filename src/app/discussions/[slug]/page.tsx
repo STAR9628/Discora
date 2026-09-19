@@ -11,9 +11,7 @@ import {
   getRoomArguments,
 } from "@/features/discussions/services/discussion-service";
 import { getInquiryCountsByRoom } from "@/features/inquiries/services/inquiry-service";
-import { RoomSectionShell } from "@/features/rooms/components/room-section-shell";
 import { DiscussionOverviewUnderstanding } from "@/features/discussions/components/discussion-overview-understanding";
-import { SaveButton } from "@/features/saves/components/save-button";
 import { isPubliclyVisibleRoom } from "@/lib/seo/public-room";
 
 type PageProps = {
@@ -21,6 +19,12 @@ type PageProps = {
     slug: string;
   }>;
 };
+
+function truncateText(text?: string | null, length = 160) {
+  if (!text) return "";
+  if (text.length <= length) return text;
+  return text.slice(0, length).trim() + "...";
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -33,15 +37,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     console.error("Error generating metadata for discussion:", error);
   }
 
+  const isPublicRoom = discussionItem?.room.visibility === "public";
+
+  if (!discussionItem || !isPublicRoom) {
+    return {
+      title: "Discussion",
+      description: "Browse and participate in structured, open-exploration discussions on Discora.",
+      robots: { index: false },
+    };
+  }
+
+  const description =
+    truncateText(discussionItem.room.description || discussionItem.discussion?.openingStatement) ||
+    "A structured discussion on Discora.";
+
   return {
-    title: discussionItem ? discussionItem.room.title : "Discussion",
-    description:
-      discussionItem?.room.description ||
-      "Browse and participate in structured, open-exploration discussions on Discora.",
+    title: `${discussionItem.room.title} | Discora`,
+    description,
+    openGraph: {
+      type: "article",
+      title: discussionItem.room.title,
+      description,
+    },
   };
 }
 
-export default async function DiscussionRoomPage({ params }: PageProps) {
+export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
   const supabase = await createServerSupabaseClient();
@@ -99,46 +120,32 @@ export default async function DiscussionRoomPage({ params }: PageProps) {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <RoomSectionShell
-        roomType="discussion"
+    <div className="space-y-6">
+      <DiscussionOverviewUnderstanding
+        roomId={discussionItem.room.id}
         slug={slug}
-        title={discussionItem.room.title}
-        description={discussionItem.room.description}
-        premise={discussionItem.discussion?.openingStatement}
-        section="overview"
-        headerAction={
-          <SaveButton targetType="discussion" targetId={discussionItem.room.id} showLabel />
-        }
-        beforeNav={
-          <DiscussionOverviewUnderstanding
-            roomId={discussionItem.room.id}
-            slug={slug}
-            initialClaims={initial?.claims}
-            initialEvidence={initial?.roomEvidence}
-            initialQuestions={initial?.questions}
-            initialRelations={initial?.relations}
-            initialInquiryCounts={initial?.inquiryCounts}
-            initialArguments={initial?.roomArguments}
-          />
-        }
-      >
-        <section className="grid gap-4 sm:grid-cols-2">
-          {sections.map(([title, copy, path]) => (
-            <Link
-              key={path}
-              href={`/discussions/${slug}/${path}`}
-              className="rounded-2xl border border-border/70 bg-card/30 p-5 transition-colors hover:bg-card/50"
-            >
-              <h2 className="font-bold text-foreground">{title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{copy}</p>
-              <span className="mt-4 inline-block text-xs font-bold text-primary">
-                Inspect {title} →
-              </span>
-            </Link>
-          ))}
-        </section>
-      </RoomSectionShell>
-    </main>
+        initialClaims={initial?.claims}
+        initialEvidence={initial?.roomEvidence}
+        initialQuestions={initial?.questions}
+        initialRelations={initial?.relations}
+        initialInquiryCounts={initial?.inquiryCounts}
+        initialArguments={initial?.roomArguments}
+      />
+      <section className="grid gap-4 sm:grid-cols-2">
+        {sections.map(([title, copy, path]) => (
+          <Link
+            key={path}
+            href={`/discussions/${slug}/${path}`}
+            className="rounded-2xl border border-border/70 bg-card/30 p-5 transition-colors hover:bg-card/50"
+          >
+            <h2 className="font-bold text-foreground">{title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{copy}</p>
+            <span className="mt-4 inline-block text-xs font-bold text-primary">
+              Inspect {title} →
+            </span>
+          </Link>
+        ))}
+      </section>
+    </div>
   );
 }

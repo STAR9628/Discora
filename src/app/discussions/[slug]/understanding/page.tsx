@@ -52,17 +52,15 @@ export default async function Page({
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <DiscussionOverviewUnderstanding
-        roomId={item.room.id}
-        slug={slug}
-        initialClaims={initial?.claims}
-        initialEvidence={initial?.roomEvidence}
-        initialQuestions={initial?.questions}
-        initialRelations={initial?.relations}
-        initialInquiryCounts={initial?.inquiryCounts}
-        initialArguments={initial?.roomArguments}
-      />
-    </main>
+    <DiscussionOverviewUnderstanding
+      roomId={item.room.id}
+      slug={slug}
+      initialClaims={initial?.claims}
+      initialEvidence={initial?.roomEvidence}
+      initialQuestions={initial?.questions}
+      initialRelations={initial?.relations}
+      initialInquiryCounts={initial?.inquiryCounts}
+      initialArguments={initial?.roomArguments}
+    />
   );
 }
