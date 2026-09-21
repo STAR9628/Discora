@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -24,9 +24,8 @@ import {
   Compass,
   Info,
   PanelLeftClose,
-  PanelLeftOpen,
 } from "lucide-react";
-import { OnboardingTriggerButton } from "@/features/onboarding";
+import { useOnboarding } from "@/features/onboarding";
 import { getDiscussionBySlug } from "@/features/discussions/services/discussion-service";
 import { getDebateBySlug } from "@/features/debates/services/debate-service";
 import { useSavedRoomAlias } from "@/features/saves/hooks/use-saves";
@@ -55,6 +54,53 @@ export function Sidebar({
   const roomSlug = isDiscussionRoom || isDebateRoom ? segments[1] : null;
 
   const [isRoomNavCollapsed, setIsRoomNavCollapsed] = useState(false);
+  const { openDeck } = useOnboarding();
+
+  // Temporary hover expansion (desktop pointers only). `isCollapsed` remains
+  // the persistent pinned state; hover never writes to localStorage.
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverCapable, setHoverCapable] = useState(false);
+  const hoverTimer = useRef<number | null>(null);
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+      setHoverCapable(mq.matches);
+      const onChange = (e: MediaQueryListEvent) => {
+        setHoverCapable(e.matches);
+        if (!e.matches) setIsHovering(false);
+      };
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    } catch {
+      setHoverCapable(false);
+    }
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current);
+    };
+  }, []);
+
+  const beginHover = () => {
+    if (!hoverCapable) return;
+    if (hoverTimer.current !== null) window.clearTimeout(hoverTimer.current);
+    // Short dwell: a deliberate hover still feels instant, but a pointer
+    // merely crossing the rail (e.g. mid-click) never triggers a re-render
+    // that could move the target out from under the gesture.
+    hoverTimer.current = window.setTimeout(() => setIsHovering(true), 150);
+  };
+  const endHover = () => {
+    if (hoverTimer.current !== null) {
+      window.clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+    setIsHovering(false);
+  };
+
+  const hoverOpen = hoverCapable && isHovering;
+  // Visual rail state: collapsed look only when pinned-collapsed AND not hovered.
+  const showRail = isCollapsed && !hoverOpen;
+  const expanded = !showRail;
 
   const { data: roomInfo } = useQuery({
     queryKey: ["sidebar-room-info", isDiscussionRoom ? "discussion" : "debate", roomSlug],
@@ -158,21 +204,33 @@ export function Sidebar({
 
   return (
     <aside
-      className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 border-r border-border/50 bg-card/25 backdrop-blur-md transition-[width,padding] duration-200 ease-in-out select-none overflow-hidden ${
-        isCollapsed ? "w-16 px-2 py-3.5" : "w-64 px-3 py-4"
+      className={`hidden md:flex flex-col fixed top-0 left-0 h-screen z-40 border-r border-border/50 bg-card/25 backdrop-blur-md overflow-x-hidden transition-[width,padding] duration-200 ease-in-out motion-reduce:transition-none select-none ${
+        showRail ? "w-16 px-2 py-3.5" : "w-64 px-3 py-4 shadow-2xl"
       }`}
       aria-label="Sidebar navigation"
+      onMouseEnter={beginHover}
+      onMouseLeave={endHover}
+      onFocus={(e) => {
+        // Keyboard focus expands immediately (no gesture to swallow);
+        // mouse clicks do not match :focus-visible, so they take the
+        // dwell-timer path instead.
+        if ((e.target as HTMLElement | null)?.matches?.(":focus-visible")) {
+          setIsHovering(true);
+        }
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setIsHovering(false);
+        }
+      }}
     >
-      {/* 1. TOP REGION: Branding & Restrained Collapse/Expand Toggle.
-          Collapsed state stacks brand above toggle (flex-col, items-center)
-          so every rail element shares one vertical center axis. Previously
-          brand + toggle shared a single centered row, pushing both off-axis. */}
+      {/* 1. TOP REGION: Branding & Dedicated Panel Control */}
       <div
-        className={`flex items-center shrink-0 mb-4 ${
-          isCollapsed ? "flex-col justify-center gap-1.5" : "justify-between px-2"
+        className={`flex items-center shrink-0 mb-2 ${
+          showRail ? "justify-center" : "justify-between px-2"
         }`}
       >
-        {!isCollapsed ? (
+        {expanded ? (
           <div className="min-w-0 flex-1">
             <Link href="/" className="group flex items-center gap-2" title="Discora Home">
               <Image
@@ -180,7 +238,7 @@ export function Sidebar({
                 alt=""
                 width={24}
                 height={24}
-                className="h-6 w-6 shrink-0"
+                className="h-6 w-6 shrink-0 transition-transform group-hover:scale-105"
                 priority
               />
               <span className="min-w-0">
@@ -197,43 +255,43 @@ export function Sidebar({
           <Tooltip content="Discora Home" side="right" align="center">
             <Link
               href="/"
-              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-accent/40 transition-colors group active:scale-[0.96]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-accent/40 transition-colors group active:scale-[0.96]"
               aria-label="Discora Home"
             >
               <Image
                 src="/discora-mark.png"
                 alt=""
-                width={22}
-                height={22}
-                className="h-[22px] w-[22px] shrink-0"
+                width={24}
+                height={24}
+                className="h-6 w-6 shrink-0 transition-transform group-hover:scale-105"
                 priority
               />
             </Link>
           </Tooltip>
         )}
 
-        {onToggleCollapse && (
-          <Tooltip
-            content={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            side="right"
-            align="center"
-          >
+        {onToggleCollapse && !isCollapsed && (
+          <Tooltip content="Collapse sidebar" side="right" align="center">
             <button
               type="button"
               onClick={onToggleCollapse}
               className="text-muted-foreground/60 hover:text-foreground hover:bg-accent/50 p-1.5 rounded-lg transition-colors cursor-pointer active:scale-[0.96]"
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-expanded={!isCollapsed}
+              aria-label="Collapse sidebar"
+              aria-expanded={expanded}
             >
-              {isCollapsed ? (
-                <PanelLeftOpen className="h-4 w-4" />
-              ) : (
-                <PanelLeftClose className="h-4 w-4" />
-              )}
+              <PanelLeftClose className="h-4 w-4" />
             </button>
           </Tooltip>
         )}
       </div>
+
+      {/* Subtle separator below branding */}
+      <div className={`h-px bg-border/40 shrink-0 mb-3 ${showRail ? "w-6 mx-auto" : "w-full"}`} />
+
+      {/* No visible expand/collapse edge icon: hover expands, blank-space
+          click pins/unpins, and keyboard focus expands via :focus-visible.
+          The pin toggle lives on the blank-space region below (keyboard
+          reachable) and the "Collapse sidebar" button when pinned open. */}
 
       {/* 2. MAIN NAVIGATION: Scrollable only when content genuinely exceeds height */}
       <nav
@@ -255,18 +313,18 @@ export function Sidebar({
             if (item.disabled) {
               const disabledContent = (
                 <div
-                  className={`flex items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground/45 cursor-not-allowed ${
-                    isCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+                  className={`flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground/45 cursor-not-allowed ${
+                    showRail ? "justify-center p-2.5" : "gap-3 px-3 py-2"
                   }`}
                 >
                   <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
-                  {!isCollapsed && <span>{item.label}</span>}
+                  {expanded && <span className="truncate whitespace-nowrap">{item.label}</span>}
                 </div>
               );
 
               return (
-                <li key={item.label} className={isCollapsed ? "flex justify-center" : undefined}>
-                  {isCollapsed ? (
+                <li key={item.label} className={showRail ? "flex justify-center" : undefined}>
+                  {showRail ? (
                     <Tooltip content={item.label} side="right" align="center">
                       {disabledContent}
                     </Tooltip>
@@ -282,8 +340,8 @@ export function Sidebar({
                 href={item.href}
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex items-center rounded-lg text-[13px] font-medium leading-5 transition-all duration-150 active:scale-[0.98] ${
-                  isCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2"
+                className={`flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 transition-colors duration-150 active:scale-[0.98] ${
+                  showRail ? "justify-center p-2.5" : "gap-3 px-3 py-2"
                 } ${
                   isActive
                     ? "bg-accent/80 text-foreground font-semibold shadow-2xs"
@@ -291,9 +349,9 @@ export function Sidebar({
                 }${isProfileItem && isProfileLoading ? " animate-pulse" : ""}`}
               >
                 <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
-                {!isCollapsed && (
+                {expanded && (
                   <>
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate whitespace-nowrap">{item.label}</span>
                     {isProfileItem && profileError && (
                       <span className="ml-auto text-[9px] font-semibold text-destructive uppercase">Error</span>
                     )}
@@ -309,8 +367,8 @@ export function Sidebar({
             // (The shared Tooltip wraps its child in a shrink-wrapped
             // inline-flex span, which would otherwise pin items left.)
             return (
-              <li key={item.label} className={isCollapsed ? "flex justify-center" : undefined}>
-                {isCollapsed ? (
+              <li key={item.label} className={showRail ? "flex justify-center" : undefined}>
+                {showRail ? (
                   <Tooltip content={item.label} side="right" align="center">
                     {linkContent}
                   </Tooltip>
@@ -319,7 +377,7 @@ export function Sidebar({
                 )}
 
                 {/* Room-local subsection: appears only when inside that room */}
-                {showRoomSubsection && roomLenses.length > 0 && !isCollapsed && (
+                {showRoomSubsection && roomLenses.length > 0 && expanded && (
                   <div className="my-1.5 ml-3 pl-2.5 border-l border-primary/25 space-y-1">
                     <div className="flex items-center justify-between py-1 text-xs">
                       <button
@@ -368,9 +426,9 @@ export function Sidebar({
           })}
         </ul>
 
-        {/* 2b. Intentional black-space / empty area interaction:
-            When expanded, clicking this intentional empty space collapses the sidebar.
-            When collapsed, clicking this empty rail area expands the sidebar. */}
+        {/* 2b. Intentional blank-space / empty area interaction (pin control):
+            Clicking pins the sidebar open when collapsed (or clears the pin
+            when pinned open). Hover alone never changes the pinned state. */}
         {onToggleCollapse && (
           <div
             onClick={onToggleCollapse}
@@ -383,29 +441,40 @@ export function Sidebar({
               }
             }}
             className="flex-1 min-h-[48px] cursor-pointer transition-colors duration-200"
-            title={isCollapsed ? "Click rail to expand sidebar" : "Click empty area to collapse sidebar"}
-            aria-label={isCollapsed ? "Click rail to expand sidebar" : "Click empty area to collapse sidebar"}
+            title={
+              isCollapsed
+                ? "Click to pin sidebar open"
+                : "Click empty area to collapse sidebar"
+            }
+            aria-label={
+              isCollapsed
+                ? "Click to pin sidebar open"
+                : "Click empty area to collapse sidebar"
+            }
           >
             <span className="sr-only">
-              {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              {isCollapsed ? "Pin sidebar open" : "Collapse sidebar"}
             </span>
           </div>
         )}
       </nav>
 
-      {/* 3. BOTTOM UTILITY REGION: Firmly anchored toward bottom via mt-auto */}
+      {/* 3. BOTTOM UTILITY REGION: Firmly anchored toward bottom via mt-auto.
+          Rows keep a FIXED h-9 geometry in both rail and expanded modes and
+          animate colors only — never padding/size — so expansion cannot
+          vertically stretch these items (see task E). */}
       <div
         className={`mt-auto shrink-0 pt-3 border-t border-border/40 space-y-1 ${
-          isCollapsed ? "px-0" : "px-1"
+          showRail ? "px-0" : "px-1"
         }`}
       >
-        {isCollapsed ? (
+        {showRail ? (
           <div className="flex justify-center">
             <Tooltip content="Settings" side="right" align="center">
               <Link
                 href="/settings"
                 aria-label="Settings"
-                className={`flex items-center rounded-lg text-[13px] font-medium leading-5 transition-all duration-150 active:scale-[0.98] justify-center p-2.5 ${
+                className={`flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 transition-colors duration-150 active:scale-[0.98] justify-center p-2.5 ${
                   pathname.startsWith("/settings")
                     ? "bg-accent/80 text-foreground font-semibold"
                     : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
@@ -419,24 +488,24 @@ export function Sidebar({
           <Link
             href="/settings"
             aria-label="Settings"
-            className={`flex items-center rounded-lg text-[13px] font-medium leading-5 transition-all duration-150 active:scale-[0.98] gap-3 px-3 py-2 ${
+            className={`flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 transition-colors duration-150 active:scale-[0.98] gap-3 px-3 py-2 ${
               pathname.startsWith("/settings")
                 ? "bg-accent/80 text-foreground font-semibold"
                 : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
             }`}
           >
             <Settings className="h-4 w-4 shrink-0" />
-            <span>Settings</span>
+            <span className="truncate whitespace-nowrap">Settings</span>
           </Link>
         )}
 
-        {isCollapsed ? (
+        {showRail ? (
           <div className="flex justify-center">
             <Tooltip content="About Discora" side="right" align="center">
               <Link
                 href="/about"
                 aria-label="About Discora"
-                className={`flex items-center rounded-lg text-[13px] font-medium leading-5 transition-all duration-150 active:scale-[0.98] justify-center p-2.5 ${
+                className={`flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 transition-colors duration-150 active:scale-[0.98] justify-center p-2.5 ${
                   pathname === "/about"
                     ? "bg-accent/80 text-foreground font-semibold"
                     : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
@@ -450,33 +519,51 @@ export function Sidebar({
           <Link
             href="/about"
             aria-label="About Discora"
-            className={`flex items-center rounded-lg text-[13px] font-medium leading-5 transition-all duration-150 active:scale-[0.98] gap-3 px-3 py-2 ${
+            className={`flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 transition-colors duration-150 active:scale-[0.98] gap-3 px-3 py-2 ${
               pathname === "/about"
                 ? "bg-accent/80 text-foreground font-semibold"
                 : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
             }`}
           >
             <Info className="h-4 w-4 shrink-0" />
-            <span>About Discora</span>
+            <span className="truncate whitespace-nowrap">About Discora</span>
           </Link>
         )}
 
-        <OnboardingTriggerButton
-          compact={isCollapsed}
-          className={`flex items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-all duration-150 active:scale-[0.98] cursor-pointer ${
-            isCollapsed ? "w-full justify-center p-2.5" : "w-full gap-3 px-3 py-2"
-          }`}
-        />
+        {showRail ? (
+          <div className="flex justify-center">
+            <Tooltip content="How Discora Works" side="right" align="center">
+              <button
+                type="button"
+                onClick={() => openDeck()}
+                aria-label="How Discora Works"
+                className="flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-colors duration-150 active:scale-[0.98] cursor-pointer justify-center p-2.5"
+              >
+                <Compass className="h-4 w-4 shrink-0 text-primary" />
+              </button>
+            </Tooltip>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => openDeck()}
+            aria-label="How Discora Works"
+            className="flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-colors duration-150 active:scale-[0.98] cursor-pointer w-full gap-3 px-3 py-2"
+          >
+            <Compass className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate whitespace-nowrap">How Discora Works</span>
+          </button>
+        )}
 
         {onOpenFeedback && (
-          isCollapsed ? (
+          showRail ? (
             <div className="flex justify-center">
               <Tooltip content="Feedback" side="right" align="center">
                 <button
                   type="button"
                   onClick={onOpenFeedback}
                   aria-label="Feedback"
-                  className="flex items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-all duration-150 active:scale-[0.98] cursor-pointer justify-center p-2.5"
+                  className="flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-colors duration-150 active:scale-[0.98] cursor-pointer justify-center p-2.5"
                 >
                   <MessageSquare className="h-4 w-4 shrink-0" />
                 </button>
@@ -487,10 +574,10 @@ export function Sidebar({
               type="button"
               onClick={onOpenFeedback}
               aria-label="Feedback"
-              className="flex items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-all duration-150 active:scale-[0.98] cursor-pointer w-full gap-3 px-3 py-2"
+              className="flex h-9 shrink-0 items-center rounded-lg text-[13px] font-medium leading-5 text-muted-foreground hover:bg-accent/40 hover:text-foreground transition-colors duration-150 active:scale-[0.98] cursor-pointer w-full gap-3 px-3 py-2"
             >
               <MessageSquare className="h-4 w-4 shrink-0" />
-              <span>Feedback</span>
+              <span className="truncate whitespace-nowrap">Feedback</span>
             </button>
           )
         )}

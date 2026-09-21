@@ -42,37 +42,37 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} method="post" className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          New password
+        <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Password
         </label>
         <input
           id="password"
           type="password"
           autoComplete="new-password"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+          className="w-full rounded-xl border border-input bg-card/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus-visible:outline-none"
           {...register("password")}
         />
         {fieldErrors.password?.map((error) => (
-          <p key={error} className="text-xs text-destructive">
+          <p key={error} className="text-xs text-destructive mt-1">
             {error}
           </p>
         ))}
       </div>
       <div className="space-y-2">
-        <label htmlFor="confirmPassword" className="text-sm font-medium">
+        <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Confirm password
         </label>
         <input
           id="confirmPassword"
           type="password"
           autoComplete="new-password"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+          className="w-full rounded-xl border border-input bg-card/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus-visible:outline-none"
           {...register("confirmPassword")}
         />
         {fieldErrors.confirmPassword?.map((error) => (
-          <p key={error} className="text-xs text-destructive">
+          <p key={error} className="text-xs text-destructive mt-1">
             {error}
           </p>
         ))}
@@ -81,7 +81,7 @@ export function ResetPasswordForm() {
       <button
         type="submit"
         disabled={formState.isSubmitting}
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
       >
         {formState.isSubmitting ? "Updating..." : "Update password"}
       </button>

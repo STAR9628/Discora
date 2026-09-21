@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       return response;
     }
   }

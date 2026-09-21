@@ -70,7 +70,7 @@ export function AccountForm() {
           </div>
         </div>
 
-        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
+        <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} method="post" className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-semibold">
               New Email Address
@@ -127,7 +127,7 @@ export function AccountForm() {
           </div>
         </div>
 
-        <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+        <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} method="post" className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="currentPassword" className="text-sm font-semibold">
               Current Password

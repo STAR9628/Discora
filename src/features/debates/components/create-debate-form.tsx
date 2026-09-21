@@ -33,6 +33,7 @@ export function CreateDebateForm() {
       description: "",
       openingStatement: "",
       topicId: "",
+      closesAt: "",
     },
   });
 
@@ -61,6 +62,8 @@ export function CreateDebateForm() {
   const onSubmit = async (values: DebateFormValues) => {
     setFormError(null);
     try {
+      // datetime-local yields local wall time; ISO preserves the instant for timestamptz.
+      const closesAt = values.closesAt ? new Date(values.closesAt).toISOString() : undefined;
       let roomSlug: string | undefined;
       if (isPrivate) {
         const debateResult = await createPrivateDebateMutation.mutateAsync({
@@ -70,6 +73,7 @@ export function CreateDebateForm() {
           propositionTitle: "Supports the motion",
           oppositionTitle: "Opposes the motion",
           openingStatement: values.openingStatement,
+          closesAt,
         }) as CreatedDebateResult;
         roomSlug = debateResult?.room?.slug;
       } else {
@@ -78,6 +82,7 @@ export function CreateDebateForm() {
           description: values.description || undefined,
           topicId: values.topicId,
           openingStatement: values.openingStatement,
+          closesAt,
         });
         roomSlug = debateResult?.room?.slug;
       }
@@ -253,6 +258,29 @@ export function CreateDebateForm() {
             <p className="text-xs text-destructive flex items-center gap-1">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{errors.topicId.message}</span>
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="closesAt" className="text-sm font-semibold flex items-center justify-between">
+            <span>Participation Deadline</span>
+            <span className="text-xs text-muted-foreground font-normal">Optional</span>
+          </label>
+          <input
+            id="closesAt"
+            type="datetime-local"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isSubmitting}
+            {...register("closesAt")}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave empty for an open-ended debate. A deadline is informational only — it never closes the debate automatically.
+          </p>
+          {errors.closesAt && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>{errors.closesAt.message}</span>
             </p>
           )}
         </div>

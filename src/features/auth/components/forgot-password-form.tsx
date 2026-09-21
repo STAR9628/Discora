@@ -42,20 +42,20 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} method="post" className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium">
+        <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Email
         </label>
         <input
           id="email"
           type="email"
           autoComplete="email"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
+          className="w-full rounded-xl border border-input bg-card/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus-visible:outline-none"
           {...register("email")}
         />
         {fieldErrors.email?.map((error) => (
-          <p key={error} className="text-xs text-destructive">
+          <p key={error} className="text-xs text-destructive mt-1">
             {error}
           </p>
         ))}
@@ -64,7 +64,7 @@ export function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={formState.isSubmitting}
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
       >
         {formState.isSubmitting ? "Sending..." : "Send reset instructions"}
       </button>

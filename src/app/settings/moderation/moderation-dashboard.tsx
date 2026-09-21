@@ -52,20 +52,20 @@ export function ModerationDashboard() {
 
   if (authStatus === "loading" || isRoleLoading) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex h-64 flex-col items-center justify-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="text-sm text-muted-foreground">
             Loading moderation data...
           </span>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (roleError) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex h-64 flex-col items-center justify-center gap-3">
           <AlertCircle className="h-8 w-8 text-destructive" />
           <span className="text-sm font-medium text-destructive">
@@ -75,7 +75,7 @@ export function ModerationDashboard() {
             {roleError instanceof Error ? roleError.message : "An unexpected error occurred."}
           </p>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -103,7 +103,7 @@ export function ModerationDashboard() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col items-start justify-between gap-4 border-b border-border/40 pb-5 sm:flex-row sm:items-center">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">
@@ -200,7 +200,7 @@ export function ModerationDashboard() {
         }}
         onCancel={() => setConfirmAction(null)}
       />
-    </main>
+    </div>
   );
 }
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useCurrentProfile, useUpdateProfile } from "@/features/profiles/hooks/use-profile";
 import { ProfileForm } from "@/features/profiles/components/profile-form";
 import { ReportHistory } from "@/features/safety/components/report-history";
@@ -569,7 +571,23 @@ function LegalPanel() {
 }
 
 export function SettingsPageClient() {
+  const router = useRouter();
+  const { status } = useAuth();
   const [activeSection, setActiveSection] = useState<SectionId>("profile");
+
+  useEffect(() => {
+    if (status === "guest") {
+      router.replace("/login?redirectedFrom=/settings");
+    }
+  }, [status, router]);
+
+  if (status === "guest" || status === "loading") {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const panelContent: Record<SectionId, React.ReactNode> = {
     profile: <ProfilePanel />,

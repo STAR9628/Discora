@@ -20,7 +20,7 @@ export function DiscussionRoomLayout({ discussionItem, children }: DiscussionRoo
   // Determine active section from pathname
   const activeSection: RoomSection = (() => {
     if (pathname === `/discussions/${slug}` || pathname === `/discussions/${slug}/`) {
-      return "overview";
+      return "conversation";
     }
     if (pathname.startsWith(`/discussions/${slug}/contributions`)) {
       return "contributions";
@@ -45,7 +45,7 @@ export function DiscussionRoomLayout({ discussionItem, children }: DiscussionRoo
 
   return (
     <DiscussionDataProvider roomId={discussionItem.room.id}>
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-3 pb-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <RoomSectionShell
           roomType="discussion"
           slug={slug}

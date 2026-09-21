@@ -22,7 +22,7 @@ import {
 } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionMessage, DiscussionClaim, ReactionType } from "@/features/discussions/types";
 import type { DebateRoomData } from "@/features/debates/services/debate-service";
-import { AlertCircle, Compass, Loader2, X, Sparkles } from "lucide-react";
+import { AlertCircle, Loader2, X, Sparkles, MessageSquare, FileText, Layers, Swords, Shield } from "lucide-react";
 import { ExtractClaimModal } from "@/features/discussions/components/extract-claim-modal";
 import { ReportDialog } from "@/features/discussions/components/report-dialog";
 import { CommentItem } from "@/features/discussions/components/comment-item";
@@ -112,8 +112,12 @@ function InnerDebateRoom({
     roomEvidence,
     inquiries,
     userParticipation,
+    setIsSideModalOpen,
+    setTargetSideToJoin,
   } = useDebateContext();
   const { user } = useAuth();
+  const [composerMode, setComposerMode] = useState<import("@/features/rooms/components/unified-composer").ComposerMode>("message");
+  const [expandTrigger, setExpandTrigger] = useState(0);
   const sentinelRef = React.useRef<HTMLDivElement>(null);
 
   const currentLens = normalizeDebateLens(activeSection);
@@ -339,9 +343,9 @@ function InnerDebateRoom({
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto relative">
+    <div className="space-y-3 sm:space-y-5 md:space-y-6 max-w-6xl mx-auto relative">
       {/* Scroll Sentinel for Compact Sticky Header */}
-      <div ref={sentinelRef} className="h-px w-full pointer-events-none -mt-6" aria-hidden="true" />
+      <div ref={sentinelRef} className="h-px w-full pointer-events-none -mt-3 sm:-mt-5 md:-mt-6" aria-hidden="true" />
 
       {/* Compact Sticky Contextual Header */}
       <CompactStickyRoomHeader
@@ -367,16 +371,18 @@ function InnerDebateRoom({
       {/* 1. Compact Header Banner */}
       <DebateHeaderV2 />
 
-      {/* 2. Opening Premise - only when not in conversation to keep conversation feed dominant */}
-      {currentLens !== "conversation" && <DebatePremise />}
+      {/* 2. Opening Premise & Context */}
+      <DebatePremise />
 
-      {/* 3. Sticky Section Navigation */}
+      {/* 3. Contextual Room Guide — Compact progressive disclosure */}
+      <RoomGuideCard roomType="debate" />
+
+      {/* 4. Sticky Section Navigation */}
       <DebateSectionNav />
 
       {/* 4. Main Section Render */}
       {currentLens === "understanding" && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          <RoomGuideCard roomType="debate" />
+        <div className="space-y-6 lens-transition">
           <ArgumentEvidenceOverview
             roomId={room.id}
             claims={claims}
@@ -392,16 +398,18 @@ function InnerDebateRoom({
       )}
 
       {currentLens === "claims" && (
-        <DebateClaimsLensSection
-          highlightId={highlightId}
-          autoOpenEvidence={autoOpenEvidence}
-          initialPropositionPage={initialPropositionPage}
-          initialOppositionPage={initialOppositionPage}
-        />
+        <div className="lens-transition">
+          <DebateClaimsLensSection
+            highlightId={highlightId}
+            autoOpenEvidence={autoOpenEvidence}
+            initialPropositionPage={initialPropositionPage}
+            initialOppositionPage={initialOppositionPage}
+          />
+        </div>
       )}
 
       {currentLens === "evidence" && (
-        <div className="animate-in fade-in duration-200">
+        <div className="lens-transition">
           <RoomEvidenceTab
             roomId={room.id}
             onGoToClaims={() => setActiveSection("claims")}
@@ -424,21 +432,26 @@ function InnerDebateRoom({
       )}
 
       {currentLens === "sources" && (
-        <div className="animate-in fade-in duration-200">
+        <div className="lens-transition">
           <RoomSourcesTab roomId={room.id} evidenceLensBasePath={`/debates/${room.slug}`} />
         </div>
       )}
 
       {(currentLens === "inquiries" || currentLens === "questions") && (
-        <DebateInquiriesTab />
+        <div className="lens-transition">
+          <DebateInquiriesTab />
+        </div>
       )}
 
       {currentLens === "conversation" && (
-        <div className="space-y-6 pb-36 sm:pb-44 animate-in fade-in duration-200">
+        <div className="space-y-6 pb-36 sm:pb-44 lens-transition">
           <div className="flex items-center justify-between px-1 text-xs text-muted-foreground/75 select-none">
             <span className="font-semibold tracking-tight">
               {messageCount ?? messages.length} {(messageCount ?? messages.length) === 1 ? "contribution" : "contributions"}
             </span>
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
+              <span>Proposition / Opposition feed</span>
+            </div>
           </div>
 
           {/* P1.2 Contextual Post-Contribution Guidance Banner */}
@@ -471,10 +484,59 @@ function InnerDebateRoom({
                   <div key={i} className="h-28 rounded-xl border border-border bg-card/20 p-4 animate-pulse" />
                 ))}
               </div>
-            ) : commentTree.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/80 bg-card/20 p-8 text-center space-y-2">
-                <Compass className="h-6 w-6 text-muted-foreground mx-auto" />
-                <p className="text-xs font-semibold text-foreground">No contributions posted yet</p>
+            ) : debateFeed.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/80 bg-card/20 sm:bg-card/25 p-4 sm:p-8 text-center space-y-2.5 sm:space-y-4 animate-in fade-in duration-200">
+                <div className="mx-auto flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-400">
+                  <Swords className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <div className="max-w-sm sm:max-w-md mx-auto space-y-1">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground">Start the debate</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    This debate is just getting started. Choose a side (Proposition or Opposition), state your reasoning, or bring evidence to test the premise.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5 sm:pt-1">
+                  {!userParticipation ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetSideToJoin("proposition");
+                        setIsSideModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-bold text-primary-foreground shadow-xs hover:opacity-90 transition-all cursor-pointer min-h-[36px] sm:min-h-0"
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                      <span>Join Debate / Pick Side</span>
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setComposerMode("message");
+                      setExpandTrigger((prev) => prev + 1);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-card/90 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-foreground transition-colors cursor-pointer shadow-xs min-h-[36px] sm:min-h-0"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                    <span>Contribute an argument</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection("claims")}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-card/90 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-foreground transition-colors cursor-pointer shadow-xs min-h-[36px] sm:min-h-0"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-blue-400" />
+                    <span>Inspect Claims</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection("evidence")}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-card/90 px-2.5 py-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold text-foreground transition-colors cursor-pointer shadow-xs min-h-[36px] sm:min-h-0"
+                  >
+                    <Layers className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Inspect Evidence</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -676,6 +738,8 @@ function InnerDebateRoom({
             roomId={room.id}
             roomType="debate"
             participantSide={userParticipation?.side}
+            externalMode={composerMode}
+            expandTrigger={expandTrigger}
             onSuccess={() => setShowPostFeedback(true)}
           />
         </div>
@@ -799,7 +863,12 @@ export function DebateRoom({
   }
 
   return (
-    <DebateDataProvider initialData={initialData} initialSection={initialSection} initialCollections={initialCollections}>
+    <DebateDataProvider
+      key={initialData.room.id}
+      initialData={initialData}
+      initialSection={initialSection}
+      initialCollections={initialCollections}
+    >
       <InnerDebateRoom
         highlightId={highlightId}
         autoOpenEvidence={autoOpenEvidence}

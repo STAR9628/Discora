@@ -101,6 +101,18 @@ export const debateSchema = z.object({
     .string()
     .min(100, "Opening statement must be at least 100 characters")
     .max(5000, "Opening statement must be at most 5000 characters"),
+  closesAt: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (value) => {
+        if (!value) return true;
+        const ts = new Date(value).getTime();
+        return Number.isFinite(ts) && ts > Date.now();
+      },
+      { message: "Deadline must be a valid date in the future, or left empty for an open-ended debate" },
+    ),
 });
 
 export type DiscussionFormValues = z.infer<typeof discussionSchema>;

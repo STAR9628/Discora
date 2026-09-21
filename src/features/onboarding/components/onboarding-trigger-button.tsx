@@ -26,7 +26,7 @@ export function OnboardingTriggerButton({
       aria-label="How Discora Works"
     >
       <Compass className="h-4 w-4 shrink-0 text-primary" />
-      {!compact && <span>How Discora Works</span>}
+      {!compact && <span className="truncate whitespace-nowrap">How Discora Works</span>}
     </button>
   );
 }

@@ -38,7 +38,7 @@ export function SearchTrigger() {
   return (
     <Link
       href="/search"
-      className="group flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-muted/60 hover:text-foreground active:scale-[0.98]"
+      className="group flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 sm:py-1.5 min-h-[38px] sm:min-h-0 text-xs text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-muted/60 hover:text-foreground active:scale-[0.98]"
       aria-label="Open search"
       aria-keyshortcuts="Control+K Meta+K"
     >

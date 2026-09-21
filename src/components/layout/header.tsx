@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AuthStatus } from "@/features/auth/components/auth-status";
 import { SearchTrigger } from "@/features/discussions/components/search/search-trigger";
 
@@ -26,24 +27,24 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8"
+      className="sticky top-0 z-20 border-b border-border/70 bg-background/95 px-4 py-2.5 backdrop-blur-md sm:px-6 lg:px-8"
     >
       <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2.5 group cursor-pointer" title="Discora Home">
           <Image
             src="/discora-mark.png"
             alt=""
-            width={20}
-            height={20}
-            className="h-5 w-5 shrink-0"
+            width={28}
+            height={28}
+            className="h-[26px] w-[26px] sm:h-[28px] sm:w-[28px] shrink-0 transition-transform group-hover:scale-105"
             priority
           />
           <span>
-            <p className="text-sm font-semibold">Discora</p>
-            <p className="text-xs text-muted-foreground">Understanding over engagement</p>
+            <p className="text-sm font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">Discora</p>
+            <p className="text-[11px] text-muted-foreground leading-tight">Understanding over engagement</p>
           </span>
-        </div>
-        <div className="flex items-center gap-3">
+        </Link>
+        <div className="flex items-center gap-2.5">
           <SearchTrigger />
           <AuthStatus />
         </div>

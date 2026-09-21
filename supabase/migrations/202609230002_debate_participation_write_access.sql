@@ -1,0 +1,34 @@
+-- Migration: Debate participation write access (joins)
+--
+-- FINDING: creator auto-join and user joins fail through the application.
+-- Two coexisting causes, fixed at their respective layers:
+--
+--   1. Missing privilege (fixed HERE): no repository migration ever granted
+--      INSERT on public.debate_participants (verified across full history;
+--      the 202609090011 grant-capture audit deliberately left
+--      debates/rooms/participants grants unrestored as unobserved). The
+--      narrowing RLS policy "Users can join public debates" already exists
+--      (WITH CHECK auth.uid() = user_id AND has_room_write_access(room_id)),
+--      so this GRANT activates only that authorized path: a user can insert
+--      their own participation row in a writable room, nothing more.
+--      Guests have no session (auth.uid() NULL) and stay denied; RLS is
+--      untouched.
+--
+--   2. Stale upsert arbiter (fixed in APP code, debate-service.ts): migration
+--      202606220001 intentionally replaced UNIQUE(room_id, user_id) with the
+--      partial unique index idx_debate_participants_active_unique
+--      (... WHERE removed_at IS NULL) for soft-removal + rejoin. The app's
+--      onConflict: "room_id,user_id" no longer matches any inferable arbiter
+--      (PostgREST 400). The app now names the partial index directly.
+--
+-- Duplicate safety: verified zero duplicate ACTIVE (room_id, user_id) groups
+-- before this change; the partial unique index already enforced it. Removed
+-- rows may share (room_id, user_id) BY DESIGN (rejoin history).
+--
+-- Scope: INSERT grant only. No UPDATE/DELETE grants, no policy changes, no
+-- cron, no triggers. ROLLBACK: REVOKE insert on public.debate_participants
+-- FROM authenticated.
+--
+-- Safety: additive, re-runnable, single statement.
+
+grant insert on public.debate_participants to authenticated;

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { Compass, FileText, FileCheck, HelpCircle, MessageSquare, BookOpen, ChevronDown } from "lucide-react";
+import { Compass, FileText, FileCheck, HelpCircle, MessageSquare, BookOpen } from "lucide-react";
 import { useDebateContext, normalizeDebateLens, type DebateSection } from "./debate-data-provider";
 
 export function DebateSectionNav() {
@@ -16,18 +16,10 @@ export function DebateSectionNav() {
     questions,
   } = useDebateContext();
 
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-
   const totalClaims = propositionClaims.length + oppositionClaims.length;
-    const totalInquiries = inquiries.length + questions.length;
+  const totalInquiries = inquiries.length + questions.length;
 
   const currentLens = normalizeDebateLens(activeSection);
-
-  // In conversation view, lenses reveal on hover/focus/tap so conversation is dominant.
-  // In specialized lenses (claims, evidence, etc.), stay revealed for seamless navigation.
-  const isRevealed = currentLens !== "conversation" || isHovered || isFocused || isMobileOpen;
 
   const sections: { id: DebateSection; label: string; href: string; icon: React.ReactNode; count?: number }[] = [
     { id: "conversation", label: "Conversation", href: `/debates/${room.slug}`, icon: <MessageSquare className="h-4 w-4" /> },
@@ -39,47 +31,20 @@ export function DebateSectionNav() {
   ];
 
   return (
-    <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onFocus={() => setIsFocused(true)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
-          setIsFocused(false);
-        }
-      }}
-      className="group/nav relative -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 transition-all"
-    >
-      {/* Subtle trigger in Conversation view when collapsed */}
-      {currentLens === "conversation" && !isRevealed && (
-        <div className="flex justify-start pb-1">
-          <button
-            type="button"
-            onClick={() => setIsMobileOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 hover:bg-card/90 px-3 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer shadow-xs"
-          >
-            <span>Debate Lenses</span>
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Sleek Lens Navigation Bar */}
+    <div className="relative -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 transition-all">
       <nav
         aria-label="Debate Section Navigation"
-        className={`overflow-hidden transition-all duration-200 ease-out border-y border-border/70 bg-background/90 backdrop-blur-md ${
-          isRevealed ? "max-h-24 opacity-100 py-2" : "max-h-0 opacity-0 pointer-events-none py-0 border-transparent"
-        }`}
+        className="border-y border-border/70 bg-background/90 backdrop-blur-md py-2"
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-2 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth min-w-max py-0.5">
+        <div className="relative min-w-0 flex-1 overflow-hidden">
+          <div className="flex gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain touch-pan-x min-w-max py-0.5 pr-8 sm:pr-0 [mask-image:linear-gradient(to_right,black_0%,black_calc(100%-2.5rem),transparent_100%)] sm:[mask-image:none]">
             {sections.map((sec) => {
               const isActive = currentLens === sec.id;
               return (
                 <Link
                   key={sec.id}
                   href={sec.href}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer select-none ${
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 sm:py-1.5 min-h-[38px] sm:min-h-0 text-xs font-semibold transition-all cursor-pointer select-none shrink-0 ${
                     isActive
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "bg-card/40 border border-border/50 text-muted-foreground hover:bg-card/80 hover:text-foreground"
@@ -103,17 +68,11 @@ export function DebateSectionNav() {
               );
             })}
           </div>
-
-          {currentLens === "conversation" && isRevealed && (
-            <button
-              type="button"
-              onClick={() => setIsMobileOpen(false)}
-              className="text-[11px] text-muted-foreground hover:text-foreground px-2 py-1 cursor-pointer shrink-0"
-              title="Hide lenses"
-            >
-              Hide
-            </button>
-          )}
+          {/* Subtle continuation cue on right edge for mobile touch devices */}
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
+            aria-hidden="true"
+          />
         </div>
       </nav>
     </div>

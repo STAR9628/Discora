@@ -43,8 +43,8 @@ export function DiscussionFeed() {
         </div>
       </div>
 
-      {/* Topic Filter Pills */}
-      <div className="space-y-3">
+      {/* Topic Filter Pills — Compact horizontal topic rail on mobile, wrapping on desktop */}
+      <div className="space-y-2.5">
         <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           <span>Filter by Topic</span>
@@ -56,39 +56,47 @@ export function DiscussionFeed() {
             <span className="font-medium">Unable to load topics.</span>
           </div>
         ) : isTopicsLoading ? (
-          <div className="flex flex-wrap gap-2 animate-pulse">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar py-1 animate-pulse">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-8 w-20 rounded-full bg-muted/30 border border-border/50" />
+              <div key={i} className="h-8 w-20 shrink-0 rounded-full bg-muted/30 border border-border/50" />
             ))}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedTopicId(undefined)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all duration-150 active:scale-[0.96] cursor-pointer ${
-                selectedTopicId === undefined
-                  ? "bg-primary border-primary text-primary-foreground shadow-xs"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
-              }`}
-            >
-              All Topics
-            </button>
-            {topics?.map((topic) => {
-              const isSelected = selectedTopicId === topic.id;
-              return (
-                <button
-                  key={topic.id}
-                  onClick={() => setSelectedTopicId(topic.id)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-medium border transition-all duration-150 active:scale-[0.96] cursor-pointer ${
-                    isSelected
-                      ? "bg-primary border-primary text-primary-foreground shadow-xs"
-                      : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/30"
-                  }`}
-                >
-                  {topic.name}
-                </button>
-              );
-            })}
+          <div className="relative">
+            <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain touch-pan-x py-1 pr-8 sm:pr-0 sm:flex-wrap [mask-image:linear-gradient(to_right,black_0%,black_calc(100%-2rem),transparent_100%)] sm:[mask-image:none]">
+              <button
+                type="button"
+                onClick={() => setSelectedTopicId(undefined)}
+                className={`rounded-full px-3.5 py-1.5 min-h-[34px] sm:min-h-0 text-xs font-semibold border transition-all duration-150 active:scale-[0.96] cursor-pointer shrink-0 select-none ${
+                  selectedTopicId === undefined
+                    ? "bg-primary border-primary text-primary-foreground shadow-xs"
+                    : "bg-card/60 border-border/70 text-muted-foreground hover:text-foreground hover:border-border"
+                }`}
+              >
+                All Topics
+              </button>
+              {topics?.map((topic) => {
+                const isSelected = selectedTopicId === topic.id;
+                return (
+                  <button
+                    key={topic.id}
+                    type="button"
+                    onClick={() => setSelectedTopicId(topic.id)}
+                    className={`rounded-full px-3.5 py-1.5 min-h-[34px] sm:min-h-0 text-xs font-semibold border transition-all duration-150 active:scale-[0.96] cursor-pointer shrink-0 select-none ${
+                      isSelected
+                        ? "bg-primary border-primary text-primary-foreground shadow-xs"
+                        : "bg-card/60 border-border/70 text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                  >
+                    {topic.name}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden"
+              aria-hidden="true"
+            />
           </div>
         )}
       </div>
@@ -129,7 +137,7 @@ export function DiscussionFeed() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {discussions.map(({ room, topic, discussion, debate }) => {
             const isDebate = room.roomType === "debate";
             const hasSummary = !isDebate && !!discussion?.summary;
@@ -150,23 +158,23 @@ export function DiscussionFeed() {
             return (
               <article
                 key={room.id}
-                className="group relative flex flex-col justify-between rounded-2xl border border-border/70 bg-card/40 p-6 backdrop-blur-sm shadow-xs transition-all duration-200 hover:border-border hover:bg-card/70"
+                className="group relative flex flex-col justify-between rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-6 backdrop-blur-sm shadow-xs transition-all duration-200 hover:border-border hover:bg-card/70"
               >
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {/* Topic and date tags */}
                   <div className="flex flex-wrap items-center gap-2">
                     {isDebate && (
-                      <span className="rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/30">
+                      <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 border border-amber-500/30">
                         Debate
                       </span>
                     )}
                     {topic && (
-                      <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                         {topic.name}
                       </span>
                     )}
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
+                    <span className="flex items-center gap-1.5 text-[11px] sm:text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       <span>{formatDate(room.createdAt, {
                         month: "short",
                         day: "numeric",
@@ -176,7 +184,7 @@ export function DiscussionFeed() {
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
+                  <h2 className="text-base sm:text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors leading-snug">
                     <Link href={isDebate ? `/debates/${room.slug}` : `/discussions/${room.slug}`} className="outline-none focus:underline">
                       {room.title}
                     </Link>
@@ -190,22 +198,24 @@ export function DiscussionFeed() {
                   )}
 
                   {/* Preview of Summary / Opening Statement */}
-                  <div className={`p-3.5 rounded-xl text-sm leading-relaxed border ${
-                    hasSummary 
-                      ? "bg-primary/[0.02] border-primary/10 text-foreground/90 font-medium italic quotes" 
-                      : "bg-muted/15 border-border/50 text-muted-foreground"
-                  }`}>
-                    {hasSummary && (
-                      <span className="text-[11px] not-italic uppercase tracking-wide font-bold block text-primary/75 mb-1">
-                        Summary
-                      </span>
-                    )}
-                    <p>{previewText}</p>
-                  </div>
+                  {previewText && (
+                    <div className={`p-2.5 sm:p-3.5 rounded-xl text-xs sm:text-sm leading-relaxed border ${
+                      hasSummary 
+                        ? "bg-primary/[0.02] border-primary/10 text-foreground/90 font-medium italic quotes" 
+                        : "bg-muted/15 border-border/50 text-muted-foreground"
+                    }`}>
+                      {hasSummary && (
+                        <span className="text-[10px] sm:text-[11px] not-italic uppercase tracking-wide font-bold block text-primary/75 mb-0.5">
+                          Summary
+                        </span>
+                      )}
+                      <p>{previewText}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer Join discussion action */}
-                <div className="mt-5 pt-4 border-t border-border/40 flex justify-end">
+                <div className="mt-3.5 pt-3 sm:mt-5 sm:pt-4 border-t border-border/40 flex justify-end">
                   <Link
                     href={isDebate ? `/debates/${room.slug}` : `/discussions/${room.slug}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:text-primary/80 transition-colors"

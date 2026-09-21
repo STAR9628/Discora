@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Compass,
@@ -10,10 +11,14 @@ import {
   MessageSquare,
   X,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useOnboarding } from "../hooks/use-onboarding";
 
 export function OnboardingChecklistCard() {
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const {
     dismissedGuides,
     hasInteractedSandbox,
@@ -57,8 +62,24 @@ export function OnboardingChecklistCard() {
         </button>
       </div>
 
+      {/* Mobile Progressive Disclosure Toggle */}
+      <div className="flex items-center justify-between pt-1 sm:hidden">
+        <button
+          type="button"
+          onClick={() => setIsMobileExpanded((prev) => !prev)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline cursor-pointer"
+          aria-expanded={isMobileExpanded}
+        >
+          <span>{isMobileExpanded ? "Hide roadmap steps" : "View roadmap steps (4 steps)"}</span>
+          {isMobileExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+        <span className="text-[11px] text-muted-foreground">
+          {hasSelectedTopics ? "1/4 topics configured" : "0/4 completed"}
+        </span>
+      </div>
+
       {/* 4 Action Steps */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+      <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1", !isMobileExpanded && "hidden sm:grid")}>
         {/* Step 1: The Model */}
         <button
           type="button"
@@ -153,7 +174,7 @@ export function OnboardingChecklistCard() {
       </div>
 
       {/* Write-First Contribution Encouragement */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40 text-xs">
+      <div className={cn("flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/40 text-xs", !isMobileExpanded && "hidden sm:flex")}>
         <p className="text-muted-foreground text-[11px]">
           <strong>Write-First Principle:</strong> When you contribute, draft your thoughts naturally.
           Discora helps you extract discrete claims and link evidence when ready.

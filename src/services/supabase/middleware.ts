@@ -2,6 +2,22 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSupabaseConfig } from "@/services/supabase/config";
 
+function createRedirectResponse(redirectUrl: URL | string, sourceResponse: NextResponse): NextResponse {
+  const redirectResponse = NextResponse.redirect(redirectUrl);
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+  });
+  return redirectResponse;
+}
+
+function createRewriteResponse(rewriteUrl: URL | string, sourceResponse: NextResponse): NextResponse {
+  const rewriteResponse = NextResponse.rewrite(rewriteUrl);
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    rewriteResponse.cookies.set(cookie.name, cookie.value, cookie);
+  });
+  return rewriteResponse;
+}
+
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
@@ -49,13 +65,13 @@ export async function updateSupabaseSession(request: NextRequest) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
       redirectUrl.searchParams.set("redirectedFrom", pathname);
-      return NextResponse.redirect(redirectUrl);
+      return createRedirectResponse(redirectUrl, response);
     }
 
     const ownerId = process.env.DISCORA_OWNER_USER_ID?.trim();
     if (!ownerId || user.id !== ownerId) {
       // Rewrite unauthorized requests to 404
-      return NextResponse.rewrite(new URL("/404", request.url));
+      return createRewriteResponse(new URL("/404", request.url), response);
     }
   }
 
@@ -70,7 +86,7 @@ export async function updateSupabaseSession(request: NextRequest) {
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirectedFrom", pathname);
 
-    return NextResponse.redirect(redirectUrl);
+    return createRedirectResponse(redirectUrl, response);
   }
 
   // First-visit guest experience: route brand-new visitors to /about
@@ -137,7 +153,7 @@ export async function updateSupabaseSession(request: NextRequest) {
           const redirectUrl = request.nextUrl.clone();
           redirectUrl.pathname = "/auth/attest-age";
           redirectUrl.searchParams.set("redirectTo", pathname);
-          return NextResponse.redirect(redirectUrl);
+          return createRedirectResponse(redirectUrl, response);
         }
       } else if (isOAuthUser) {
         // OAuth user without profile - they need to create profile first, then attest
@@ -170,7 +186,7 @@ export async function updateSupabaseSession(request: NextRequest) {
       if (!profile) {
         const redirectUrl = request.nextUrl.clone();
         redirectUrl.pathname = "/settings/profile";
-        return NextResponse.redirect(redirectUrl);
+        return createRedirectResponse(redirectUrl, response);
       }
 
       if (profile.is_deleted) {

@@ -38,7 +38,7 @@ export function AdminConsoleClient({
         pendingFlagsCount={stats.pending_flags}
       />
 
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === "overview" && (
           <AdminOverview
             stats={stats}
@@ -54,7 +54,7 @@ export function AdminConsoleClient({
         {activeTab === "moderation" && <AdminModeration />}
 
         {activeTab === "audit" && <AdminAuditLogs initialLogs={auditLogs} />}
-      </main>
+      </div>
     </div>
   );
 }

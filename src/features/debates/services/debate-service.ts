@@ -26,7 +26,7 @@ export interface DebateRoomData {
   debate: Debate;
 }
 
-export type DebateSortOption = "most_active" | "most_evidence" | "most_participants" | "newest";
+export type DebateSortOption = "most_active" | "most_evidence" | "most_participants" | "newest" | "recently_updated";
 
 export interface DebatePage {
   items: DebateFeedItem[];
@@ -73,6 +73,8 @@ export async function createDebate(
     description?: string;
     topicId: string;
     openingStatement: string;
+    /** Optional intended participation deadline (ISO). Omitted = open-ended. */
+    closesAt?: string | null;
   },
   overrideClient?: SupabaseClient,
 ): Promise<CreatedDebateResult> {
@@ -87,6 +89,7 @@ export async function createDebate(
       p_proposition_title: 'Supports the motion',
       p_opposition_title: 'Opposes the motion',
       p_opening_statement: data.openingStatement || null,
+      p_closes_at: data.closesAt ?? null,
     },
   );
 
@@ -97,17 +100,21 @@ export async function createDebate(
   const { data: { user: creator } } = await supabase.auth.getUser();
 
   if (creator) {
+    // Plain insert (NOT upsert): migration 202606220001 replaced the plain
+    // UNIQUE(room_id, user_id) with the partial unique index
+    // idx_debate_participants_active_unique (... WHERE removed_at IS NULL),
+    // which PostgREST column-list arbiters cannot infer (400). The partial
+    // index still enforces at-most-one ACTIVE membership; a 23505 here only
+    // means already joined (retry/double-submit) and is safe to absorb.
     const { error: joinError } = await supabase
       .from("debate_participants")
-      .upsert({
+      .insert({
         room_id: roomId,
         user_id: creator.id,
         side: "proposition",
-      }, {
-        onConflict: "room_id,user_id",
       });
 
-    if (joinError) {
+    if (joinError && joinError.code !== "23505") {
       console.warn("Failed to auto-join creator to proposition:", joinError.message);
     }
   }
@@ -164,17 +171,21 @@ export async function joinDebate(
     throw new Error("Must be authenticated to join a debate.");
   }
 
+  // Plain insert (NOT upsert): see creator auto-join above for why the
+  // retired column-list arbiter cannot be used. The partial unique index
+  // enforces single active membership; 23505 means already participating
+  // (idempotent rejoin/race) and is absorbed. Side CHANGES never flow
+  // through here — the UI routes those to switch_debate_side (definer RPC).
   const { error } = await supabase
     .from("debate_participants")
-    .upsert({
+    .insert({
       room_id: roomId,
       user_id: user.id,
       side,
-    }, {
-      onConflict: "room_id,user_id",
     });
 
   if (error) {
+    if (error.code === "23505") return;
     throw new Error(mapSupabaseError(error, "Failed to join debate"));
   }
 }
@@ -253,53 +264,94 @@ export async function getDebates(
     .from("discussion_debates")
     .select("*");
 
-  if (statusFilter === "active") {
-    query = query.eq("status", "active");
-  } else if (statusFilter === "closing_soon") {
-    query = query.eq("status", "active");
-  }
+  // Approved Closing Soon window: 7 days. Qualification is evaluated by the
+  // database against its own clock (timestamptz comparison); the client only
+  // supplies the window bounds as values. NULL closes_at = open-ended debate,
+  // which never qualifies. A passed deadline never changes status and never
+  // removes the debate from Active — it simply stops qualifying here.
+  const CLOSING_SOON_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-  switch (sort) {
-    case "most_active":
-      query = query.order("total_claims", { ascending: false });
-      query = query.order("last_activity_at", { ascending: false });
-      break;
-    case "most_evidence":
-      query = query.order("total_evidence", { ascending: false });
-      query = query.order("last_activity_at", { ascending: false });
-      break;
-    case "most_participants":
-      query = query.order("total_participants", { ascending: false });
-      query = query.order("last_activity_at", { ascending: false });
-      break;
-    case "newest":
-      query = query.order("created_at", { ascending: false });
-      break;
+  if (statusFilter === "closing_soon") {
+    const nowIso = new Date().toISOString();
+    const soonIso = new Date(Date.now() + CLOSING_SOON_WINDOW_MS).toISOString();
+    query = query
+      .eq("status", "active")
+      .not("closes_at", "is", null)
+      .gt("closes_at", nowIso)
+      .lte("closes_at", soonIso)
+      // Temporal ordering (NOT popularity): nearest deadline first, with a
+      // deterministic id tiebreak so keyset pagination cannot skip or repeat.
+      .order("closes_at", { ascending: true })
+      .order("id", { ascending: true });
+  } else {
+    query = query.eq("status", "active");
+
+    switch (sort) {
+      case "most_active":
+        query = query.order("total_claims", { ascending: false });
+        query = query.order("last_activity_at", { ascending: false });
+        break;
+      case "most_evidence":
+        query = query.order("total_evidence", { ascending: false });
+        query = query.order("last_activity_at", { ascending: false });
+        break;
+      case "most_participants":
+        query = query.order("total_participants", { ascending: false });
+        query = query.order("last_activity_at", { ascending: false });
+        break;
+      case "newest":
+        query = query.order("created_at", { ascending: false });
+        break;
+      case "recently_updated":
+        // Meaningful room-level recency only: last_activity_at is derived from
+        // creation events (room, non-retracted claims/evidence, participant
+        // joins) — never from internal row updates, counts, or votes.
+        query = query.order("last_activity_at", { ascending: false });
+        break;
+    }
   }
 
   if (cursor) {
     const parts = cursor.split("|");
-    if (parts.length === 2) {
+    if (statusFilter === "closing_soon" && parts.length === 2) {
+      const cursorSortValue = parts[0];
+      const cursorId = parts[1];
+      query = query.or(
+        `closes_at.gt.${cursorSortValue},and(closes_at.eq.${cursorSortValue},id.gt.${cursorId})`,
+      );
+    } else if (parts.length === 3) {
+      // Count sorts carry (count|tiebreak-timestamp|id). The tiebreak value
+      // must be a timestamp: comparing last_activity_at against the count
+      // string yields a 400 for zero-count ties and breaks Load More.
+      // (newest/recently_updated never emit 3-part cursors.)
+      const [countValue, activityValue] = parts;
+      if (sort === "most_active") {
+        query = query.or(`total_claims.lt.${countValue},and(total_claims.eq.${countValue},last_activity_at.lt.${activityValue})`);
+      } else if (sort === "most_evidence") {
+        query = query.or(`total_evidence.lt.${countValue},and(total_evidence.eq.${countValue},last_activity_at.lt.${activityValue})`);
+      } else if (sort === "most_participants") {
+        query = query.or(`total_participants.lt.${countValue},and(total_participants.eq.${countValue},last_activity_at.lt.${activityValue})`);
+      }
+    } else if (parts.length === 2) {
       const cursorSortValue = parts[0];
       if (sort === "newest") {
         query = query.lt("created_at", cursorSortValue);
-      } else if (sort === "most_active") {
-        query = query.or(`total_claims.lt.${cursorSortValue},and(total_claims.eq.${cursorSortValue},last_activity_at.lt.${cursorSortValue})`);
-      } else if (sort === "most_evidence") {
-        query = query.or(`total_evidence.lt.${cursorSortValue},and(total_evidence.eq.${cursorSortValue},last_activity_at.lt.${cursorSortValue})`);
-      } else if (sort === "most_participants") {
-        query = query.or(`total_participants.lt.${cursorSortValue},and(total_participants.eq.${cursorSortValue},last_activity_at.lt.${cursorSortValue})`);
+      } else if (sort === "recently_updated") {
+        query = query.lt("last_activity_at", cursorSortValue);
+      } else if (
+        sort === "most_active" ||
+        sort === "most_evidence" ||
+        sort === "most_participants"
+      ) {
+        // Legacy 2-part count cursor (pre-tiebreak format): cannot express the
+        // timestamp tiebreak, so restart from the first page instead of
+        // issuing a guaranteed-400 comparison. Cursors live only in
+        // single-session React state, so no persistent state is affected.
       }
     }
   }
 
   query = query.limit(pageSize + 1);
-
-  if (statusFilter === "closing_soon") {
-    if (!cursor) {
-      query = query.order("created_at", { ascending: true });
-    }
-  }
 
   const { data, error } = await query;
 
@@ -314,14 +366,23 @@ export async function getDebates(
   let nextCursor: string | null = null;
   if (hasMore && items.length > 0) {
     const last = items[items.length - 1];
-    const sortValue = sort === "newest"
-      ? last.created_at
-      : sort === "most_active"
-      ? String(last.total_claims ?? 0)
-      : sort === "most_evidence"
-      ? String(last.total_evidence ?? 0)
-      : String(last.total_participants ?? 0);
-    nextCursor = `${sortValue}|${last.id}`;
+    if (statusFilter === "closing_soon") {
+      nextCursor = `${last.closes_at ?? ""}|${last.id}`;
+    } else if (sort === "recently_updated") {
+      nextCursor = `${last.last_activity_at ?? last.created_at}|${last.id}`;
+    } else if (sort === "newest") {
+      nextCursor = `${last.created_at}|${last.id}`;
+    } else {
+      // Count sorts: (count|tiebreak-timestamp|id) so the keyset predicate
+      // compares timestamps against timestamps (see cursor handling above).
+      const countValue =
+        sort === "most_active"
+          ? String(last.total_claims ?? 0)
+          : sort === "most_evidence"
+          ? String(last.total_evidence ?? 0)
+          : String(last.total_participants ?? 0);
+      nextCursor = `${countValue}|${last.last_activity_at ?? last.created_at}|${last.id}`;
+    }
   }
 
   return {
@@ -422,6 +483,8 @@ export async function createPrivateDebate(
     propositionTitle: string;
     oppositionTitle: string;
     openingStatement: string;
+    /** Optional intended participation deadline (ISO). Omitted = open-ended. */
+    closesAt?: string | null;
   },
   overrideClient?: SupabaseClient,
 ): Promise<CreatedDebateResult> {
@@ -436,6 +499,7 @@ export async function createPrivateDebate(
       p_proposition_title: data.propositionTitle,
       p_opposition_title: data.oppositionTitle,
       p_opening_statement: data.openingStatement || null,
+      p_closes_at: data.closesAt ?? null,
     },
   );
 
@@ -446,17 +510,21 @@ export async function createPrivateDebate(
   const { data: { user: creator } } = await supabase.auth.getUser();
 
   if (creator) {
+    // Plain insert (NOT upsert): migration 202606220001 replaced the plain
+    // UNIQUE(room_id, user_id) with the partial unique index
+    // idx_debate_participants_active_unique (... WHERE removed_at IS NULL),
+    // which PostgREST column-list arbiters cannot infer (400). The partial
+    // index still enforces at-most-one ACTIVE membership; a 23505 here only
+    // means already joined (retry/double-submit) and is safe to absorb.
     const { error: joinError } = await supabase
       .from("debate_participants")
-      .upsert({
+      .insert({
         room_id: roomId,
         user_id: creator.id,
         side: "proposition",
-      }, {
-        onConflict: "room_id,user_id",
       });
 
-    if (joinError) {
+    if (joinError && joinError.code !== "23505") {
       console.warn("Failed to auto-join creator to proposition:", joinError.message);
     }
   }
@@ -565,6 +633,42 @@ export async function publishDebateRoom(
 
   if (error) {
     throw new Error(mapSupabaseError(error, "Failed to publish debate room"));
+  }
+}
+
+/**
+ * Update a debate's optional participation deadline.
+ *
+ * Authorization is enforced server-side by the existing RLS policy "Debate
+ * creators can update debates" (room creator only). Non-creators and guests
+ * receive an RLS denial, surfaced as an error. Clearing to NULL returns the
+ * debate to open-ended. A passed deadline never changes status (no auto-close
+ * exists anywhere); the debate simply stops qualifying for Closing Soon.
+ */
+export async function updateDebateDeadline(
+  roomId: string,
+  closesAt: string | null,
+  overrideClient?: SupabaseClient,
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+
+  if (closesAt !== null) {
+    const ts = new Date(closesAt).getTime();
+    if (!Number.isFinite(ts)) {
+      throw new Error("Please provide a valid deadline.");
+    }
+    if (ts <= Date.now()) {
+      throw new Error("The deadline must be in the future. Clear it for an open-ended debate.");
+    }
+  }
+
+  const { error } = await supabase
+    .from("debates")
+    .update({ closes_at: closesAt })
+    .eq("id", roomId);
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to update debate deadline"));
   }
 }
 

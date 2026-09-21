@@ -131,14 +131,14 @@ export default async function DebateRoomPage({ params, searchParams }: PageProps
 
   if (debateData) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-3 pb-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <DebateRoom
           initialData={debateData}
           highlightId={highlightId}
           initialSection="conversation"
           initialCollections={initialCollections}
         />
-      </main>
+      </div>
     );
   }
 
@@ -180,13 +180,14 @@ export default async function DebateRoomPage({ params, searchParams }: PageProps
         totalParticipants: 0,
         totalEvidence: 0,
         lastActivityAt: new Date().toISOString(),
+        closesAt: null,
       },
     };
 
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-3 pb-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <DebateRoom initialData={minimalData} highlightId={highlightId} gateMode />
-      </main>
+      </div>
     );
   }
 

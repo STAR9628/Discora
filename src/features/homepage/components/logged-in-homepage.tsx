@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   HelpCircle,
@@ -53,9 +53,13 @@ function SectionHeader({
   );
 }
 
+/**
+ * Neutral loading card for logged-in sections. Nearly every logged-in card
+ * uses p-4 (not p-5) — this matches so grids don't shift on resolve.
+ */
 function LoadingCard() {
   return (
-    <div className="rounded-xl border border-border bg-card/40 p-5 animate-pulse space-y-3">
+    <div className="rounded-xl border border-border bg-card/40 p-4 animate-pulse space-y-3">
       <div className="h-4 w-3/4 rounded bg-muted" />
       <div className="h-3 w-1/2 rounded bg-muted" />
       <div className="h-3 w-2/3 rounded bg-muted" />
@@ -86,25 +90,92 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+type DayPart = "morning" | "afternoon" | "evening";
+
+function getDayPart(hour: number): DayPart {
+  // User-local wall-clock hour. Boundaries are conventional, not product law.
+  if (hour >= 5 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 18) return "afternoon";
+  return "evening";
+}
+
+const DAY_PART_PREFIX: Record<DayPart, string> = {
+  morning: "Good morning",
+  afternoon: "Good afternoon",
+  evening: "Good evening",
+};
+
+/**
+ * Calm rotating sublines. Understanding-first, never engagement bait: no
+ * streaks, goals, counters, or social pressure. Selected deterministically by
+ * day-of-year so the greeting is stable for the whole session.
+ */
+const SUBLINES = [
+  "Explore discussions, join debates, and build understanding.",
+  "What are you curious about today?",
+  "Pick up where you left off — the conversation kept going.",
+] as const;
+
+/**
+ * Personalized Home greeting. Hydration-safe by construction:
+ * - SSR and the first client paint render the neutral fallback
+ *   ("Welcome back, …"), so server and client HTML always agree.
+ * - The time-aware + rotating variant is computed once, client-side, after
+ *   mount (useMemo gated on `mounted`), and then never changes for the
+ *   session — no Math.random, no per-render changes, no midnight flips.
+ * - Box geometry (p-6, avatar, single truncated line) is identical in both
+ *   states, and the name truncates instead of wrapping, so resolving the
+ *   profile or personalizing the text never shifts the feed below.
+ */
 function WelcomeBar() {
   const { status } = useAuth();
   const { data: profile } = useCurrentProfile();
-  const displayName = profile?.displayName || profile?.username || "there";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const displayName = (profile?.displayName || profile?.username || "there").trim() || "there";
+
+  const greeting = useMemo(() => {
+    if (!mounted) return { prefix: "Welcome back", subline: SUBLINES[0] as string };
+    const now = new Date();
+    const prefix = DAY_PART_PREFIX[getDayPart(now.getHours())];
+    const dayOfYear = Math.floor(
+      (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
+        new Date(now.getFullYear(), 0, 0).getTime()) /
+        86_400_000,
+    );
+    return {
+      prefix,
+      subline: SUBLINES[((dayOfYear % SUBLINES.length) + SUBLINES.length) % SUBLINES.length] as string,
+    };
+  }, [mounted]);
 
   if (status !== "authenticated") return null;
 
   return (
     <div className="rounded-xl border border-border bg-gradient-to-r from-card/60 to-card/30 p-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <User className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            Welcome back, {displayName}
+        {profile?.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.avatarUrl}
+            alt=""
+            className="h-10 w-10 sm:h-11 sm:w-11 shrink-0 rounded-full border border-border object-cover"
+          />
+        ) : (
+          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <User className="h-5 w-5 sm:h-6 sm:w-6" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold text-foreground">
+            {greeting.prefix},{" "}
+            <span className="truncate">{displayName}</span>
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Explore discussions, join debates, and build understanding.
+          <p className="truncate text-sm text-muted-foreground">
+            {greeting.subline}
           </p>
         </div>
       </div>

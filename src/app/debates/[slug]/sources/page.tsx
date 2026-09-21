@@ -12,8 +12,8 @@ export default async function DebateSourcesPage({
   const item = await getDebateBySlug(slug, await createServerSupabaseClient());
   if (!item) notFound();
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <DebateRoom initialData={item} initialSection="sources" />
-    </main>
+    </div>
   );
 }

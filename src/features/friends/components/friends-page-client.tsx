@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FriendListItem } from "./friend-list-item";
+import { UsernameLookup } from "./username-lookup";
 import {
   useIncomingRequests,
   useOutgoingRequests,
@@ -100,13 +101,34 @@ export function FriendsPageClient() {
     );
   }
 
+  const pendingCount = incomingRows.length + outgoingRows.length;
+
   return (
-    <div className="space-y-4">
-      <Section
-        title="Requests for you"
-        description="People who would like to connect. Take your time — there is no rush to respond."
-        count={incomingRows.length}
-      >
+    <div className="space-y-4 sm:space-y-5">
+      <UsernameLookup />
+
+      {/* Activity first on mobile; two calm columns on desktop:
+          pending activity | relationships. No feeds, no counts-as-status. */}
+      <div className="grid gap-4 sm:gap-5 lg:grid-cols-2 lg:items-start">
+        <div className="space-y-4 sm:space-y-5">
+          <div className="flex items-center gap-2 px-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Activity
+            </h3>
+            {pendingCount > 0 && (
+              <span
+                aria-label={`${pendingCount} pending requests`}
+                className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-[11px] font-medium text-primary"
+              >
+                {pendingCount > 99 ? "99+" : pendingCount}
+              </span>
+            )}
+          </div>
+          <Section
+            title="Requests for you"
+            description="People who would like to connect. Take your time — there is no rush to respond."
+            count={incomingRows.length}
+          >
         {incomingRows.length === 0 ? (
           <>No incoming requests.</>
         ) : (
@@ -164,11 +186,17 @@ export function FriendsPageClient() {
         )}
       </Section>
 
-      <Section
-        title="Friends"
-        description="People you are connected with. Only you can see this list."
-        count={friendRows.length}
-      >
+        </div>
+
+        <div className="space-y-4 sm:space-y-5">
+          <h3 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Relationships
+          </h3>
+          <Section
+            title="Friends"
+            description="People you are connected with. Only you can see this list."
+            count={friendRows.length}
+          >
         {friendRows.length === 0 ? (
           <>No friends yet.</>
         ) : (
@@ -224,6 +252,8 @@ export function FriendsPageClient() {
           ))
         )}
       </Section>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={blockTarget !== null}

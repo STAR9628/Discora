@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { SearchInput } from "./search-input";
 import { SearchResults } from "./search-results";
 import { useSearch, useSearchNavigation } from "@/features/discussions/hooks/use-search";
@@ -24,18 +24,21 @@ export function SearchPageClient() {
   const totalCount = data?.totalCount ?? 0;
   const hasMore = data?.hasMore ?? false;
 
-  const handleValueChange = (value: string) => {
-    setInputValue(value);
-    setUrlQuery(value);
-    setPage(0);
-  };
+  const handleValueChange = useCallback(
+    (value: string) => {
+      setInputValue(value);
+      setUrlQuery(value);
+      setPage(0);
+    },
+    [setUrlQuery],
+  );
 
   const handleLoadMore = () => {
     setPage((p) => p + 1);
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <h1 className="sr-only">Search</h1>
       <SearchInput
         onValueChange={handleValueChange}
@@ -54,6 +57,6 @@ export function SearchPageClient() {
           isFetchingNextPage={isFetching}
         />
       </div>
-    </main>
+    </div>
   );
 }

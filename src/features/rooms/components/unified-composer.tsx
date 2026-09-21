@@ -24,6 +24,8 @@ export interface UnifiedComposerProps {
   onCancelReply?: () => void;
   onSuccess?: () => void;
   className?: string;
+  externalMode?: ComposerMode | null;
+  expandTrigger?: number;
 }
 
 export function UnifiedComposer({
@@ -34,6 +36,8 @@ export function UnifiedComposer({
   onCancelReply,
   onSuccess,
   className = "",
+  externalMode,
+  expandTrigger,
 }: UnifiedComposerProps) {
   const { user } = useAuth();
   const { data: currentProfile } = useCurrentProfile();
@@ -67,6 +71,21 @@ export function UnifiedComposer({
   const postMutation = usePostMessage();
   const createClaimMutation = useCreateClaim(roomId);
 
+  // Automatically switch mode when requested externally
+  useEffect(() => {
+    if (externalMode) {
+      setMode(externalMode);
+    }
+  }, [externalMode]);
+
+  // Automatically expand and focus when triggered externally
+  useEffect(() => {
+    if (expandTrigger && expandTrigger > 0) {
+      setIsExpanded(true);
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    }
+  }, [expandTrigger]);
+
   // Automatically expand and focus when replyingTo changes
   useEffect(() => {
     if (replyingTo) {
@@ -79,7 +98,7 @@ export function UnifiedComposer({
     return (
       <div
         data-testid="unified-composer-container"
-        className={`fixed bottom-16 md:bottom-0 left-0 md:left-64 right-0 z-35 pointer-events-none p-2.5 sm:p-4 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-xs ${className}`}
+        className={`fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 md:left-[var(--sidebar-offset,4rem)] right-0 z-[35] pointer-events-none p-2.5 sm:p-4 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-xs ${className}`}
       >
         <div className="pointer-events-auto max-w-3xl mx-auto w-full">
           <GuestContributionPrompt roomType={roomType} />
@@ -204,6 +223,8 @@ export function UnifiedComposer({
       default:
         return replyingTo
           ? `Reply to @${replyingTo.username}...`
+          : roomType === "debate"
+          ? "Write an argument or perspective..."
           : "Write a message or share a perspective...";
     }
   };
@@ -211,7 +232,7 @@ export function UnifiedComposer({
   return (
     <div
       data-testid="unified-composer-container"
-      className={`fixed bottom-16 md:bottom-0 left-0 md:left-64 right-0 z-35 pointer-events-none p-2.5 sm:p-4 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-xs ${className}`}
+      className={`fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:bottom-0 left-0 md:left-[var(--sidebar-offset,4rem)] right-0 z-[35] pointer-events-none p-2.5 sm:p-4 bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-xs ${className}`}
     >
       <div className="pointer-events-auto max-w-3xl mx-auto w-full">
         {typingUsers.length > 0 && (
@@ -232,7 +253,11 @@ export function UnifiedComposer({
             <div className="flex items-center gap-2.5 text-muted-foreground/75 flex-1 min-w-0">
               <MessageSquare className="h-4 w-4 text-primary shrink-0 transition-transform group-hover:scale-110" />
               <span className="text-xs sm:text-sm select-none truncate">
-                {replyingTo ? `Reply to @${replyingTo.username}...` : "Write a message..."}
+                {replyingTo
+                  ? `Reply to @${replyingTo.username}...`
+                  : roomType === "debate"
+                  ? "Write an argument or perspective..."
+                  : "Write a message..."}
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -276,7 +301,7 @@ export function UnifiedComposer({
                   }`}
                 >
                   <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                  <span>Message</span>
+                  <span>{roomType === "debate" ? "Argument" : "Message"}</span>
                 </button>
 
                 <button
@@ -448,9 +473,11 @@ export function UnifiedComposer({
                       : mode === "claim"
                       ? "Post Claim"
                       : mode === "question"
-                      ? "Post Question"
+                      ? (roomType === "debate" ? "Post Inquiry" : "Post Question")
                       : replyingTo
                       ? "Post Reply"
+                      : roomType === "debate"
+                      ? "Post Argument"
                       : "Post Message"}
                   </span>
                 </button>

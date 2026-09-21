@@ -54,7 +54,7 @@ function HeroSection() {
           A platform for evidence-based dialogue. Explore discussions, follow
           debates, and build understanding — one claim at a time.
         </p>
-        <p className="mx-auto max-w-2xl text-sm text-muted-foreground/70 leading-relaxed">
+        <p className="mx-auto max-w-2xl text-sm text-muted-foreground leading-relaxed">
           Where arguments are structured as claims, claims are backed by evidence, and changing your mind based on evidence is a feature — not a weakness.
         </p>
       </div>
@@ -77,10 +77,14 @@ function HeroSection() {
   );
 }
 
+/**
+ * Mirrors DiscussionCard: p-5, title (text-sm) + optional topic row +
+ * optional two-line preview. No fixed height — resolves without expansion.
+ */
 function DiscussionCardSkeleton() {
   return (
     <div className="rounded-xl border border-border bg-card/40 p-5 animate-pulse space-y-3">
-      <div className="h-5 w-3/4 rounded bg-muted" />
+      <div className="h-4 w-3/4 rounded bg-muted" />
       <div className="h-3 w-1/3 rounded bg-muted" />
       <div className="h-4 w-full rounded bg-muted" />
       <div className="h-4 w-2/3 rounded bg-muted" />
@@ -193,7 +197,7 @@ function HowItWorks() {
                 <div className={`rounded-lg p-2 border ${s.color}`}>
                   <Icon className="h-4 w-4" />
                 </div>
-                <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   Step {s.step}
                 </span>
               </div>
@@ -261,13 +265,25 @@ function ActiveDiscussions() {
   );
 }
 
+/**
+ * Mirrors DebateCard: p-5, title + two side rows (dot + label) + counts row.
+ * No fixed height — resolves without expansion.
+ */
 function DebateCardSkeleton() {
   return (
     <div className="rounded-xl border border-border bg-card/40 p-5 animate-pulse space-y-3">
-      <div className="h-5 w-3/4 rounded bg-muted" />
+      <div className="h-4 w-3/4 rounded bg-muted" />
+      <div className="mt-2 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-muted" />
+          <div className="h-3 w-2/3 rounded bg-muted" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-muted" />
+          <div className="h-3 w-1/2 rounded bg-muted" />
+        </div>
+      </div>
       <div className="h-3 w-1/2 rounded bg-muted" />
-      <div className="h-3 w-1/2 rounded bg-muted" />
-      <div className="h-4 w-1/4 rounded bg-muted" />
     </div>
   );
 }
@@ -366,9 +382,9 @@ function InquirySpotlight() {
       </div>
       {isLoading ? (
         <div className="rounded-xl border border-border bg-card/40 p-6 animate-pulse space-y-3">
-          <div className="h-4 w-1/3 rounded bg-muted" />
-          <div className="h-5 w-full rounded bg-muted" />
-          <div className="h-4 w-2/3 rounded bg-muted" />
+          <div className="h-3 w-1/3 rounded bg-muted" />
+          <div className="h-4 w-full rounded bg-muted" />
+          <div className="h-3 w-2/3 rounded bg-muted" />
         </div>
       ) : error ? (
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive flex items-center gap-2">
@@ -483,8 +499,13 @@ function UnderstandingMetrics() {
               key={i}
               className="rounded-xl border border-border bg-card/40 p-5 animate-pulse space-y-2"
             >
-              <div className="h-7 w-12 rounded bg-muted" />
-              <div className="h-3 w-20 rounded bg-muted" />
+              <div className="flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="h-7 w-12 rounded bg-muted" />
+                  <div className="h-3 w-20 rounded bg-muted" />
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-muted" />
+              </div>
             </div>
           ))}
         </div>

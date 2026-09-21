@@ -89,11 +89,11 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Main Document Body */}
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-border/60 bg-card/30 p-6 sm:p-10 shadow-xs backdrop-blur-xs">
           {children}
         </div>
-      </main>
+      </div>
 
       {/* Legal Footer */}
       <footer className="border-t border-border/50 py-8 px-4 text-center text-xs text-muted-foreground sm:px-6">

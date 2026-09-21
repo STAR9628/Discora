@@ -2,7 +2,7 @@ import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-f
 
 export default function ForgotPasswordPage() {
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-8 sm:px-6">
       <section className="rounded-lg border border-border bg-card p-6 text-card-foreground">
         <p className="text-sm font-medium text-primary">Account recovery</p>
         <h1 className="mt-3 text-2xl font-semibold tracking-normal">
@@ -15,6 +15,6 @@ export default function ForgotPasswordPage() {
           <ForgotPasswordForm />
         </div>
       </section>
-    </main>
+    </div>
   );
 }

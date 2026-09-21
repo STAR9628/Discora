@@ -152,6 +152,51 @@ async function hydrateCounterparts(
   return map;
 }
 
+/**
+ * Privacy-safe username lookup (Phase: Friends username search).
+ *
+ * Exact match ONLY — no prefix/substring matching, so the lookup cannot be
+ * used to enumerate members. Returns the same minimal counterpart fields
+ * (id, username, display name, public avatar) that are already visible on
+ * public profile pages; deleted profiles resolve to null. RLS is unchanged
+ * (profiles SELECT is publicly readable; see 202606030001 migration).
+ */
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{2,29}$/;
+
+export function normalizeLookupUsername(raw: string): string | null {
+  const normalized = raw.trim().replace(/^@+/, "").toLowerCase();
+  if (!USERNAME_PATTERN.test(normalized)) return null;
+  return normalized;
+}
+
+export async function lookupProfileByExactUsername(
+  rawUsername: string,
+): Promise<CounterpartProfile | null> {
+  const username = normalizeLookupUsername(rawUsername);
+  if (!username) return null;
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url, is_deleted")
+    .eq("username", username)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as {
+    id: string;
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    is_deleted: boolean | null;
+  };
+  if (row.is_deleted) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+  };
+}
+
 export async function listIncomingRequests(userId: string): Promise<IncomingRequest[]> {
   const supabase = getClient();
   const { data, error } = await supabase

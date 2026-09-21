@@ -12,11 +12,12 @@ import {
 } from "@/features/profiles/hooks/use-profile";
 import { uploadAvatar } from "@/features/profiles/services/profile-service";
 import { profileSchema, type ProfileFormValues } from "@/features/profiles/validation";
+import { AvatarCropModal } from "@/features/profiles/components/avatar-crop-modal";
 import { Camera, AlertTriangle, CheckCircle, Loader2, AtSign } from "lucide-react";
 
 export function ProfileForm() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, status } = useAuth();
   const { data: profile, isLoading: isProfileLoading, error: profileError, refetch } = useCurrentProfile();
   const createProfileMutation = useCreateProfile();
   const updateProfileMutation = useUpdateProfile();
@@ -29,10 +30,13 @@ export function ProfileForm() {
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedRawFile, setSelectedRawFile] = useState<File | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [formMessage, setFormMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentObjectUrlRef = useRef<string | null>(null);
 
   const isNewProfile = !profile;
 
@@ -51,6 +55,7 @@ export function ProfileForm() {
     },
   });
 
+  // Sync profile data when loaded from server (only override preview if no unsaved crop)
   useEffect(() => {
     if (profile) {
       reset({
@@ -59,11 +64,38 @@ export function ProfileForm() {
         bio: profile.bio || "",
         defaultIdentityMode: profile.defaultIdentityMode,
       });
-      if (profile.avatarUrl) {
+      if (profile.avatarUrl && !avatarFile) {
         setAvatarPreview(profile.avatarUrl);
       }
     }
-  }, [profile, reset]);
+  }, [profile, reset, avatarFile]);
+
+  // Purge all transient avatar state and revoke object URLs when logged out or when user changes
+  useEffect(() => {
+    if (status === "guest" || !user) {
+      if (currentObjectUrlRef.current) {
+        URL.revokeObjectURL(currentObjectUrlRef.current);
+        currentObjectUrlRef.current = null;
+      }
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setSelectedRawFile(null);
+      setIsCropModalOpen(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }, [status, user]);
+
+  // Revoke any active object URL on component unmount
+  useEffect(() => {
+    return () => {
+      if (currentObjectUrlRef.current) {
+        URL.revokeObjectURL(currentObjectUrlRef.current);
+        currentObjectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -82,11 +114,28 @@ export function ProfileForm() {
       return;
     }
 
-    setAvatarFile(file);
-
-    const previewUrl = URL.createObjectURL(file);
-    setAvatarPreview(previewUrl);
     setFormMessage(null);
+    setSelectedRawFile(file);
+    setIsCropModalOpen(true);
+  };
+
+  const handleCropApply = (croppedFile: File, previewUrl: string) => {
+    if (currentObjectUrlRef.current) {
+      URL.revokeObjectURL(currentObjectUrlRef.current);
+    }
+    currentObjectUrlRef.current = previewUrl;
+    setAvatarFile(croppedFile);
+    setAvatarPreview(previewUrl);
+    setSelectedRawFile(null);
+    setIsCropModalOpen(false);
+  };
+
+  const handleCropClose = () => {
+    setSelectedRawFile(null);
+    setIsCropModalOpen(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleAvatarClick = () => {
@@ -102,6 +151,12 @@ export function ProfileForm() {
         setUploadingAvatar(true);
         finalAvatarUrl = await uploadAvatar(user.id, avatarFile);
         setUploadingAvatar(false);
+        if (currentObjectUrlRef.current) {
+          URL.revokeObjectURL(currentObjectUrlRef.current);
+          currentObjectUrlRef.current = null;
+        }
+        setAvatarFile(null);
+        setAvatarPreview(finalAvatarUrl);
       }
 
       const payload = {
@@ -309,6 +364,13 @@ export function ProfileForm() {
           {isNewProfile ? "Complete Setup" : "Save Profile"}
         </button>
       </div>
+
+      <AvatarCropModal
+        isOpen={isCropModalOpen}
+        imageFile={selectedRawFile}
+        onApply={handleCropApply}
+        onClose={handleCropClose}
+      />
     </form>
   );
 }

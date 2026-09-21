@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDebate, getDebateByRoomId, getDebates, joinDebate, leaveDebate, getDebateParticipants, getClaimsBySide, switchDebateSide, getSideChangeHistory, createPrivateDebate, createRoomInvitation, setRoomAccessCode, removeDebateParticipant, publishDebateRoom, acceptInvitation, joinWithAccessCode, getRoomInvitations, revokeRoomInvitation, setParticipantInvitesEnabled, roomHasAccessCode } from "@/features/debates/services/debate-service";
+import { createDebate, getDebateByRoomId, getDebates, joinDebate, leaveDebate, getDebateParticipants, getClaimsBySide, switchDebateSide, getSideChangeHistory, createPrivateDebate, createRoomInvitation, setRoomAccessCode, removeDebateParticipant, publishDebateRoom, acceptInvitation, joinWithAccessCode, getRoomInvitations, revokeRoomInvitation, setParticipantInvitesEnabled, roomHasAccessCode, updateDebateDeadline } from "@/features/debates/services/debate-service";
 import type { DebateSortOption, DebateFeedItem } from "@/features/debates/services/debate-service";
 import type { DiscussionClaim } from "@/features/discussions/types";
 import { useState, useCallback } from "react";
@@ -8,7 +8,10 @@ export function useDebates(
   statusFilter: "active" | "closing_soon" = "active",
   sort: DebateSortOption = "most_active",
 ) {
-  const [items, setItems] = useState<DebateFeedItem[]>([]);
+  // Extra pages loaded via "Load More". The first page always comes from
+  // query.data so that cached responses (served without re-running queryFn)
+  // are reflected immediately when the component mounts on a warm cache.
+  const [extraItems, setExtraItems] = useState<DebateFeedItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -17,7 +20,9 @@ export function useDebates(
     queryKey: ["debates", "browse", { statusFilter, sort }],
     queryFn: async () => {
       const page = await getDebates(statusFilter, sort, null);
-      setItems(page.items);
+      // Reset extra pages whenever the first page re-fetches (filter/sort change
+      // or background refetch). Cursor tracks the next page from this fresh result.
+      setExtraItems([]);
       setCursor(page.nextCursor);
       setHasMore(page.nextCursor !== null);
       return page;
@@ -30,13 +35,19 @@ export function useDebates(
     setIsLoadingMore(true);
     try {
       const page = await getDebates(statusFilter, sort, cursor);
-      setItems((prev) => [...prev, ...page.items]);
+      setExtraItems((prev) => [...prev, ...page.items]);
       setCursor(page.nextCursor);
       setHasMore(page.nextCursor !== null);
     } finally {
       setIsLoadingMore(false);
     }
   }, [cursor, isLoadingMore, statusFilter, sort]);
+
+  // Derive the full items list: first page from query cache + any extra pages
+  // loaded via "Load More". This ensures items are always populated even when
+  // TanStack Query serves a cached response without calling queryFn.
+  const firstPageItems = query.data?.items ?? [];
+  const items = extraItems.length > 0 ? [...firstPageItems, ...extraItems] : firstPageItems;
 
   return {
     data: query.data,
@@ -58,6 +69,7 @@ export function useCreateDebate() {
       description?: string;
       topicId: string;
       openingStatement: string;
+      closesAt?: string | null;
     }) => createDebate(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discussions"] });
@@ -165,6 +177,7 @@ export function useCreatePrivateDebate() {
       propositionTitle: string;
       oppositionTitle: string;
       openingStatement: string;
+      closesAt?: string | null;
     }) => createPrivateDebate(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["discussions"] });
@@ -206,6 +219,18 @@ export function useRemoveDebateParticipant() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["debateParticipants", variables.roomId] });
       queryClient.invalidateQueries({ queryKey: ["debate", variables.roomId] });
+    },
+  });
+}
+
+export function useUpdateDebateDeadline(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (closesAt: string | null) => updateDebateDeadline(roomId, closesAt),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["debate", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["debates"] });
     },
   });
 }

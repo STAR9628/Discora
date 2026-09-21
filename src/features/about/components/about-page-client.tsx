@@ -461,16 +461,16 @@ export function AboutPageClient() {
 
         <div className="relative mx-auto max-w-2xl">
           {/* Wordmark */}
-          <div className="mb-8 flex items-center justify-center gap-2">
+          <div className="mb-8 flex items-center justify-center gap-2.5">
             <Image
               src="/discora-mark.png"
-              alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9 shrink-0"
+              alt="Discora"
+              width={48}
+              height={48}
+              className="h-11 w-11 sm:h-12 sm:w-12 shrink-0"
               priority
             />
-            <span className="text-xl font-bold tracking-tight">Discora</span>
+            <span className="text-2xl font-bold tracking-tight text-foreground">Discora</span>
           </div>
 
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl">
@@ -488,13 +488,13 @@ export function AboutPageClient() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/discussions"
-              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Browse discussions
             </Link>
             <Link
               href="/register"
-              className="rounded-lg border border-border/60 px-5 py-2.5 text-sm font-semibold text-foreground/80 transition-colors hover:border-border hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="rounded-xl border border-border/80 bg-card/60 px-5 py-2.5 text-sm font-semibold text-foreground/90 shadow-xs transition-colors hover:border-border hover:bg-card hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Join Discora
             </Link>

@@ -83,6 +83,12 @@ export interface Debate {
   totalParticipants: number;
   totalEvidence: number;
   lastActivityAt: string;
+  /**
+   * Optional intended participation deadline (ISO timestamptz, informational
+   * lifecycle metadata). NULL = open-ended debate. Passing this timestamp
+   * never automatically changes status.
+   */
+  closesAt: string | null;
 }
 
 export interface DebateParticipant {

@@ -29,13 +29,16 @@ export function useSearchNavigation() {
 
   const setQuery = useCallback(
     (q: string) => {
+      const current = searchParams.get("q") ?? "";
+      if (current === q) return;
       const params = new URLSearchParams(searchParams);
       if (q) {
         params.set("q", q);
       } else {
         params.delete("q");
       }
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
     [router, pathname, searchParams],
   );

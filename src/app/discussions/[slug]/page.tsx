@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { createServerSupabaseClient } from "@/services/supabase/server";
 import {
-  getClaimRelations,
   getClaims,
   getDiscussionBySlug,
-  getEvidenceForRoom,
-  getQuestions,
-  getRoomArguments,
+  getMessagesPaginated,
 } from "@/features/discussions/services/discussion-service";
-import { getInquiryCountsByRoom } from "@/features/inquiries/services/inquiry-service";
-import { DiscussionOverviewUnderstanding } from "@/features/discussions/components/discussion-overview-understanding";
+import { DiscussionContributionsSection } from "@/features/discussions/components/discussion-contributions-section";
 import { isPubliclyVisibleRoom } from "@/lib/seo/public-room";
 
 type PageProps = {
@@ -82,70 +77,31 @@ export default async function Page({ params }: PageProps) {
     redirect(`/debates/${slug}`);
   }
 
-  // Public-room SSR: the same SoU inputs the client fetches, executed once on
-  // the server so initial HTML carries the deterministic understanding.
-  // Gated + fail-open; SoU computation itself is unchanged (pure function).
-  let initial:
-    | {
-        claims: Awaited<ReturnType<typeof getClaims>>;
-        roomEvidence: Awaited<ReturnType<typeof getEvidenceForRoom>>;
-        questions: Awaited<ReturnType<typeof getQuestions>>;
-        relations: Awaited<ReturnType<typeof getClaimRelations>>;
-        inquiryCounts: Awaited<ReturnType<typeof getInquiryCountsByRoom>>;
-        roomArguments: Awaited<ReturnType<typeof getRoomArguments>>;
-      }
-    | undefined;
+  // Public-room SSR: server-render the first page of messages + claims so
+  // crawlers/AI readers see real discourse substance in initial HTML.
+  let initialMessagesPage;
+  let initialClaims;
   if (isPubliclyVisibleRoom(discussionItem.room)) {
+    const supabaseSSR = await createServerSupabaseClient();
     try {
-      const supabaseSSR = await createServerSupabaseClient();
-      const [claims, roomEvidence, questions, relations, inquiryCounts, roomArguments] = await Promise.all([
+      const [messagesPage, claims] = await Promise.all([
+        getMessagesPaginated(discussionItem.room.id, { overrideClient: supabaseSSR }),
         getClaims(discussionItem.room.id, undefined, supabaseSSR),
-        getEvidenceForRoom(discussionItem.room.id, supabaseSSR),
-        getQuestions(discussionItem.room.id, supabaseSSR),
-        getClaimRelations(discussionItem.room.id, supabaseSSR),
-        getInquiryCountsByRoom(discussionItem.room.id, supabaseSSR),
-        getRoomArguments(discussionItem.room.id, supabaseSSR),
       ]);
-      initial = { claims, roomEvidence, questions, relations, inquiryCounts, roomArguments };
+      initialMessagesPage = messagesPage;
+      initialClaims = claims;
     } catch {
       // Fall through to client-side fetching.
     }
   }
 
-  const sections = [
-    ["Claims", "Inspect the room's reasoning and linked support.", "claims"],
-    ["Evidence", "Inspect supporting, contradicting, and contextual evidence.", "evidence"],
-    ["Questions & Inquiries", "Inspect what remains open or needs clarification.", "questions"],
-    ["Contributions", "Read the discussion thread when it adds context.", "contributions"],
-  ];
-
   return (
-    <div className="space-y-6">
-      <DiscussionOverviewUnderstanding
-        roomId={discussionItem.room.id}
-        slug={slug}
-        initialClaims={initial?.claims}
-        initialEvidence={initial?.roomEvidence}
-        initialQuestions={initial?.questions}
-        initialRelations={initial?.relations}
-        initialInquiryCounts={initial?.inquiryCounts}
-        initialArguments={initial?.roomArguments}
-      />
-      <section className="grid gap-4 sm:grid-cols-2">
-        {sections.map(([title, copy, path]) => (
-          <Link
-            key={path}
-            href={`/discussions/${slug}/${path}`}
-            className="rounded-2xl border border-border/70 bg-card/30 p-5 transition-colors hover:bg-card/50"
-          >
-            <h2 className="font-bold text-foreground">{title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{copy}</p>
-            <span className="mt-4 inline-block text-xs font-bold text-primary">
-              Inspect {title} →
-            </span>
-          </Link>
-        ))}
-      </section>
-    </div>
+    <DiscussionContributionsSection
+      roomId={discussionItem.room.id}
+      slug={slug}
+      openingStatement={discussionItem.discussion?.openingStatement}
+      initialMessagesPage={initialMessagesPage}
+      initialClaims={initialClaims}
+    />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { registerWithEmail } from "@/features/auth/services/auth-service";
@@ -10,8 +11,11 @@ import {
   type RegisterFormValues,
 } from "@/features/auth/validation";
 import { GoogleOneTap } from "@/features/auth/components/google-one-tap";
+import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
 
 export function RegisterForm() {
+  const searchParams = useSearchParams();
+  const safeRedirect = getSafeRedirectUrl(searchParams.get("redirectedFrom"), "/");
   const [message, setMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof RegisterFormValues, string[]>>
@@ -57,7 +61,7 @@ export function RegisterForm() {
 
   return (
     <div className="space-y-6">
-      <GoogleOneTap redirectTo="/about" />
+      <GoogleOneTap redirectTo={safeRedirect} />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -68,71 +72,71 @@ export function RegisterForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
-          {...register("email")}
-        />
-        {fieldErrors.email?.map((error) => (
-          <p key={error} className="text-xs text-destructive">
-            {error}
-          </p>
-        ))}
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
-          {...register("password")}
-        />
-        {fieldErrors.password?.map((error) => (
-          <p key={error} className="text-xs text-destructive">
-            {error}
-          </p>
-        ))}
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="confirmPassword" className="text-sm font-medium">
-          Confirm Password
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          autoComplete="new-password"
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring"
-          {...register("confirmPassword")}
-        />
-        {fieldErrors.confirmPassword?.map((error) => (
-          <p key={error} className="text-xs text-destructive">
-            {error}
-          </p>
-        ))}
-      </div>
-      {message ? (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-2">
-          <p className="font-medium text-foreground">{message}</p>
-          <p>Please check your inbox and click the verification link to activate your account.</p>
+      <form onSubmit={handleSubmit(onSubmit)} method="post" className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            className="w-full rounded-xl border border-input bg-card/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus-visible:outline-none"
+            {...register("email")}
+          />
+          {fieldErrors.email?.map((error) => (
+            <p key={error} className="text-xs text-destructive mt-1">
+              {error}
+            </p>
+          ))}
         </div>
-      ) : null}
-      <button
-        type="submit"
-        disabled={formState.isSubmitting}
-        className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {formState.isSubmitting ? "Creating account..." : "Register"}
-      </button>
+        <div className="space-y-2">
+          <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            className="w-full rounded-xl border border-input bg-card/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus-visible:outline-none"
+            {...register("password")}
+          />
+          {fieldErrors.password?.map((error) => (
+            <p key={error} className="text-xs text-destructive mt-1">
+              {error}
+            </p>
+          ))}
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="confirmPassword" className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            className="w-full rounded-xl border border-input bg-card/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-primary focus-visible:outline-none"
+            {...register("confirmPassword")}
+          />
+          {fieldErrors.confirmPassword?.map((error) => (
+            <p key={error} className="text-xs text-destructive mt-1">
+              {error}
+            </p>
+          ))}
+        </div>
+        {message ? (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-2">
+            <p className="font-medium text-foreground">{message}</p>
+            <p>Please check your inbox and click the verification link to activate your account.</p>
+          </div>
+        ) : null}
+        <button
+          type="submit"
+          disabled={formState.isSubmitting}
+          className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+        >
+          {formState.isSubmitting ? "Creating account..." : "Register"}
+        </button>
 
       {/* Legal & 18+ Eligibility Area */}
       <div className="space-y-3 pt-1">

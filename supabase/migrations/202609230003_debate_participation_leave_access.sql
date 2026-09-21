@@ -1,0 +1,22 @@
+-- Migration: Debate participation leave access (self-delete)
+--
+-- FINDING: leaveDebate (direct DELETE scoped by room_id) fails with 42501
+-- "permission denied for table debate_participants". Same grant-layer class
+-- as 202609230002 (INSERT): no repository migration ever granted DELETE on
+-- this table, while the narrowing RLS policy "Users can leave debates"
+-- already exists (USING auth.uid() = user_id — own rows only; guests match
+-- nothing since auth.uid() is NULL for them).
+--
+-- This GRANT activates only that authorized path: an authenticated user can
+-- delete their own participation row(s) in a debate. No access widens beyond
+-- what the policy already authorizes. Existing leave semantics (hard delete
+-- of own rows; moderator removals flow through the separate
+-- remove_participant RPC) are unchanged.
+--
+-- Scope: DELETE grant to authenticated ONLY. No UPDATE grants, no anon
+-- grants, no policy changes, no triggers, no cron.
+-- ROLLBACK: REVOKE delete on public.debate_participants FROM authenticated.
+--
+-- Safety: additive, re-runnable, single statement.
+
+grant delete on public.debate_participants to authenticated;

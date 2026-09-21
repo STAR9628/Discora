@@ -107,7 +107,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Profile Info Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6 md:p-8">
         <div className="absolute top-0 right-0 h-32 w-32 bg-primary/5 blur-3xl rounded-full" />
@@ -198,7 +198,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         showExpertise={showExpertise}
         showSideSwitches={showSideSwitches}
       />
-    </main>
+    </div>
   );
 }
 

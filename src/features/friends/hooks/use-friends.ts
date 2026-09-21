@@ -1,10 +1,13 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { toast } from "@/components/ui/toast";
 import {
   getRelationshipState,
+  lookupProfileByExactUsername,
+  normalizeLookupUsername,
   listIncomingRequests,
   listOutgoingRequests,
   listFriendships,
@@ -68,6 +71,49 @@ export function useBlockedList() {
     enabled: !!userId,
     staleTime: 30_000,
   });
+}
+
+/**
+ * Manual exact-username lookup. Runs only when `search()` is called, so
+ * typing never issues requests and results can never enumerate members —
+ * one normalized username in, at most one counterpart out.
+ */
+export function useUsernameLookup() {
+  const [result, setResult] = useState<{
+    normalized: string;
+    profile: import("../services/friend-service").CounterpartProfile | null;
+  } | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const search = useCallback(async (raw: string) => {
+    const normalized = normalizeLookupUsername(raw);
+    if (!normalized) {
+      setResult(null);
+      setSearchError(
+        "Enter a valid username (3–30 characters: lowercase letters, numbers, _ or -).",
+      );
+      return;
+    }
+    setIsSearching(true);
+    setSearchError(null);
+    try {
+      const profile = await lookupProfileByExactUsername(normalized);
+      setResult({ normalized, profile });
+    } catch {
+      setResult(null);
+      setSearchError("Something went wrong. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const clear = useCallback(() => {
+    setResult(null);
+    setSearchError(null);
+  }, []);
+
+  return { result, isSearching, searchError, search, clear };
 }
 
 export function useRelationshipState(targetUserId: string | null) {

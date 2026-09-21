@@ -95,6 +95,14 @@
   outline-offset: 2px;
 }
 
+/* Ensure form controls have crisp, perfectly positioned focus indicators that never collide with labels */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 0px;
+}
+
 /* Reduced motion: honor the OS-level preference globally. Non-essential
    transitions/animations collapse to near-instant so state changes remain
    legible without vestibular strain; spinners keep a static presence so
@@ -139,6 +147,14 @@
   }
 }
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 html {
   color-scheme: dark;
 }
@@ -152,8 +168,38 @@ body {
     sans-serif;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@keyframes lensFadeIn {
+  from {
+    opacity: 0.88;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@utility lens-transition {
+  animation: lensFadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes disclosureFade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility disclosure-content {
+  animation: disclosureFade 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 

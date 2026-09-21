@@ -51,9 +51,10 @@ export function AppShell({ children }: AppShellProps) {
           className={`flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0 transition-[padding] duration-200 ease-in-out ${
             isSidebarCollapsed ? "md:pl-16" : "md:pl-64"
           }`}
+          style={{ "--sidebar-offset": isSidebarCollapsed ? "4rem" : "16rem" } as React.CSSProperties}
         >
           <Header />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" className="flex-1">{children}</main>
         </div>
       </div>
       <MobileNav onOpenFeedback={() => setIsFeedbackOpen(true)} />

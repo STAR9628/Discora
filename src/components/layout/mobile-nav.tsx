@@ -142,7 +142,7 @@ export function MobileNav({ onOpenFeedback }: MobileNavProps = {}) {
       {/* Fixed Bottom Navigation Bar */}
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 backdrop-blur-md md:hidden pb-[env(safe-area-inset-bottom,0px)]"
       >
         <ul className="grid grid-cols-4">
           {primaryItems.map((item) => {
@@ -156,12 +156,12 @@ export function MobileNav({ onOpenFeedback }: MobileNavProps = {}) {
               <li key={item.label}>
                 <Link
                   href={item.href}
-                  className={`flex h-16 w-full flex-col items-center justify-center gap-1 transition-colors active:scale-[0.97] ${
-                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  className={`flex h-14 w-full flex-col items-center justify-center gap-1 transition-colors active:scale-[0.97] ${
+                    isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground font-medium"
                   }`}
                 >
-                  <Icon aria-hidden="true" className="h-5 w-5" />
-                  <span className="text-[10px] leading-none font-medium">{item.label}</span>
+                  <Icon aria-hidden="true" className={`h-5 w-5 ${isActive ? "text-primary stroke-[2.25]" : ""}`} />
+                  <span className="text-[10px] leading-none">{item.label}</span>
                 </Link>
               </li>
             );
@@ -171,15 +171,15 @@ export function MobileNav({ onOpenFeedback }: MobileNavProps = {}) {
               ref={moreBtnRef}
               type="button"
               onClick={() => setMoreOpen(!moreOpen)}
-              className={`flex h-16 w-full flex-col items-center justify-center gap-1 transition-colors cursor-pointer active:scale-[0.97] ${
-                moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              className={`flex h-14 w-full flex-col items-center justify-center gap-1 transition-colors cursor-pointer active:scale-[0.97] ${
+                moreOpen ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground font-medium"
               }`}
               aria-expanded={moreOpen}
               aria-haspopup="true"
               aria-label="More navigation options"
             >
-              <MoreHorizontal aria-hidden="true" className="h-5 w-5" />
-              <span className="text-[10px] leading-none font-medium">More</span>
+              <MoreHorizontal aria-hidden="true" className={`h-5 w-5 ${moreOpen ? "text-primary stroke-[2.25]" : ""}`} />
+              <span className="text-[10px] leading-none">More</span>
             </button>
           </li>
         </ul>

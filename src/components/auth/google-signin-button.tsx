@@ -16,7 +16,8 @@ export function GoogleSignInButton({ redirectTo }: GoogleSignInButtonProps) {
 
     try {
       await loginWithGoogle({ redirectTo });
-    } catch {
+    } catch (err) {
+      console.error("Google sign in failed:", err);
       setIsRedirecting(false);
     }
   };

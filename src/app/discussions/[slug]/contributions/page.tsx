@@ -56,6 +56,8 @@ export default async function Page({
   return (
     <DiscussionContributionsSection
       roomId={item.room.id}
+      slug={slug}
+      openingStatement={item.discussion?.openingStatement}
       initialMessagesPage={initialMessagesPage}
       initialClaims={initialClaims}
     />

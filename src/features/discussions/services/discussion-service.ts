@@ -84,6 +84,7 @@ export interface DbDebateRow {
   total_participants?: number;
   total_evidence?: number;
   last_activity_at?: string;
+  closes_at?: string | null;
   title?: string;
   slug?: string;
   description?: string | null;
@@ -185,6 +186,7 @@ export function mapDebateRow(row: DbDebateRow): Debate {
     totalParticipants: row.total_participants ?? (row.proposition_participant_count + row.opposition_participant_count + row.neutral_participant_count),
     totalEvidence: row.total_evidence ?? 0,
     lastActivityAt: row.last_activity_at ?? row.updated_at,
+    closesAt: row.closes_at ?? null,
   };
 }
 
