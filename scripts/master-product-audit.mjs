@@ -9,16 +9,29 @@ if (!fs.existsSync(QA_DIR)) {
   fs.mkdirSync(QA_DIR, { recursive: true });
 }
 
-// User 1: New user (no profile yet) -> test profile completion flow
+/**
+ * Require an environment variable for QA credentials.
+ * Throws a clear error if the variable is not set.
+ * Does not print the credential value.
+ */
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required QA environment variable: ${name}. Set it in .env.local or shell before running this script.`);
+  }
+  return value;
+}
+
+// QA test accounts — credentials loaded from environment variables only.
+// No hardcoded fallbacks. Configure via .env.local or shell.
 const NEW_USER = {
-  email: "23bcs12017@cuchd.in",
-  password: "Test@123",
+  email: requiredEnv("QA_MEMBER_EMAIL"),
+  password: requiredEnv("QA_MEMBER_PASSWORD"),
 };
 
-// User 2: Authenticated user (has profile) -> test full navigation & room journeys
 const AUTH_USER = {
-  email: "asrnetflix012@gmail.com",
-  password: "Test@123",
+  email: requiredEnv("QA_OWNER_EMAIL"),
+  password: requiredEnv("QA_OWNER_PASSWORD"),
 };
 
 async function logStep(title) {
