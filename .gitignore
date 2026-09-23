@@ -47,5 +47,5 @@ test-results/
 .operator/*private*
 .operator/*credential*
 .operator/*identity*
-
+.operator/google-oauth-qa.local.json
 

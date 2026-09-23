@@ -1011,7 +1011,7 @@ export function LoggedInHomepage() {
   const [tab, setTab] = useState<"deliberations" | "commons">("deliberations");
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 py-8 pb-16">
+    <div className="mx-auto max-w-5xl space-y-8 py-8 pb-16">
       <WelcomeBar />
       <FirstUserBanner />
       <QuickActions />

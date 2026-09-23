@@ -26,20 +26,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     let isMounted = true;
+    // Initialization barrier: the provider settles to guest only after BOTH
+    // the active probe (refreshSession) and the authoritative INITIAL_SESSION
+    // snapshot have run without yielding a session. Either source promoting
+    // to authenticated wins immediately. This keeps the terminal fallback
+    // (no indefinite "loading") without letting a stale probe overwrite a
+    // concurrently arriving valid session (e.g. right after OAuth return).
+    let refreshDone = false;
+    let initialEventSeen = false;
+    let refreshSeq = 0;
+
+    const settleGuest = (errorMessage: string | null) => {
+      if (!isMounted) return;
+      if (!refreshDone || !initialEventSeen) return;
+      setAuthState({
+        status: "guest",
+        session: null,
+        user: null,
+        error: errorMessage,
+      });
+    };
+
+    const adoptAuthenticated = (
+      session: NonNullable<AuthState["session"]>,
+    ) => {
+      if (!isMounted) return;
+      refreshDone = true;
+      initialEventSeen = true;
+      setAuthState({
+        status: "authenticated",
+        session,
+        user: session.user,
+        error: null,
+      });
+    };
 
     const refreshSession = async () => {
+      const seq = ++refreshSeq;
+      const stillLatest = () => isMounted && seq === refreshSeq;
       try {
         const supabase = createBrowserSupabaseClient();
         const { data, error } = await supabase.auth.getSession();
-        if (!isMounted) return;
+        if (!stillLatest()) return;
 
         if (data.session) {
-          setAuthState({
-            status: "authenticated",
-            session: data.session,
-            user: data.session.user,
-            error: null,
-          });
+          adoptAuthenticated(data.session);
           return;
         }
 
@@ -47,32 +78,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // attempt getUser() to resolve session from server before falling back to guest.
         if (hasAuthCookie()) {
           const { data: userData } = await supabase.auth.getUser();
-          if (!isMounted) return;
+          if (!stillLatest()) return;
           if (userData?.user) {
             const { data: refreshedSession } = await supabase.auth.getSession();
+            if (!stillLatest()) return;
             if (refreshedSession?.session) {
-              setAuthState({
-                status: "authenticated",
-                session: refreshedSession.session,
-                user: refreshedSession.session.user,
-                error: null,
-              });
+              adoptAuthenticated(refreshedSession.session);
               return;
             }
           }
         }
 
-        // Only adopt guest if no session AND no valid auth cookie is present
-        if (!hasAuthCookie()) {
-          setAuthState({
-            status: "guest",
-            session: null,
-            user: null,
-            error: error?.message ?? null,
-          });
-        }
+        // Terminal fallback: no session recovered. Settles to guest only
+        // once the INITIAL_SESSION snapshot has also run, so an early probe
+        // can never overwrite a concurrently arriving valid session.
+        // A later onAuthStateChange event still promotes to authenticated.
+        refreshDone = true;
+        settleGuest(error?.message ?? null);
       } catch {
-        // Silently ignore refresh errors
+        // Recovery threw (network/storage failure). Do not destroy any
+        // potentially valid session and do not leave status as "loading".
+        if (!stillLatest()) return;
+        refreshDone = true;
+        settleGuest(null);
       }
     };
 
@@ -90,23 +118,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // When INITIAL_SESSION fires:
         // - If session present -> adopt session immediately.
-        // - If no session AND no auth cookie -> visitor is definitely guest, adopt guest immediately.
-        // - If no session BUT auth cookie is present -> do NOT drop to guest yet; getSession() is concurrently restoring.
+        // - If no session -> record the snapshot; settle to guest only once
+        //   the active probe (refreshSession) has also completed, so neither
+        //   signal can prematurely overwrite the other.
         if (event === "INITIAL_SESSION") {
           if (session) {
-            setAuthState({
-              status: "authenticated",
-              session,
-              user: session.user,
-              error: null,
-            });
-          } else if (!hasAuthCookie()) {
-            setAuthState({
-              status: "guest",
-              session: null,
-              user: null,
-              error: null,
-            });
+            adoptAuthenticated(session);
+          } else {
+            initialEventSeen = true;
+            if (!hasAuthCookie()) {
+              refreshDone = true;
+            }
+            settleGuest(null);
           }
           return;
         }
