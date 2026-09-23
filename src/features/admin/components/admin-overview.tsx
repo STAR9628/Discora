@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { AdminOverviewStats, AdminAuditLogItem } from "../types";
 import type { AdminTab } from "./admin-header";
+import { AdminPlatformIdentity } from "./admin-platform-identity";
 import { formatDate } from "@/lib/date";
 
 interface AdminOverviewProps {
@@ -128,6 +129,9 @@ export function AdminOverview({ stats, recentLogs, onNavigateTab }: AdminOvervie
           );
         })}
       </div>
+
+      {/* Platform Identity (owner-only operational control) */}
+      <AdminPlatformIdentity />
 
       {/* Recent Activity Snapshot */}
       <div className="rounded-xl border border-border bg-card p-5">

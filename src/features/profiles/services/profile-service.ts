@@ -15,6 +15,7 @@ export interface DbProfileRow {
   created_at: string;
   updated_at: string;
   is_founding_member?: boolean;
+  platform_title?: "founder" | "co_founder" | null;
   is_deleted?: boolean;
   age_confirmed?: boolean;
 }
@@ -33,6 +34,7 @@ export function mapProfileRow(row: DbProfileRow): UserProfile {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isFoundingMember: Boolean(row.is_founding_member),
+    platformTitle: row.platform_title ?? null,
     isDeleted: Boolean(row.is_deleted),
     ageConfirmed: Boolean(row.age_confirmed),
   };

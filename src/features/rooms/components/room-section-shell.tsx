@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Compass, FileText, HelpCircle, Layers, Link2, MessageSquare } from "lucide-react";
 
 import { RoomGuideCard } from "@/features/onboarding";
+import { InviteGuidance } from "@/features/founding/components/invite-guidance";
 import { CompactStickyRoomHeader } from "./compact-sticky-room-header";
 
 export type RoomLens = "conversation" | "claims" | "evidence" | "sources" | "questions" | "understanding";
@@ -20,6 +21,8 @@ type RoomSectionShellProps = {
   children: React.ReactNode;
   beforeNav?: React.ReactNode;
   headerAction?: React.ReactNode;
+  /** Room visibility. Invite guidance renders on public overviews only. */
+  visibility?: "public" | "private";
 };
 
 export function normalizeRoomLens(section: RoomSection): RoomLens | null {
@@ -54,6 +57,7 @@ export function RoomSectionShell({
   children,
   beforeNav,
   headerAction,
+  visibility,
 }: RoomSectionShellProps) {
   const basePath = roomType === "debate" ? "/debates" : "/discussions";
   const activeLens = normalizeRoomLens(section);
@@ -158,6 +162,11 @@ export function RoomSectionShell({
 
       {/* Contextual Room Guide */}
       <RoomGuideCard roomType={roomType} />
+
+      {/* Invite guidance: public room overviews only (private rooms have dedicated invite UI) */}
+      {(section === "overview" || section === "conversation") && visibility === "public" && (
+        <InviteGuidance roomType={roomType} roomSlug={slug} roomTitle={title} />
+      )}
 
       {beforeNav}
 

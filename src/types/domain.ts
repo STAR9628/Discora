@@ -57,6 +57,8 @@ export type UserProfile = BaseEntity & {
   joinedAt: string;
   role?: UserRole;
   isFoundingMember?: boolean;
+  /** Controlled platform identity title. Display only; grants no privileges. */
+  platformTitle?: "founder" | "co_founder" | null;
   isDeleted?: boolean;
   ageConfirmed?: boolean;
 };

@@ -8,6 +8,8 @@ import {
   getAdminRooms,
   getAdminFeedback,
   getAdminAuditLogs,
+  assignFounderTitles,
+  getFounderTitleStatus,
 } from "@/features/admin/services/admin-service";
 import type {
   AdminRoomItem,
@@ -102,6 +104,56 @@ export async function getAuditLogsAction(
     return {
       success: false,
       error: err instanceof Error ? err.message : "Failed to fetch audit logs",
+    };
+  }
+}
+
+/**
+ * Owner-only read of the approved Founder / Co-Founder title state.
+ * Takes no parameters; the target identities are server-side constants.
+ */
+export async function getFounderTitleStatusAction(): Promise<{
+  success: boolean;
+  data?: { userId: string; username: string | null; platformTitle: string | null }[];
+  error?: string;
+}> {
+  try {
+    const data = await getFounderTitleStatus();
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to fetch platform titles",
+    };
+  }
+}
+
+/**
+ * Owner-only assignment of the two PO-approved platform titles
+ * (techno_trix → founder, keerti → co_founder) via set_platform_title().
+ * Takes no parameters; assignments are server-side constants.
+ */
+export async function assignFounderTitlesAction(): Promise<{
+  success: boolean;
+  data?: { userId: string; label: string; title: string; success: boolean; error?: string }[];
+  error?: string;
+}> {
+  try {
+    const data = await assignFounderTitles();
+    const failed = data.filter((r) => !r.success);
+    if (failed.length > 0) {
+      return {
+        success: false,
+        data,
+        error: failed.map((r) => `${r.label}: ${r.error}`).join("; "),
+      };
+    }
+    revalidatePath("/admin");
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to assign platform titles",
     };
   }
 }

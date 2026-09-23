@@ -133,3 +133,98 @@ export async function logAdminAccess(): Promise<void> {
   const supabase = await createServerSupabaseClient();
   await supabase.rpc("admin_log_access");
 }
+
+/**
+ * PO-approved Founder / Co-Founder identity assignments.
+ *
+ * Server-side allowlist only. These UUIDs are never accepted from client
+ * input: the exposed server action takes no parameters. Display titles only;
+ * the set_platform_title() RPC (the final authorization boundary) grants no
+ * admin, moderation, reputation, or epistemic privileges.
+ */
+const FOUNDER_TITLE_ASSIGNMENTS = [
+  {
+    userId: "17265c80-a346-42dd-a86c-6795c500fd15",
+    title: "founder",
+    label: "techno_trix",
+  },
+  {
+    userId: "000adeae-f34b-435a-9bed-fcfb926b2b74",
+    title: "co_founder",
+    label: "keerti",
+  },
+] as const;
+
+export interface FounderTitleAssignmentResult {
+  userId: string;
+  label: string;
+  title: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface FounderTitleStatus {
+  userId: string;
+  username: string | null;
+  platformTitle: string | null;
+}
+
+/**
+ * Owner-only read of the current platform titles for the approved identities.
+ */
+export async function getFounderTitleStatus(): Promise<FounderTitleStatus[]> {
+  await requireOwner();
+  const supabase = await createServerSupabaseClient();
+
+  const ids = FOUNDER_TITLE_ASSIGNMENTS.map((a) => a.userId);
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, platform_title")
+    .in("id", ids);
+
+  if (error) {
+    throw new Error(`Failed to fetch platform titles: ${error.message}`);
+  }
+
+  const rows = (data || []) as unknown as {
+    id: string;
+    username: string | null;
+    platform_title: string | null;
+  }[];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+
+  return FOUNDER_TITLE_ASSIGNMENTS.map((a) => {
+    const row = byId.get(a.userId);
+    return {
+      userId: a.userId,
+      username: row?.username ?? null,
+      platformTitle: row?.platform_title ?? null,
+    };
+  });
+}
+
+/**
+ * Owner-only assignment of the two approved platform titles via the
+ * existing set_platform_title() RPC. No parameters accepted.
+ */
+export async function assignFounderTitles(): Promise<FounderTitleAssignmentResult[]> {
+  await requireOwner();
+  const supabase = await createServerSupabaseClient();
+
+  const results: FounderTitleAssignmentResult[] = [];
+  for (const assignment of FOUNDER_TITLE_ASSIGNMENTS) {
+    const { error } = await supabase.rpc("set_platform_title", {
+      p_user_id: assignment.userId,
+      p_title: assignment.title,
+    });
+    results.push({
+      userId: assignment.userId,
+      label: assignment.label,
+      title: assignment.title,
+      success: !error,
+      error: error?.message,
+    });
+  }
+
+  return results;
+}

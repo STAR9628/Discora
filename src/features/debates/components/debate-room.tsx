@@ -48,6 +48,7 @@ import { UnifiedComposer } from "@/features/rooms/components/unified-composer";
 import { PrivateDebateManagement } from "./private-debate-management";
 import { PrivateAccessGate } from "./private-access-gate";
 import { RoomGuideCard } from "@/features/onboarding";
+import { InviteGuidance } from "@/features/founding/components/invite-guidance";
 import { toast } from "@/components/ui/toast";
 import { CompactStickyRoomHeader } from "@/features/rooms/components/compact-sticky-room-header";
 import { SaveButton } from "@/features/saves/components/save-button";
@@ -376,6 +377,15 @@ function InnerDebateRoom({
 
       {/* 3. Contextual Room Guide — Compact progressive disclosure */}
       <RoomGuideCard roomType="debate" />
+
+      {/* Invite Guidance */}
+      {room.visibility === "public" && (
+        <InviteGuidance
+          roomType="debate"
+          roomSlug={room.slug}
+          roomTitle={room.title}
+        />
+      )}
 
       {/* 4. Sticky Section Navigation */}
       <DebateSectionNav />

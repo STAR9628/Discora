@@ -53,6 +53,7 @@ export function DiscussionRoomLayout({ discussionItem, children }: DiscussionRoo
           description={discussionItem.room.description}
           premise={discussionItem.discussion?.openingStatement}
           section={activeSection}
+          visibility={discussionItem.room.visibility}
           headerAction={
             <RoomHeaderActions showLabel>
               <SaveButton targetType="discussion" targetId={discussionItem.room.id} />

@@ -35,6 +35,7 @@ import type { DiscussionFeedItem } from "@/features/discussions/services/discuss
 import type { DebateFeedItem } from "@/features/debates/services/debate-service";
 import type { UnderstandingEvolved } from "../services/homepage-personal-service";
 import { OnboardingChecklistCard } from "@/features/onboarding";
+import { FoundingParticipantPrompt } from "@/features/founding/components/founding-participant-prompt";
 import { RecentlySavedSection } from "./recently-saved-section";
 import { RecentlyEngagedSection } from "./recently-engaged-section";
 
@@ -1015,6 +1016,7 @@ export function LoggedInHomepage() {
       <WelcomeBar />
       <FirstUserBanner />
       <QuickActions />
+      <FoundingParticipantPrompt />
 
       <div className="flex items-center gap-2 border-b border-border/60">
         <button

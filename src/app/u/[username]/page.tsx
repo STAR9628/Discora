@@ -4,11 +4,12 @@ import { createServerSupabaseClient } from "@/services/supabase/server";
 import { getProfileByUsername } from "@/features/profiles/services/profile-service";
 import { getUserContributions } from "@/features/reputation/services/reputation-service";
 import type { LucideIcon } from "lucide-react";
-import { Calendar, User, MessageSquare, Award, FileText, Swords, HelpCircle, Sparkles } from "lucide-react";
+import { Calendar, User, MessageSquare, Award, FileText, Swords, HelpCircle } from "lucide-react";
 import { formatDate } from "@/lib/date";
 import { ProfileReputationSection } from "@/features/reputation/components/profile-reputation-section";
 import { ShareButton } from "@/components/share/share-button";
 import { ProfileFriendControl } from "@/features/friends/components/profile-friend-control";
+import { ProfileTitleBadge } from "@/features/founding/components/profile-title-badge";
 import { getSiteUrl } from "@/lib/site-url";
 import { truncateText } from "@/lib/text";
 
@@ -87,6 +88,26 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     console.error("Error fetching contributions:", error);
   }
 
+  // Automatic Founding Participant recognition when viewing your own profile.
+  // The RPC grants profiles.is_founding_member to the caller only when
+  // discussion + debate participation both exist. Never breaks rendering.
+  try {
+    const {
+      data: { user: viewer },
+    } = await supabase.auth.getUser();
+    if (viewer?.id === profile.id && !profile.isFoundingMember) {
+      const { data: foundingStatus } = await supabase.rpc("evaluate_founding_status");
+      const row = (Array.isArray(foundingStatus) ? foundingStatus[0] : foundingStatus) as {
+        is_founding_member?: boolean;
+      } | null;
+      if (row?.is_founding_member) {
+        profile.isFoundingMember = true;
+      }
+    }
+  } catch {
+    // Ignore eligibility-check failures; the page must always render.
+  }
+
   // Fetch user preferences for privacy gating
   let showExpertise = true;
   let showSideSwitches = true;
@@ -138,15 +159,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   @{profile.username}
                 </span>
               )}
-              {profile.isFoundingMember && (
-                <span
-                  data-testid="founding-participant-badge"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary shadow-xs"
-                >
-                  <Sparkles className="h-3 w-3 text-primary" />
-                  Founding Participant
-                </span>
-              )}
+              <ProfileTitleBadge
+                platformTitle={profile.platformTitle ?? null}
+                isFoundingMember={profile.isFoundingMember ?? false}
+              />
             </div>
             {profile.bio ? (
               <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed whitespace-pre-wrap">
