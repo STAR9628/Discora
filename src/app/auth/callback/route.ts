@@ -4,6 +4,7 @@ import {
   OAUTH_NEXT_COOKIE_NAME,
   resolveOAuthDestination,
 } from "@/lib/security/oauth-destination";
+import { buildCallbackSuccessHtml } from "./callback-success-html";
 
 /**
  * Returns true if a cookie name looks like a Supabase auth token or one of
@@ -33,7 +34,23 @@ export async function GET(request: NextRequest) {
   );
 
   if (code) {
-    const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+    // Collect every cookie the exchange produces instead of attaching them
+    // to an intermediate redirect: the success response below is HTTP 200
+    // HTML (not a 3xx), so no redirect layer can re-attach the OAuth query.
+    // Types mirror NextResponse.cookies.set; verified by tsc at both ends.
+    const pendingCookies: {
+      name: string;
+      value: string;
+      options?: {
+        domain?: string;
+        expires?: Date;
+        httpOnly?: boolean;
+        maxAge?: number;
+        path?: string;
+        sameSite?: "lax" | "strict" | "none";
+        secure?: boolean;
+      };
+    }[] = [];
 
     // Track which cookie names the new session writes (set by applyServerStorage).
     const newSessionCookieNames = new Set<string>();
@@ -52,7 +69,28 @@ export async function GET(request: NextRequest) {
               // (both the new chunks with maxAge > 0 and any that ssr already
               // marks for deletion with maxAge = 0).
               newSessionCookieNames.add(name);
-              response.cookies.set(name, value, options);
+              // Normalize ssr cookie options to Next.js response-cookie shape.
+              // sameSite is narrowed (ssr types permit boolean) — a
+              // non-string value falls back to omitting the attribute.
+              const sameSite =
+                options.sameSite === "lax" ||
+                options.sameSite === "strict" ||
+                options.sameSite === "none"
+                  ? options.sameSite
+                  : undefined;
+              pendingCookies.push({
+                name,
+                value,
+                options: {
+                  domain: options.domain,
+                  expires: options.expires,
+                  httpOnly: options.httpOnly,
+                  maxAge: options.maxAge,
+                  path: options.path,
+                  sameSite,
+                  secure: options.secure,
+                },
+              });
             });
           },
         },
@@ -90,14 +128,26 @@ export async function GET(request: NextRequest) {
         ) {
           // Explicitly expire any auth-token cookie from the old session that
           // applyServerStorage did not already handle.
-          response.cookies.set(cookie.name, "", staleDeletionOptions);
+          pendingCookies.push({ name: cookie.name, value: "", options: staleDeletionOptions });
         }
       }
 
-      response.headers.set(
-        "Cache-Control",
-        "no-store, no-cache, must-revalidate, max-age=0",
-      );
+      // Success: HTTP 200 HTML that navigates to the validated destination.
+      // A 3xx is deliberately avoided: the Netlify redirect layer preserves
+      // the incoming OAuth query string onto 3xx Locations, which previously
+      // surfaced ?code= in the browser URL. HTML navigation carries no query.
+      const response = new NextResponse(buildCallbackSuccessHtml(next), {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        },
+      });
+      // Apply every cookie produced during the exchange (session chunks,
+      // stale purges) to this single response so none are lost.
+      for (const cookie of pendingCookies) {
+        response.cookies.set(cookie.name, cookie.value, cookie.options);
+      }
       // Consume the one-time destination cookie on success.
       response.cookies.set(OAUTH_NEXT_COOKIE_NAME, "", {
         path: "/",
