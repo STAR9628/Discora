@@ -1,30 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
-
-const ALLOWED_REDIRECT_PREFIXES = [
-  "/",
-  "/about",
-  "/settings",
-  "/discussions",
-  "/debates",
-  "/search",
-  "/u/",
-  "/friends",
-  "/saved",
-  "/login",
-  "/register",
-  "/auth/attest-age",
-] as const;
-
-function getAllowedRedirect(target: string | null, fallback = "/"): string {
-  const safe = getSafeRedirectUrl(target, fallback);
-  if (safe === fallback) return fallback;
-  const isAllowed = ALLOWED_REDIRECT_PREFIXES.some((prefix) =>
-    safe.startsWith(prefix),
-  );
-  return isAllowed ? safe : fallback;
-}
+import {
+  OAUTH_NEXT_COOKIE_NAME,
+  resolveOAuthDestination,
+} from "@/lib/security/oauth-destination";
 
 /**
  * Returns true if a cookie name looks like a Supabase auth token or one of
@@ -42,10 +21,16 @@ function isAuthTokenCookie(name: string): boolean {
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const target =
+  // Destination precedence: short-lived OAuth cookie (set by loginWithGoogle
+  // before redirecting to the provider), then the legacy ?next= query value
+  // (preserves email verification / password-reset flows), else "/".
+  // Both are re-validated against the shared allow-list; the cookie is
+  // consumed (deleted) on every response below.
+  const next = resolveOAuthDestination(
+    request.cookies.get(OAUTH_NEXT_COOKIE_NAME)?.value ?? null,
     requestUrl.searchParams.get("next") ||
-    requestUrl.searchParams.get("redirectedFrom");
-  const next = getAllowedRedirect(target, "/");
+      requestUrl.searchParams.get("redirectedFrom"),
+  );
 
   if (code) {
     const response = NextResponse.redirect(new URL(next, requestUrl.origin));
@@ -113,11 +98,26 @@ export async function GET(request: NextRequest) {
         "Cache-Control",
         "no-store, no-cache, must-revalidate, max-age=0",
       );
+      // Consume the one-time destination cookie on success.
+      response.cookies.set(OAUTH_NEXT_COOKIE_NAME, "", {
+        path: "/",
+        maxAge: 0,
+        sameSite: "lax",
+        secure: requestUrl.protocol === "https:",
+      });
       return response;
     }
   }
 
-  return NextResponse.redirect(
+  const failureResponse = NextResponse.redirect(
     new URL("/login?authError=verification", requestUrl.origin),
   );
+  // Consume the one-time destination cookie on failure as well.
+  failureResponse.cookies.set(OAUTH_NEXT_COOKIE_NAME, "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+    secure: requestUrl.protocol === "https:",
+  });
+  return failureResponse;
 }

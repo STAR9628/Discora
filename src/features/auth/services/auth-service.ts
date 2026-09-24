@@ -1,6 +1,10 @@
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
 import { mapSupabaseError } from "@/lib/errors";
 import { getSafeRedirectUrl, stripOAuthResidue } from "@/lib/security/safe-redirect";
+import {
+  OAUTH_NEXT_COOKIE_NAME,
+  OAUTH_NEXT_COOKIE_MAX_AGE,
+} from "@/lib/security/oauth-destination";
 import type {
   ForgotPasswordFormValues,
   LoginFormValues,
@@ -57,16 +61,22 @@ export async function registerWithEmail(
 export async function loginWithGoogle(options?: { redirectTo?: string }): Promise<void> {
   const supabase = createBrowserSupabaseClient();
   const siteUrl = getSiteUrl();
-  let callbackUrl = `${siteUrl}/auth/callback`;
 
-  if (options?.redirectTo) {
-    // Strip stale OAuth residue (e.g. a previous login's ?code=) so a login
-    // started from a dirty URL cannot re-embed it into the success redirect.
-    const safeTarget = getSafeRedirectUrl(stripOAuthResidue(options.redirectTo), "/");
-    if (safeTarget) {
-      callbackUrl += `?next=${encodeURIComponent(safeTarget)}`;
-    }
+  // Validate the intended destination, then carry it outside redirectTo in a
+  // short-lived cookie: Supabase must receive an EXACT query-free callback
+  // URL, which the Next.js callback resolves back to this destination.
+  const rawTarget = options?.redirectTo;
+  const destination = rawTarget
+    ? getSafeRedirectUrl(stripOAuthResidue(rawTarget), "/")
+    : "/";
+  if (typeof document !== "undefined") {
+    const secure = window.location.protocol === "https:";
+    document.cookie =
+      `${OAUTH_NEXT_COOKIE_NAME}=${encodeURIComponent(destination)}` +
+      `; Path=/; Max-Age=${OAUTH_NEXT_COOKIE_MAX_AGE}; SameSite=Lax${secure ? "; Secure" : ""}`;
   }
+
+  const callbackUrl = `${siteUrl}/auth/callback`;
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",

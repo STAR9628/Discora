@@ -69,6 +69,37 @@ const OAUTH_RESIDUE_PARAMS = [
 ] as const;
 
 /**
+ * Allow-listed post-auth destination prefixes. Shared by the OAuth callback
+ * and the destination-cookie resolver so both enforce the identical policy.
+ * Anything outside these prefixes falls back to "/".
+ */
+export const ALLOWED_REDIRECT_PREFIXES = [
+  "/",
+  "/about",
+  "/settings",
+  "/discussions",
+  "/debates",
+  "/search",
+  "/u/",
+  "/friends",
+  "/saved",
+  "/login",
+  "/register",
+  "/auth/attest-age",
+] as const;
+
+/**
+ * Validate a redirect target against the allow-listed prefixes.
+ * Returns the safe target, or `fallback` when invalid.
+ */
+export function getAllowedRedirectUrl(target: string | null | undefined, fallback = "/"): string {
+  const safe = getSafeRedirectUrl(target, fallback);
+  if (safe === fallback) return fallback;
+  const isAllowed = ALLOWED_REDIRECT_PREFIXES.some((prefix) => safe.startsWith(prefix));
+  return isAllowed ? safe : fallback;
+}
+
+/**
  * Remove OAuth-only residue query parameters from an already-validated
  * redirect target string (relative path, optional query and hash).
  *
