@@ -9,12 +9,12 @@ import { loginWithEmail } from "@/features/auth/services/auth-service";
 import { getFieldErrors } from "@/features/auth/utils/form-errors";
 import { loginSchema, type LoginFormValues } from "@/features/auth/validation";
 import { GoogleOneTap } from "@/features/auth/components/google-one-tap";
-import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
+import { getSafeRedirectUrl, stripOAuthResidue } from "@/lib/security/safe-redirect";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const safeRedirect = getSafeRedirectUrl(searchParams.get("redirectedFrom"), "/");
+  const safeRedirect = stripOAuthResidue(getSafeRedirectUrl(searchParams.get("redirectedFrom"), "/"));
   const authError = searchParams.get("authError");
   const authErrorMessage =
     authError === "verification"

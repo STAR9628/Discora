@@ -12,6 +12,7 @@ import type { DiscussionEvidence } from "../types";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatDate } from "@/lib/date";
+import { stripOAuthResidue } from "@/lib/security/safe-redirect";
 import { SaveButton } from "@/features/saves/components/save-button";
 
 interface EvidenceSectionProps {
@@ -121,7 +122,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
         {!user && !isClaimRetracted && !defaultOpen && (
           <NextLink
             href={`/login?redirectedFrom=${encodeURIComponent(
-              typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+              stripOAuthResidue(
+                typeof window !== "undefined" ? window.location.pathname + window.location.search : "",
+              ),
             )}`}
             className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
           >
@@ -146,7 +149,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           <div className="flex items-center gap-2 pt-1">
             <NextLink
               href={`/login?redirectedFrom=${encodeURIComponent(
-                typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+                stripOAuthResidue(
+                  typeof window !== "undefined" ? window.location.pathname + window.location.search : "",
+                ),
               )}`}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
             >
@@ -155,7 +160,9 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
             </NextLink>
             <NextLink
               href={`/register?redirectedFrom=${encodeURIComponent(
-                typeof window !== "undefined" ? window.location.pathname + window.location.search : ""
+                stripOAuthResidue(
+                  typeof window !== "undefined" ? window.location.pathname + window.location.search : "",
+                ),
               )}`}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/50 transition-colors"
             >

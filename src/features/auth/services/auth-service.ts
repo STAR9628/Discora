@@ -1,6 +1,6 @@
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
 import { mapSupabaseError } from "@/lib/errors";
-import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
+import { getSafeRedirectUrl, stripOAuthResidue } from "@/lib/security/safe-redirect";
 import type {
   ForgotPasswordFormValues,
   LoginFormValues,
@@ -60,7 +60,9 @@ export async function loginWithGoogle(options?: { redirectTo?: string }): Promis
   let callbackUrl = `${siteUrl}/auth/callback`;
 
   if (options?.redirectTo) {
-    const safeTarget = getSafeRedirectUrl(options.redirectTo, "/");
+    // Strip stale OAuth residue (e.g. a previous login's ?code=) so a login
+    // started from a dirty URL cannot re-embed it into the success redirect.
+    const safeTarget = getSafeRedirectUrl(stripOAuthResidue(options.redirectTo), "/");
     if (safeTarget) {
       callbackUrl += `?next=${encodeURIComponent(safeTarget)}`;
     }

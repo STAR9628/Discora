@@ -49,3 +49,65 @@ export function getSafeRedirectUrl(
     return fallback;
   }
 }
+
+/**
+ * OAuth residue parameters. These are consumed by the authentication flow
+ * itself (authorization codes, error responses, email-link tokens) and must
+ * never survive inside a post-login redirect target: the success redirect
+ * echoes `next` verbatim, so a stale residue would self-perpetuate in the
+ * browser URL across logins. Only these names are removed; legitimate
+ * application parameters (highlight, question, discussion lenses, etc.)
+ * are preserved untouched.
+ */
+const OAUTH_RESIDUE_PARAMS = [
+  "code",
+  "error",
+  "error_code",
+  "error_description",
+  "token_hash",
+  "type",
+] as const;
+
+/**
+ * Remove OAuth-only residue query parameters from an already-validated
+ * redirect target string (relative path, optional query and hash).
+ *
+ * Operates purely on the target string. Does not touch OAuth codes in
+ * flight, sessions, cookies, PKCE state, or code exchange.
+ */
+export function stripOAuthResidue(target: string): string {
+  if (!target || typeof target !== "string") {
+    return target;
+  }
+
+  const hashIndex = target.indexOf("#");
+  const hash = hashIndex >= 0 ? target.slice(hashIndex) : "";
+  const withoutHash = hashIndex >= 0 ? target.slice(0, hashIndex) : target;
+
+  const queryIndex = withoutHash.indexOf("?");
+  if (queryIndex < 0) {
+    return target;
+  }
+
+  const path = withoutHash.slice(0, queryIndex);
+  const query = withoutHash.slice(queryIndex + 1);
+  if (!query) {
+    return path + hash;
+  }
+
+  const params = new URLSearchParams(query);
+  let changed = false;
+  for (const name of OAUTH_RESIDUE_PARAMS) {
+    if (params.has(name)) {
+      params.delete(name);
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return target;
+  }
+
+  const remaining = params.toString();
+  return path + (remaining ? `?${remaining}` : "") + hash;
+}

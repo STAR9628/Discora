@@ -11,11 +11,11 @@ import {
   type RegisterFormValues,
 } from "@/features/auth/validation";
 import { GoogleOneTap } from "@/features/auth/components/google-one-tap";
-import { getSafeRedirectUrl } from "@/lib/security/safe-redirect";
+import { getSafeRedirectUrl, stripOAuthResidue } from "@/lib/security/safe-redirect";
 
 export function RegisterForm() {
   const searchParams = useSearchParams();
-  const safeRedirect = getSafeRedirectUrl(searchParams.get("redirectedFrom"), "/");
+  const safeRedirect = stripOAuthResidue(getSafeRedirectUrl(searchParams.get("redirectedFrom"), "/"));
   const [message, setMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof RegisterFormValues, string[]>>
