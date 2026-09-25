@@ -95,20 +95,21 @@ export default function GrievancePolicyPage() {
               </tr>
               <tr>
                 <td className="p-3 font-medium text-foreground">Officer Name</td>
-                <td className="p-3">
-                  <OperatorPlaceholder>[GRIEVANCE OFFICER NAME — OPERATOR TO PROVIDE]</OperatorPlaceholder>
-                </td>
+                <td className="p-3">Animesh Tripathi</td>
               </tr>
               <tr>
                 <td className="p-3 font-medium text-foreground">Operating Entity</td>
-                <td className="p-3">
-                  <OperatorPlaceholder>[OPERATING ENTITY NAME / PROPRIETOR — OPERATOR TO PROVIDE]</OperatorPlaceholder>
-                </td>
+                <td className="p-3">Animesh Tripathi (individual operator)</td>
               </tr>
               <tr>
                 <td className="p-3 font-medium text-foreground">Official Contact Email</td>
                 <td className="p-3">
-                  <OperatorPlaceholder>[OFFICIAL CONTACT EMAIL (e.g., grievance@discora.com) — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+                  <a
+                    href="mailto:grievance@discora.in"
+                    className="text-primary underline underline-offset-4 hover:opacity-80"
+                  >
+                    grievance@discora.in
+                  </a>
                 </td>
               </tr>
               <tr>
@@ -151,7 +152,12 @@ export default function GrievancePolicyPage() {
             If an issue requires formal statutory intervention, intellectual property notice, emergency removal, or an
             appeal of an administrative action, you must submit a formal written grievance via email to the Grievance
             Officer at{" "}
-            <OperatorPlaceholder>[OFFICIAL CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>.
+            <a
+              href="mailto:grievance@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              grievance@discora.in
+            </a>.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             To ensure prompt investigation, your formal grievance must include:

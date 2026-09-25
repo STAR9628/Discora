@@ -30,7 +30,7 @@ export default function PrivacyPolicyPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-muted-foreground">
           <div>
             <span className="font-medium text-foreground">Data Fiduciary / Operator:</span>{" "}
-            <OperatorPlaceholder>[OPERATING ENTITY NAME / PROPRIETOR — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+            Animesh Tripathi (individual operator)
           </div>
           <div>
             <span className="font-medium text-foreground">Operating Address:</span>{" "}
@@ -38,7 +38,12 @@ export default function PrivacyPolicyPage() {
           </div>
           <div className="sm:col-span-2">
             <span className="font-medium text-foreground">Privacy Contact:</span>{" "}
-            <OperatorPlaceholder>[OFFICIAL PRIVACY CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+            <a
+              href="mailto:privacy@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              privacy@discora.in
+            </a>
           </div>
         </div>
       </header>
@@ -377,7 +382,7 @@ export default function PrivacyPolicyPage() {
             inactive.
           </li>
           <li>
-            <strong>Vercel Inc. (USA):</strong> Web application hosting and content delivery network (CDN). Processes
+            <strong>Netlify Inc. (USA):</strong> Web application hosting and content delivery network (CDN). Processes
             standard HTTP request logs (IP addresses, request headers) at the network edge for security and routing.
           </li>
         </ol>
@@ -455,7 +460,12 @@ export default function PrivacyPolicyPage() {
           <code>Settings &gt; Danger Zone</code>), currently available in the beta application and subject to ongoing
           rollout. Users have the right to request deletion of their account and personal data at any time, including by
           contacting our privacy team at{" "}
-          <OperatorPlaceholder>[OFFICIAL PRIVACY CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>.
+            <a
+              href="mailto:privacy@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              privacy@discora.in
+            </a>.
         </p>
 
         <div className="space-y-2 pt-1">
@@ -463,7 +473,7 @@ export default function PrivacyPolicyPage() {
             A. Permanent Eradication of Personal Identity Data
           </h3>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            When an account deletion is executed (whether upon verified request or via the intended self-service mechanism):
+            When an account deletion is executed (whether upon verified request or via the self-service mechanism):
           </p>
           <ul className="list-disc list-outside pl-5 space-y-1 text-sm leading-relaxed text-muted-foreground">
             <li>Your authentication credentials and email address in <code>auth.users</code> are permanently deleted.</li>
@@ -519,7 +529,7 @@ export default function PrivacyPolicyPage() {
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           Discora operates cloud infrastructure hosted primarily in the United States and Singapore via our cloud
-          processors (Supabase, Vercel, Resend). If you access Discora from outside these territories, your data will be
+          processors (Supabase, Netlify, Resend). If you access Discora from outside these territories, your data will be
           transmitted across international borders to these service providers.
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
@@ -571,15 +581,21 @@ export default function PrivacyPolicyPage() {
           <li>Correct or update your username, display name, bio, and avatar.</li>
           <li>Control your public profile privacy toggles via Settings &gt; Privacy.</li>
           <li>
-            Request deletion of your account and personal data via our designated privacy contact (with automated
-            self-service deletion planned for <code>Settings &gt; Danger Zone</code> in an upcoming release).
+            Request deletion of your account and personal data via our designated privacy contact (including through
+            the self-service deletion flow in <code>Settings &gt; Danger Zone</code>, available in the beta
+            application).
           </li>
           <li>Inquire about our data processing practices or lodge a grievance.</li>
         </ul>
         <div className="space-y-2 pt-2 text-sm text-muted-foreground">
           <p>
             <strong>Privacy Contact Email:</strong>{" "}
-            <OperatorPlaceholder>[OFFICIAL PRIVACY CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+            <a
+              href="mailto:privacy@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              privacy@discora.in
+            </a>
           </p>
           <p>
             <strong>Postal Address:</strong>{" "}

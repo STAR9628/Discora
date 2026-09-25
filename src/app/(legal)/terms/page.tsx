@@ -30,7 +30,7 @@ export default function TermsOfServicePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-muted-foreground">
           <div>
             <span className="font-medium text-foreground">Operating Entity:</span>{" "}
-            <OperatorPlaceholder>[OPERATING ENTITY NAME / PROPRIETOR — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+            Animesh Tripathi (individual operator)
           </div>
           <div>
             <span className="font-medium text-foreground">Operating Jurisdiction:</span>{" "}
@@ -38,7 +38,12 @@ export default function TermsOfServicePage() {
           </div>
           <div className="sm:col-span-2">
             <span className="font-medium text-foreground">Contact:</span>{" "}
-            <OperatorPlaceholder>[OFFICIAL CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+            <a
+              href="mailto:hello@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              hello@discora.in
+            </a>
           </div>
         </div>
       </header>
@@ -305,7 +310,12 @@ export default function TermsOfServicePage() {
           directly within user settings (<code>Settings &gt; Danger Zone</code>), currently available in the beta
           application and subject to ongoing rollout. Where self-service is unavailable, users may submit an account
           deletion request through our designated privacy contact at{" "}
-          <OperatorPlaceholder>[OFFICIAL PRIVACY CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>.
+            <a
+              href="mailto:privacy@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              privacy@discora.in
+            </a>.
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
           <strong>9.2. Eradication of Personal Data:</strong> When account deletion is executed (whether upon verified
@@ -411,7 +421,12 @@ export default function TermsOfServicePage() {
         <div className="space-y-2 text-sm text-muted-foreground">
           <p>
             <strong>General Inquiries:</strong>{" "}
-            <OperatorPlaceholder>[OFFICIAL CONTACT EMAIL — OPERATOR TO PROVIDE]</OperatorPlaceholder>
+            <a
+              href="mailto:hello@discora.in"
+              className="text-primary underline underline-offset-4 hover:opacity-80"
+            >
+              hello@discora.in
+            </a>
           </p>
           <p>
             <strong>Statutory Grievances:</strong> Please refer to our{" "}

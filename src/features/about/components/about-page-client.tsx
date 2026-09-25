@@ -848,10 +848,10 @@ export function AboutPageClient() {
             <p className="text-sm text-muted-foreground">
               Questions or feedback?{" "}
               <a
-                href="mailto:hello@discora.com"
+                href="mailto:hello@discora.in"
                 className="font-medium text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
               >
-                hello@discora.com
+                hello@discora.in
               </a>
             </p>
           </div>
