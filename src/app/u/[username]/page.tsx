@@ -112,7 +112,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   let showExpertise = true;
   let showSideSwitches = true;
   try {
-    const { data: prefs } = await supabase.rpc("get_user_preferences", {
+    const { data: prefs } = await supabase.rpc("get_public_display_flags", {
       p_user_id: profile.id,
     });
     if (prefs && prefs.length > 0) {
