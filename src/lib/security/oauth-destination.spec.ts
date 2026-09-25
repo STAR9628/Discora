@@ -4,6 +4,7 @@ import {
   OAUTH_NEXT_COOKIE_NAME,
   parseOAuthNextCookie,
   resolveOAuthDestination,
+  resolveRecoveryDestination,
   serializeOAuthNextCookie,
 } from "@/lib/security/oauth-destination";
 
@@ -64,5 +65,21 @@ describe("oauth destination cookie", () => {
     expect(resolveOAuthDestination(null, "/reset-password")).toBe("/reset-password");
     expect(resolveOAuthDestination(null, "/about")).toBe("/about");
     expect(resolveOAuthDestination(null, "https://evil.example.com/")).toBe("/");
+  });
+
+  it("9. recovery defaults to /reset-password", () => {
+    expect(resolveRecoveryDestination(null)).toBe("/reset-password");
+    expect(resolveRecoveryDestination("")).toBe("/reset-password");
+    expect(resolveRecoveryDestination("/reset-password")).toBe("/reset-password");
+  });
+
+  it("10. recovery honors validated ?next= but never external URLs", () => {
+    expect(resolveRecoveryDestination("/about")).toBe("/about");
+    expect(resolveRecoveryDestination("https://evil.example.com/")).toBe(
+      "/reset-password",
+    );
+    expect(resolveRecoveryDestination("/reset-password?token_hash=STALE")).toBe(
+      "/reset-password",
+    );
   });
 });

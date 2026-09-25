@@ -83,3 +83,22 @@ export function resolveOAuthDestination(
   }
   return "/";
 }
+
+/**
+ * Resolve the password-recovery destination: the explicit validated `?next=`
+ * value (what requestPasswordReset sends), else the recovery default
+ * "/reset-password". The one-time Google destination cookie is flow-foreign
+ * here and is never navigated to (the callback still deletes it).
+ * Pure function safe to unit test. Never returns an external URL.
+ */
+export function resolveRecoveryDestination(
+  queryNext: string | null | undefined,
+): string {
+  if (queryNext) {
+    const validated = getAllowedRedirectUrl(stripOAuthResidue(queryNext), "");
+    if (validated) {
+      return validated;
+    }
+  }
+  return "/reset-password";
+}

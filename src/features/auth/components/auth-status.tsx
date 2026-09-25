@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { getLoginHref } from "@/features/auth/utils/login-href";
 import { useCurrentProfile } from "@/features/profiles/hooks/use-profile";
 import { hasAuthCookie } from "@/features/auth/utils/auth-cookie";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -97,14 +98,9 @@ export function AuthStatus() {
     );
   }
 
-  const isAuthOrHome =
-    pathname === "/" ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/register") ||
-    pathname.startsWith("/auth/");
-  const loginHref = isAuthOrHome
-    ? "/login"
-    : `/login?redirectedFrom=${encodeURIComponent(pathname)}`;
+  // Post-login destinations preserve the current page, except the
+  // password-recovery page, which must never be a login destination.
+  const loginHref = getLoginHref(pathname);
 
   return (
     <div className="flex items-center gap-2">

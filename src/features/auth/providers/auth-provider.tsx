@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthContext } from "@/features/auth/hooks/use-auth";
-import { logout } from "@/features/auth/services/auth-service";
+import { signOutAndClearAuthState } from "@/features/auth/services/auth-session-actions";
 import type { AuthState } from "@/features/auth/types";
 import { hasAuthCookie } from "@/features/auth/utils/auth-cookie";
 import { createBrowserSupabaseClient } from "@/services/supabase/client";
@@ -178,7 +178,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       ...authState,
       async signOut() {
-        await logout();
+        // Server-side sign-out invalidates the session and expires the
+        // httpOnly one-time auth cookies (recovery marker, OAuth
+        // destination), which browser JS cannot delete itself.
+        await signOutAndClearAuthState();
         queryClient.clear();
         setAuthState({
           status: "guest",

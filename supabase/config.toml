@@ -254,6 +254,13 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Discora password recovery: server-side TokenHash link. The app callback
+# verifies token_hash server-side (verifyOtp recovery) and establishes the
+# session itself; do NOT use {{ .ConfirmationURL }} here.
+[auth.email.template.recovery]
+subject = "Reset your Discora password"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

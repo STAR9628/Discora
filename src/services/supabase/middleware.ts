@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSupabaseConfig } from "@/services/supabase/config";
+import {
+  RECOVERY_VERIFIED_COOKIE_NAME,
+  hasRecoveryContext,
+} from "@/features/auth/utils/recovery-context";
 
 function createRedirectResponse(redirectUrl: URL | string, sourceResponse: NextResponse): NextResponse {
   const redirectResponse = NextResponse.redirect(redirectUrl);
@@ -57,6 +61,23 @@ export async function updateSupabaseSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+
+  // Recovery-only mode: a verified recovery session may use only the reset
+  // flow until the password is updated and the marker is consumed. Enforced
+  // here — before any other gate — so no protected content is ever fetched
+  // or rendered first. Marker + live session are both required; guests and
+  // normal sessions pass through untouched.
+  if (
+    hasRecoveryContext(
+      request.cookies.get(RECOVERY_VERIFIED_COOKIE_NAME)?.value ?? null,
+      user?.id ?? null,
+    ) &&
+    pathname !== "/reset-password" &&
+    !pathname.startsWith("/auth/") &&
+    !pathname.startsWith("/api/auth/clear-auth-state")
+  ) {
+    return createRedirectResponse(new URL("/reset-password", request.url), response);
+  }
 
   const isAdminPath = pathname.startsWith("/admin");
 
