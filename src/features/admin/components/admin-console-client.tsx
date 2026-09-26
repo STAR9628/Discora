@@ -7,6 +7,7 @@ import { AdminRooms } from "./admin-rooms";
 import { AdminFeedback } from "./admin-feedback";
 import { AdminModeration } from "./admin-moderation";
 import { AdminAuditLogs } from "./admin-audit-logs";
+import { AdminLifecycle } from "./admin-lifecycle";
 import type {
   AdminOverviewStats,
   AdminRoomItem,
@@ -54,6 +55,8 @@ export function AdminConsoleClient({
         {activeTab === "moderation" && <AdminModeration />}
 
         {activeTab === "audit" && <AdminAuditLogs initialLogs={auditLogs} />}
+
+        {activeTab === "lifecycle" && <AdminLifecycle />}
       </div>
     </div>
   );

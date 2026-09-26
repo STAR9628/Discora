@@ -16,6 +16,8 @@ export interface InquiryItem {
   username: string | null;
   avatarUrl: string | null;
   responseCount: number;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface InquiryResponse {
@@ -26,4 +28,6 @@ export interface InquiryResponse {
   createdAt: string;
   username: string | null;
   avatarUrl: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }

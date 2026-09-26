@@ -19,6 +19,7 @@ import {
   useRetractRoomEvidence,
   useRetractArgument,
   useClaims,
+  useDeleteMessage,
 } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionClaim, DiscussionMessage, ReactionType } from "@/features/discussions/types";
 import type { SectionPage } from "@/features/discussions/services/discussion-service";
@@ -67,6 +68,7 @@ export function DiscussionContributionsSection({
   const { items: messages, isLoading, error, hasMore, isLoadingMore, loadMore } = usePaginatedMessages(roomId, { initialPage: initialMessagesPage });
   const post = usePostMessage();
   const update = useUpdateMessage(roomId);
+  const deleteMessageMutation = useDeleteMessage(roomId);
 
   // Message IDs for batch reaction & claim request fetching
   const messageIds = useMemo(() => (messages || []).map((m) => m.id), [messages]);
@@ -346,6 +348,9 @@ export function DiscussionContributionsSection({
               onEdit={async (id, value) => {
                 await update.mutateAsync({ id, content: value });
                 setActiveEditId(null);
+              }}
+              onDelete={async (id) => {
+                await deleteMessageMutation.mutateAsync(id);
               }}
               onExtractClaim={(msg) => setExtractComment(msg)}
               onReport={(msg) =>

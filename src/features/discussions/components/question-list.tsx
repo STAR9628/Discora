@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useQuestions, useCreateQuestion, useRetractQuestion } from "@/features/discussions/hooks/use-discussions";
+import { useQuestions, useCreateQuestion, useRetractQuestion, useEditQuestion, useDeleteQuestion } from "@/features/discussions/hooks/use-discussions";
 import { questionSchema, type QuestionFormValues } from "@/features/discussions/validation";
-import { AlertCircle, HelpCircle, Loader2, User, Send, RotateCcw, ArrowRight, Flag } from "lucide-react";
+import { AlertCircle, HelpCircle, Loader2, User, Send, RotateCcw, ArrowRight, Flag, Edit3, Trash2, Check } from "lucide-react";
 import type { DiscussionQuestion } from "../types";
 import type { QuestionType } from "@/types/domain";
 import { toast } from "@/components/ui/toast";
@@ -36,9 +36,14 @@ export function QuestionList({
   const questionsError = externalQuestions !== undefined ? null : (internalQuestions.error as Error | null);
   const createMutation = useCreateQuestion(roomId);
   const retractMutation = useRetractQuestion(roomId);
+  const editQuestionMutation = useEditQuestion(roomId);
+  const deleteQuestionMutation = useDeleteQuestion(roomId);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [editQuestionContent, setEditQuestionContent] = useState("");
+  const [pendingDeleteQuestionId, setPendingDeleteQuestionId] = useState<string | null>(null);
   const [reportState, setReportState] = useState<{
     questionId: string;
     contentPreview: string;
@@ -285,6 +290,9 @@ export function QuestionList({
               const isQuestionAnon = question.identityMode === "anonymous";
               const isQuestionDeleted = question.username === "Deleted User";
               const isOwnQuestion = question.createdBy === user?.id;
+              const questionCreatedTime = new Date(question.createdAt).getTime();
+              const isWithin5Min = Date.now() - questionCreatedTime < 5 * 60 * 1000;
+              const canEditQuestion = isOwnQuestion && !question.isRetracted && isWithin5Min;
 
               return (
                 <div
@@ -309,11 +317,45 @@ export function QuestionList({
                           Retracted
                         </span>
                       )}
+                      {question.isEdited && (
+                        <span
+                          className="rounded-lg border border-border/40 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground/80 italic cursor-default"
+                          title={question.editedAt ? `Edited ${formatDate(question.editedAt)}` : "Edited"}
+                        >
+                          • Edited
+                        </span>
+                      )}
                     </div>
 
-                    {/* Retraction & Report options */}
+                    {/* Retraction, Edit/Delete & Report options */}
                     <div className="flex items-center gap-3">
-                      {isOwnQuestion && !question.isRetracted && (
+                      {canEditQuestion ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingQuestionId(question.id);
+                              setEditQuestionContent(question.content);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPendingDeleteQuestionId(question.id);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-destructive hover:underline cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      ) : isOwnQuestion && !question.isRetracted ? (
                         <button
                           onClick={(e) => handleRetract(e, question.id)}
                           disabled={retractMutation.isPending}
@@ -322,7 +364,7 @@ export function QuestionList({
                           <RotateCcw className="h-3.5 w-3.5" />
                           <span>Retract</span>
                         </button>
-                      )}
+                      ) : null}
                       {user && (
                         <Tooltip content="Report question">
                           <button
@@ -343,10 +385,61 @@ export function QuestionList({
                     </div>
                   </div>
 
-                  {/* Content Statement */}
-                  <p className="text-sm leading-relaxed text-foreground font-semibold">
-                    {question.content}
-                  </p>
+                  {/* Content Statement or Inline Edit Form */}
+                  {editingQuestionId === question.id ? (
+                    <form
+                      onClick={(e) => e.stopPropagation()}
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const trimmed = editQuestionContent.trim();
+                        if (trimmed.length < 5) {
+                          toast.error("Question must be at least 5 characters.");
+                          return;
+                        }
+                        try {
+                          await editQuestionMutation.mutateAsync({
+                            questionId: question.id,
+                            content: trimmed,
+                          });
+                          setEditingQuestionId(null);
+                          toast.success("Question updated.");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to update question.");
+                        }
+                      }}
+                      className="space-y-2 rounded-xl border border-primary/30 bg-background/60 p-2.5"
+                    >
+                      <textarea
+                        value={editQuestionContent}
+                        onChange={(e) => setEditQuestionContent(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-lg border border-input bg-background/80 px-3 py-2 text-xs md:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        disabled={editQuestionMutation.isPending}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingQuestionId(null)}
+                          disabled={editQuestionMutation.isPending}
+                          className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:bg-accent/40 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={editQuestionMutation.isPending || editQuestionContent.trim().length < 5}
+                          className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                        >
+                          {editQuestionMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                          <span>Save</span>
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-foreground font-semibold">
+                      {question.content}
+                    </p>
+                  )}
 
                   {/* Metadata Row: Profile, Date & View claims trigger */}
                   <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border/30 text-xs text-muted-foreground">
@@ -411,6 +504,27 @@ export function QuestionList({
         variant="danger"
         onConfirm={executeRetract}
         onCancel={() => setPendingRetractId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDeleteQuestionId}
+        title="Delete question?"
+        description="Are you sure you want to delete this question? This can only be done within 5 minutes of asking."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={deleteQuestionMutation.isPending}
+        onConfirm={async () => {
+          if (!pendingDeleteQuestionId) return;
+          try {
+            await deleteQuestionMutation.mutateAsync(pendingDeleteQuestionId);
+            toast.success("Question deleted.");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete question.");
+          } finally {
+            setPendingDeleteQuestionId(null);
+          }
+        }}
+        onCancel={() => setPendingDeleteQuestionId(null)}
       />
 
       <ReportDialog

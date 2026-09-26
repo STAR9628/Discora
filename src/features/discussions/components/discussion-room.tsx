@@ -6,6 +6,7 @@ import {
   usePostMessage,
   useUpdateMessage,
   useRetractQuestion,
+  useDeleteMessage,
 } from "@/features/discussions/hooks/use-discussions";
 import type { DiscussionFeedItem } from "@/features/discussions/services/discussion-service";
 import type { DiscussionMessage, DiscussionQuestion } from "@/features/discussions/types";
@@ -62,6 +63,7 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
 
   const postMutation = usePostMessage();
   const updateMutation = useUpdateMessage(room.id);
+  const deleteMessageMutation = useDeleteMessage(room.id);
   const retractQuestionMutation = useRetractQuestion(room.id);
 
   const [scrollToClaimId, setScrollToClaimId] = useState<string | null>(null);
@@ -461,6 +463,9 @@ function DiscussionRoomInner({ initialData, highlightId }: DiscussionRoomProps) 
                 roomId={room.id}
                 onReply={handlePostReply}
                 onEdit={handleUpdateMessage}
+                onDelete={async (id) => {
+                  await deleteMessageMutation.mutateAsync(id);
+                }}
                 onExtractClaim={handleExtractClaim}
                 onReport={handleReport}
                 onNavigateToClaims={handleNavigateToClaims}

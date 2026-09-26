@@ -108,11 +108,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     // Ignore eligibility-check failures; the page must always render.
   }
 
-  // Fetch user preferences for privacy gating
+  // Fetch user preferences for privacy gating.
+  // Narrow public-display RPC: returns only show_expertise/show_side_switches
+  // for any profile (guest-reachable); show_reputation stays self-only.
   let showExpertise = true;
   let showSideSwitches = true;
   try {
-    const { data: prefs } = await supabase.rpc("get_user_preferences", {
+    const { data: prefs } = await supabase.rpc("get_public_display_flags", {
       p_user_id: profile.id,
     });
     if (prefs && prefs.length > 0) {

@@ -16,6 +16,8 @@ interface DbInquiryItemRow {
   status: string;
   created_at: string;
   updated_at: string;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 interface DbInquiryItemViewRow extends DbInquiryItemRow {
@@ -30,6 +32,8 @@ interface DbInquiryResponseRow {
   created_by: string;
   content: string;
   created_at: string;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 interface DbInquiryResponseViewRow extends DbInquiryResponseRow {
@@ -66,6 +70,8 @@ function mapInquiryItemRow(row: DbInquiryItemViewRow): InquiryItem {
     username: row.username,
     avatarUrl: row.avatar_url,
     responseCount: row.response_count,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -78,6 +84,8 @@ function mapInquiryResponseRow(row: DbInquiryResponseViewRow): InquiryResponse {
     createdAt: row.created_at,
     username: row.username,
     avatarUrl: row.avatar_url,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -288,6 +296,7 @@ export async function getInquiryResponses(
     .from("inquiry_responses")
     .select("*")
     .eq("inquiry_item_id", inquiryItemId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -324,6 +333,7 @@ export async function getInquiriesByRoom(
       inquiry_responses (count)
     `)
     .eq("room_id", roomId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -352,3 +362,68 @@ export async function getInquiriesByRoom(
     }),
   );
 }
+
+export async function editInquiry(
+  inquiryId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("inquiry_items")
+    .update({ content })
+    .eq("id", inquiryId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit inquiry"));
+  }
+}
+
+export async function deleteInquiry(
+  inquiryId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_inquiry", {
+    p_inquiry_id: inquiryId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete inquiry"));
+  }
+}
+
+export async function editInquiryResponse(
+  responseId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("inquiry_responses")
+    .update({ content })
+    .eq("id", responseId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit inquiry response"));
+  }
+}
+
+export async function deleteInquiryResponse(
+  responseId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_inquiry_response", {
+    p_response_id: responseId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete inquiry response"));
+  }
+}
+

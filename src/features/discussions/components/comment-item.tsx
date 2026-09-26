@@ -21,7 +21,10 @@ import {
   Smile,
   Award,
   HelpCircle,
+  Trash2,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "@/components/ui/toast";
 
 interface CommentItemProps {
   node: CommentNode;
@@ -37,6 +40,7 @@ interface CommentItemProps {
   messageEvidenceMap: Map<string, number>;
   onReply: (parentId: string, content: string, anonymous: boolean) => Promise<void>;
   onEdit: (messageId: string, content: string) => Promise<void>;
+  onDelete?: (messageId: string) => Promise<void>;
   onExtractClaim: (comment: DiscussionMessage) => void;
   onReport: (message: DiscussionMessage) => void;
   onNavigateToClaims: () => void;
@@ -72,6 +76,7 @@ export const CommentItem = memo(function CommentItem({
   messageEvidenceMap,
   onReply,
   onEdit,
+  onDelete,
   onExtractClaim,
   onReport,
   onNavigateToClaims,
@@ -155,6 +160,8 @@ export const CommentItem = memo(function CommentItem({
   const [editContent, setEditContent] = useState(message.content);
   const [editError, setEditError] = useState<string | null>(null);
   const [isEditSaving, setIsEditSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,6 +274,14 @@ export const CommentItem = memo(function CommentItem({
           <span className="text-xs text-muted-foreground shrink-0 select-none">
             {msgDate}
           </span>
+          {message.isEdited && (
+            <span
+              className="text-[10px] text-muted-foreground/70 shrink-0 select-none italic"
+              title={message.editedAt ? `Edited ${formatDate(message.editedAt)}` : "Edited"}
+            >
+              • Edited
+            </span>
+          )}
         </div>
 
         {/* Conversational Bubble: In-Place Claim OR Question OR Normal Message OR In-Place Edit */}
@@ -521,6 +536,26 @@ export const CommentItem = memo(function CommentItem({
                       </button>
                     )}
 
+                    {canEdit && onDelete && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer font-medium"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Trash2 className="h-3 w-3" />
+                          <span>Delete</span>
+                        </span>
+                        <span className="text-[10px] text-amber-500 font-bold">
+                          {Math.floor(secondsLeft / 60)}:
+                          {(secondsLeft % 60).toString().padStart(2, "0")}
+                        </span>
+                      </button>
+                    )}
+
                     {!isDeleted && (
                       <button
                         type="button"
@@ -637,6 +672,7 @@ export const CommentItem = memo(function CommentItem({
               messageEvidenceMap={messageEvidenceMap}
               onReply={onReply}
               onEdit={onEdit}
+              onDelete={onDelete}
               onExtractClaim={onExtractClaim}
               onReport={onReport}
               onNavigateToClaims={onNavigateToClaims}
@@ -660,6 +696,30 @@ export const CommentItem = memo(function CommentItem({
           ))}
         </div>
       )}
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete contribution?"
+        description="Are you sure you want to delete this contribution? This can only be done within 5 minutes of posting."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={async () => {
+          if (!onDelete) return;
+          setIsDeleting(true);
+          try {
+            await onDelete(message.id);
+            setShowDeleteConfirm(false);
+          } catch (err) {
+            toast.error("Failed to delete message", {
+              description: err instanceof Error ? err.message : "Please try again.",
+            });
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 });

@@ -156,6 +156,18 @@ export function RoomEvidenceTab({ roomId, scrollToEvidenceId, onScrollComplete, 
                     Retracted
                   </span>
                 )}
+                {ev.isEdited && (
+                  <span
+                    className="rounded border border-border/40 bg-muted/30 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground/80 italic cursor-default"
+                    title={ev.editedAt ? `Edited ${formatDate(ev.editedAt)}` : "Edited"}
+                  >
+                    • Edited
+                  </span>
+                )}
+
+
+
+
               </div>
             </div>
 

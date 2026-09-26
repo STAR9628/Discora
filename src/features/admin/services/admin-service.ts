@@ -6,6 +6,8 @@ import type {
   AdminFeedbackItem,
   AdminAuditLogItem,
   PrivateRoomInspectionPayload,
+  AdminDeletedContentItem,
+  AdminContentRevisionItem,
 } from "../types";
 
 export async function getAdminOverviewStats(): Promise<AdminOverviewStats> {
@@ -228,3 +230,92 @@ export async function assignFounderTitles(): Promise<FounderTitleAssignmentResul
 
   return results;
 }
+
+type AdminDeletedContentRow = {
+  id: string;
+  content_type: string;
+  room_id: string | null;
+  content: string;
+  created_by: string | null;
+  created_at: string;
+  deleted_at: string;
+  deleted_by: string | null;
+};
+
+type AdminContentRevisionRow = {
+  id: string;
+  content_type: string;
+  content_id: string;
+  room_id: string | null;
+  previous_content: string;
+  new_content: string;
+  edited_by: string | null;
+  edited_at: string;
+};
+
+export async function getAdminDeletedContent(
+  contentType?: string
+): Promise<AdminDeletedContentItem[]> {
+  await requireOwner();
+  const supabase = await createServerSupabaseClient();
+
+  const { data, error } = await supabase.rpc("admin_get_deleted_content", {
+    p_content_type: contentType && contentType !== "all" ? contentType : null,
+  });
+
+  if (error) {
+    throw new Error(`Failed to fetch deleted content: ${error.message}`);
+  }
+
+  // Map RPC columns to the admin UI shape. The RPC returns `id`/`content`/
+  // `created_by`; passing rows through unmapped leaves `content_id` undefined
+  // and crashes the lifecycle view.
+  const rows = (data || []) as AdminDeletedContentRow[];
+  return rows.map((row) => ({
+    content_type: row.content_type,
+    content_id: row.id,
+    room_id: row.room_id,
+    author_id: row.created_by,
+    content_preview: row.content,
+    deleted_by: row.deleted_by,
+    deleted_at: row.deleted_at,
+    created_at: row.created_at,
+  }));
+}
+
+export async function getAdminContentRevisions(
+  contentType?: string,
+  contentId?: string
+): Promise<AdminContentRevisionItem[]> {
+  await requireOwner();
+  const supabase = await createServerSupabaseClient();
+
+  const { data, error } = await supabase.rpc("admin_get_content_revisions", {
+    p_content_type: contentType && contentType !== "all" ? contentType : null,
+    p_content_id: contentId || null,
+  });
+
+  if (error) {
+    throw new Error(`Failed to fetch content revisions: ${error.message}`);
+  }
+
+  // Map RPC columns to the admin UI shape (`id` -> `revision_id`,
+  // `edited_at` -> `created_at`). The RPC returns newest-first, so the
+  // per-content sequence number counts snapshots from newest to oldest.
+  const rows = (data || []) as AdminContentRevisionRow[];
+  const perContentCount = new Map<string, number>();
+  return rows.map((row) => {
+    const next = (perContentCount.get(row.content_id) || 0) + 1;
+    perContentCount.set(row.content_id, next);
+    return {
+      revision_id: row.id,
+      content_type: row.content_type,
+      content_id: row.content_id,
+      revision_number: next,
+      previous_content: row.previous_content,
+      edited_by: row.edited_by || "System",
+      created_at: row.edited_at,
+    };
+  });
+}
+

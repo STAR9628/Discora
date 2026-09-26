@@ -5,9 +5,9 @@ import NextLink from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useEvidence, useCreateEvidence, useRetractEvidence } from "@/features/discussions/hooks/use-discussions";
+import { useEvidence, useCreateEvidence, useRetractEvidence, useEditEvidence, useDeleteEvidence } from "@/features/discussions/hooks/use-discussions";
 import { evidenceSchema, type EvidenceFormValues } from "@/features/discussions/validation";
-import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, Flag, LogIn, FileText } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, User, Send, Plus, Link as LinkIcon, Flag, LogIn, FileText, Edit3, Trash2, Check } from "lucide-react";
 import type { DiscussionEvidence } from "../types";
 import { toast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -28,10 +28,15 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
   const { data: evidenceList, isLoading, error } = useEvidence(claimId);
   const createMutation = useCreateEvidence(roomId, claimId);
   const retractMutation = useRetractEvidence(roomId, claimId);
+  const editEvidenceMutation = useEditEvidence(roomId, claimId);
+  const deleteEvidenceMutation = useDeleteEvidence(roomId, claimId);
 
   const [isFormOpen, setIsFormOpen] = useState(defaultOpen ?? false);
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingRetractId, setPendingRetractId] = useState<string | null>(null);
+  const [editingEvidenceId, setEditingEvidenceId] = useState<string | null>(null);
+  const [editEvidenceContent, setEditEvidenceContent] = useState("");
+  const [pendingDeleteEvidenceId, setPendingDeleteEvidenceId] = useState<string | null>(null);
   const [anonymousEvidence, setAnonymousEvidence] = useState(false);
 
   const {
@@ -383,6 +388,10 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           {evidenceList?.map((ev) => {
             const isEvAnon = ev.identityMode === "anonymous";
             const isEvDeleted = ev.username === "Deleted User";
+            const evCreatedTime = new Date(ev.createdAt).getTime();
+            const isWithin5Min = Date.now() - evCreatedTime < 5 * 60 * 1000;
+            const isOwnEvidence = Boolean(user && ev.createdBy === user.id);
+            const canEditEvidence = isOwnEvidence && !ev.isRetracted && isWithin5Min;
 
             return (
               <div
@@ -413,11 +422,42 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                         Retracted
                       </span>
                     )}
+
+                    {ev.isEdited && (
+                      <span
+                        className="rounded border border-border/40 bg-muted/30 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground/80 italic cursor-default"
+                        title={ev.editedAt ? `Edited ${formatDate(ev.editedAt)}` : "Edited"}
+                      >
+                        • Edited
+                      </span>
+                    )}
                   </div>
 
                   {user && (
                     <>
-                      {ev.createdBy === user.id && !ev.isRetracted && (
+                      {canEditEvidence ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingEvidenceId(ev.id);
+                              setEditEvidenceContent(ev.content);
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteEvidenceId(ev.id)}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-destructive hover:underline cursor-pointer"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      ) : isOwnEvidence && !ev.isRetracted ? (
                         <button
                           onClick={() => setPendingRetractId(ev.id)}
                           disabled={retractMutation.isPending}
@@ -426,7 +466,7 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                           <RotateCcw className="h-3.5 w-3.5" />
                           <span>Retract</span>
                         </button>
-                      )}
+                      ) : null}
                       <button
                         onClick={() => onReportEvidence(ev)}
                         className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -439,10 +479,60 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
                   )}
                 </div>
 
-                {/* Evidence Content Statement */}
-                <p className="text-xs leading-relaxed text-foreground/80 whitespace-pre-wrap">
-                  {ev.content}
-                </p>
+                {/* Evidence Content Statement or Inline Edit Form */}
+                {editingEvidenceId === ev.id ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const trimmed = editEvidenceContent.trim();
+                      if (trimmed.length < 20) {
+                        toast.error("Evidence explanation must be at least 20 characters.");
+                        return;
+                      }
+                      try {
+                        await editEvidenceMutation.mutateAsync({
+                          evidenceId: ev.id,
+                          content: trimmed,
+                        });
+                        setEditingEvidenceId(null);
+                        toast.success("Evidence updated.");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to update evidence.");
+                      }
+                    }}
+                    className="space-y-2 rounded-lg border border-primary/30 bg-background/60 p-2.5"
+                  >
+                    <textarea
+                      value={editEvidenceContent}
+                      onChange={(e) => setEditEvidenceContent(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-md border border-input bg-background/80 px-2.5 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                      disabled={editEvidenceMutation.isPending}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingEvidenceId(null)}
+                        disabled={editEvidenceMutation.isPending}
+                        className="rounded border border-border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-accent/40 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={editEvidenceMutation.isPending || editEvidenceContent.trim().length < 20}
+                        className="flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                      >
+                        {editEvidenceMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                        <span>Save</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="text-xs leading-relaxed text-foreground/80 whitespace-pre-wrap">
+                    {ev.content}
+                  </p>
+                )}
 
                 {/* Source Citation link */}
                 <div className="flex items-center gap-2 text-[10px] font-bold text-primary bg-primary/5 border border-primary/10 rounded-lg p-2 w-fit max-w-full">
@@ -522,6 +612,27 @@ export function EvidenceSection({ claimId, roomId, isClaimRetracted, onReportEvi
           }
         }}
         onCancel={() => setPendingRetractId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDeleteEvidenceId}
+        title="Delete evidence?"
+        description="Are you sure you want to delete this evidence? This can only be done within 5 minutes of creation."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={deleteEvidenceMutation.isPending}
+        onConfirm={async () => {
+          if (!pendingDeleteEvidenceId) return;
+          try {
+            await deleteEvidenceMutation.mutateAsync(pendingDeleteEvidenceId);
+            toast.success("Evidence deleted.");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete evidence.");
+          } finally {
+            setPendingDeleteEvidenceId(null);
+          }
+        }}
+        onCancel={() => setPendingDeleteEvidenceId(null)}
       />
     </div>
   );

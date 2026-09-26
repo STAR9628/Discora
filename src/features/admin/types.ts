@@ -78,3 +78,24 @@ export interface PrivateRoomInspectionPayload {
     created_at: string;
   }>;
 }
+
+export interface AdminDeletedContentItem {
+  content_type: string;
+  content_id: string;
+  room_id: string | null;
+  author_id: string | null;
+  content_preview: string;
+  deleted_by: string | null;
+  deleted_at: string;
+  created_at: string;
+}
+
+export interface AdminContentRevisionItem {
+  revision_id: string;
+  content_type: string;
+  content_id: string;
+  revision_number: number;
+  previous_content: string;
+  edited_by: string;
+  created_at: string;
+}
