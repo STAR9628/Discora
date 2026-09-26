@@ -88,6 +88,10 @@ export type Room = BaseEntity & {
   topicId?: string;
   accessCode?: string | null;
   participantInvitesEnabled?: boolean;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 };
 
 /**

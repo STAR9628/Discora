@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -9,6 +10,7 @@ type ConfirmDialogProps = {
   confirmLabel?: string;
   cancelLabel?: string;
   confirmDisabled?: boolean;
+  isLoading?: boolean;
   variant?: "danger" | "default";
   onConfirm: () => void;
   onCancel: () => void;
@@ -21,6 +23,7 @@ export function ConfirmDialog({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   confirmDisabled = false,
+  isLoading = false,
   variant = "default",
   onConfirm,
   onCancel,
@@ -118,13 +121,14 @@ export function ConfirmDialog({
           <button
             ref={confirmRef}
             onClick={onConfirm}
-            disabled={confirmDisabled}
+            disabled={confirmDisabled || isLoading}
             className={`rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
               variant === "danger"
                 ? "bg-destructive hover:bg-destructive/90"
                 : "bg-primary hover:bg-primary/90"
             }`}
           >
+            {isLoading && <Loader2 className="h-4 w-4 animate-spin inline mr-1.5" />}
             {confirmLabel}
           </button>
         </div>

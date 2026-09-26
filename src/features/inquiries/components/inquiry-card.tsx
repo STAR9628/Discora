@@ -86,7 +86,12 @@ export function InquiryCard({ inquiry, defaultExpanded = false, showLinkToStanda
               </span>
             )}
           </div>
-          <span>{formatDate(inquiry.createdAt)}</span>
+          <div className="flex items-center gap-1.5">
+            <span>{formatDate(inquiry.createdAt)}</span>
+            {inquiry.isEdited && (
+              <span className="text-[10px] text-muted-foreground/70 font-medium">• Edited</span>
+            )}
+          </div>
         </div>
       </div>
 

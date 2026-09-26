@@ -12,6 +12,8 @@ import {
   useEvidenceMetadata,
   useClaimRelationCounts,
   useClaimRelations,
+  useEditClaim,
+  useDeleteClaim,
 } from "@/features/discussions/hooks/use-discussions";
 import { claimSchema, type ClaimFormValues } from "@/features/discussions/validation";
 import {
@@ -29,7 +31,10 @@ import {
   ArrowRight,
   ArrowDown,
   Flag,
+  Edit3,
+  Trash2,
 } from "lucide-react";
+import { formatDate } from "@/lib/date";
 import { EvidenceSection } from "./evidence-section";
 import type {
   DiscussionClaim,
@@ -97,6 +102,11 @@ export function ClaimList({
   const { data: roomEvidence } = useEvidenceMetadata(roomId);
   const createMutation = useCreateClaim(roomId);
   const retractMutation = useRetractClaim(roomId);
+  const editClaimMutation = useEditClaim(roomId);
+  const deleteClaimMutation = useDeleteClaim(roomId);
+  const [editingClaimId, setEditingClaimId] = useState<string | null>(null);
+  const [editClaimContent, setEditClaimContent] = useState("");
+  const [pendingDeleteClaimId, setPendingDeleteClaimId] = useState<string | null>(null);
 
   const { data: relationCounts } = useClaimRelationCounts(roomId);
   const { data: inquiryCounts } = useInquiryCountsForRoom(roomId);
@@ -473,6 +483,9 @@ export function ClaimList({
           <div className="space-y-3">
             {claims?.map((claim) => {
               const isOwnClaim = claim.createdBy === user?.id;
+              const claimCreatedTime = new Date(claim.createdAt).getTime();
+              const isWithin5Min = Date.now() - claimCreatedTime < 5 * 60 * 1000;
+              const canEditClaim = isOwnClaim && !claim.isRetracted && isWithin5Min;
 
               const accentBorderMap: Record<string, string> = {
                 fact: "border-l-blue-500/60",
@@ -522,10 +535,41 @@ export function ClaimList({
                           Retracted
                         </span>
                       )}
+
+                      {claim.isEdited && (
+                        <span
+                          className="rounded border border-border/40 bg-muted/30 px-2 py-0.5 text-[9px] font-semibold text-muted-foreground/80 italic cursor-default"
+                          title={claim.editedAt ? `Edited ${formatDate(claim.editedAt)}` : "Edited"}
+                        >
+                          • Edited
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isOwnClaim && !isClaimRetracted && (
+                      {canEditClaim ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingClaimId(claim.id);
+                              setEditClaimContent(claim.content);
+                            }}
+                            className="text-[10px] font-bold text-primary hover:underline cursor-pointer flex items-center gap-0.5"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeleteClaimId(claim.id)}
+                            className="text-[10px] font-bold text-destructive hover:underline cursor-pointer flex items-center gap-0.5"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      ) : isOwnClaim && !isClaimRetracted ? (
                         <button
                           onClick={() => handleRetract(claim.id)}
                           disabled={retractMutation.isPending}
@@ -533,7 +577,7 @@ export function ClaimList({
                         >
                           Retract
                         </button>
-                      )}
+                      ) : null}
                       {user && (
                         <Tooltip content="Report claim">
                           <button
@@ -564,10 +608,64 @@ export function ClaimList({
                     </div>
                   )}
 
-                  {/* Claim Text */}
-                  <p className="text-xs md:text-sm leading-relaxed text-foreground font-medium break-words">
-                    {claim.content}
-                  </p>
+                  {/* Claim Text or Inline Edit Form */}
+                  {editingClaimId === claim.id ? (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const trimmed = editClaimContent.trim();
+                        if (trimmed.length < 10) {
+                          toast.error("Claim must be at least 10 characters.");
+                          return;
+                        }
+                        try {
+                          await editClaimMutation.mutateAsync({
+                            claimId: claim.id,
+                            content: trimmed,
+                          });
+                          setEditingClaimId(null);
+                          toast.success("Claim updated.");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to update claim.");
+                        }
+                      }}
+                      className="space-y-2 rounded-xl border border-primary/30 bg-background/60 p-2.5"
+                    >
+                      <textarea
+                        value={editClaimContent}
+                        onChange={(e) => setEditClaimContent(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-lg border border-input bg-background/80 px-3 py-2 text-xs md:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                        disabled={editClaimMutation.isPending}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingClaimId(null)}
+                          disabled={editClaimMutation.isPending}
+                          className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:bg-accent/40 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={editClaimMutation.isPending || editClaimContent.trim().length < 10}
+                          className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                        >
+                          {editClaimMutation.isPending ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
+                          <span>Save</span>
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <p className="text-xs md:text-sm leading-relaxed text-foreground font-medium break-words">
+                      {claim.content}
+                    </p>
+                  )}
 
                   {/* Voting Toolbar & Consensus Bar */}
                   {!claim.isRetracted && <ClaimVoting roomId={roomId} claim={claim} />}
@@ -670,6 +768,27 @@ export function ClaimList({
         variant="danger"
         onConfirm={executeRetract}
         onCancel={() => setPendingRetractId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDeleteClaimId}
+        title="Delete claim?"
+        description="Are you sure you want to delete this claim? This can only be done within 5 minutes of creation. All dependent evidence, arguments, and inquiries will remain visible."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={deleteClaimMutation.isPending}
+        onConfirm={async () => {
+          if (!pendingDeleteClaimId) return;
+          try {
+            await deleteClaimMutation.mutateAsync(pendingDeleteClaimId);
+            toast.success("Claim deleted.");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete claim.");
+          } finally {
+            setPendingDeleteClaimId(null);
+          }
+        }}
+        onCancel={() => setPendingDeleteClaimId(null)}
       />
 
       {relationDialogState && (

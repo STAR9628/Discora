@@ -10,12 +10,16 @@ import {
   getAdminAuditLogs,
   assignFounderTitles,
   getFounderTitleStatus,
+  getAdminDeletedContent,
+  getAdminContentRevisions,
 } from "@/features/admin/services/admin-service";
 import type {
   AdminRoomItem,
   AdminFeedbackItem,
   AdminAuditLogItem,
   PrivateRoomInspectionPayload,
+  AdminDeletedContentItem,
+  AdminContentRevisionItem,
 } from "@/features/admin/types";
 
 export async function setRoomStatusAction(
@@ -157,3 +161,33 @@ export async function assignFounderTitlesAction(): Promise<{
     };
   }
 }
+
+export async function getDeletedContentAction(
+  contentType?: string
+): Promise<{ success: boolean; data?: AdminDeletedContentItem[]; error?: string }> {
+  try {
+    const data = await getAdminDeletedContent(contentType);
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to fetch deleted content",
+    };
+  }
+}
+
+export async function getContentRevisionsAction(
+  contentType?: string,
+  contentId?: string
+): Promise<{ success: boolean; data?: AdminContentRevisionItem[]; error?: string }> {
+  try {
+    const data = await getAdminContentRevisions(contentType, contentId);
+    return { success: true, data };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Failed to fetch content revisions",
+    };
+  }
+}
+
