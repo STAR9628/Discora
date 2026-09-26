@@ -10,6 +10,10 @@ import {
   getInquiryResponses,
   getInquiryCountsByRoom,
   getInquiriesByRoom,
+  editInquiry,
+  deleteInquiry,
+  editInquiryResponse,
+  deleteInquiryResponse,
 } from "../services/inquiry-service";
 import type { InquiryItem, InquiryResponse, InquiryType } from "../types";
 
@@ -128,5 +132,49 @@ export function useInquiryResponses(inquiryItemId: string, initialData?: Inquiry
     staleTime: 10_000,
     enabled: !!inquiryItemId,
     initialData,
+  });
+}
+
+export function useEditInquiry(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ inquiryId, content }: { inquiryId: string; content: string }) =>
+      editInquiry(inquiryId, content),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["inquiries", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["inquiry", variables.inquiryId] });
+    },
+  });
+}
+
+export function useDeleteInquiry(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (inquiryId: string) => deleteInquiry(inquiryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inquiries", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["inquiryCounts", roomId] });
+    },
+  });
+}
+
+export function useEditInquiryResponse(inquiryItemId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ responseId, content }: { responseId: string; content: string }) =>
+      editInquiryResponse(responseId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inquiry-responses", inquiryItemId] });
+    },
+  });
+}
+
+export function useDeleteInquiryResponse(inquiryItemId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (responseId: string) => deleteInquiryResponse(responseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inquiry-responses", inquiryItemId] });
+    },
   });
 }

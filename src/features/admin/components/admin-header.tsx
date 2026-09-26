@@ -9,9 +9,10 @@ import {
   MessageSquareHeart,
   ShieldCheck,
   ScrollText,
+  History,
 } from "lucide-react";
 
-export type AdminTab = "overview" | "rooms" | "feedback" | "moderation" | "audit";
+export type AdminTab = "overview" | "rooms" | "feedback" | "moderation" | "audit" | "lifecycle";
 
 interface AdminHeaderProps {
   activeTab: AdminTab;
@@ -47,6 +48,7 @@ export function AdminHeader({
       badge: pendingFlagsCount,
     },
     { id: "audit", label: "Audit Logs", icon: ScrollText },
+    { id: "lifecycle", label: "Lifecycle", icon: History },
   ];
 
   return (

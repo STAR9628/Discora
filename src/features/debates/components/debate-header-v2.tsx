@@ -35,6 +35,16 @@ export function DebateHeaderV2() {
               <Swords className="h-3 w-3" />
               DEBATE
             </span>
+            {room.status === "archived" && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-destructive border border-destructive/20">
+                Archived
+              </span>
+            )}
+            {room.isEdited && (
+              <span className="inline-flex rounded-md bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground border border-border/40">
+                Edited
+              </span>
+            )}
             {topic && (
               <span className="inline-flex rounded-md bg-muted/40 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground border border-border/40">
                 {topic.name}

@@ -28,6 +28,10 @@ export interface DbRoomRow {
   updated_at: string;
   access_code: string | null;
   participant_invites_enabled: boolean;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbDiscussionRow {
@@ -36,6 +40,8 @@ export interface DbDiscussionRow {
   summary: string | null;
   created_at: string;
   updated_at: string;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbMessageRow {
@@ -49,6 +55,8 @@ export interface DbMessageRow {
   converted_claim_id?: string | null;
   created_at: string;
   updated_at: string;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbDiscussionMessageRow {
@@ -65,6 +73,8 @@ export interface DbDiscussionMessageRow {
   username: string | null;
   avatar_url: string | null;
   is_moderated: boolean;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbDebateRow {
@@ -163,6 +173,10 @@ export function mapRoomRow(row: DbRoomRow): Room {
     topicId: row.topic_id || undefined,
     accessCode: row.access_code || null,
     participantInvitesEnabled: row.participant_invites_enabled,
+    deletedAt: row.deleted_at || null,
+    deletedBy: row.deleted_by || null,
+    isEdited: !!row.is_edited,
+    editedAt: row.edited_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -197,6 +211,8 @@ export function mapDiscussionRow(row: DbDiscussionRow): Discussion {
     summary: row.summary,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -212,6 +228,8 @@ export function mapMessageRow(row: DbMessageRow): Message {
     convertedClaimId: row.converted_claim_id || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -230,6 +248,8 @@ export function mapDiscussionMessageRow(row: DbDiscussionMessageRow): Discussion
     username: row.username,
     avatarUrl: row.avatar_url,
     isModerated: row.is_moderated,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -489,6 +509,8 @@ export interface DbQuestionRow {
   is_retracted: boolean;
   created_at: string;
   updated_at: string;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbDiscussionQuestionRow {
@@ -503,6 +525,8 @@ export interface DbDiscussionQuestionRow {
   created_by: string | null;
   username: string | null;
   avatar_url: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbClaimRow {
@@ -525,6 +549,8 @@ export interface DbClaimRow {
   user_vote?: "agree" | "disagree" | null;
   deleted_at?: string | null;
   deleted_by?: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export interface DbDiscussionClaimRow {
@@ -549,6 +575,8 @@ export interface DbDiscussionClaimRow {
   user_vote?: "agree" | "disagree" | null;
   deleted_at?: string | null;
   deleted_by?: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export function mapQuestionRow(row: DbQuestionRow): Question {
@@ -562,6 +590,8 @@ export function mapQuestionRow(row: DbQuestionRow): Question {
     isRetracted: row.is_retracted,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -578,6 +608,8 @@ export function mapDiscussionQuestionRow(row: DbDiscussionQuestionRow): Discussi
     createdBy: row.created_by,
     username: row.username,
     avatarUrl: row.avatar_url,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -602,6 +634,8 @@ export function mapClaimRow(row: DbClaimRow): Claim {
     userVote: row.user_vote,
     deletedAt: row.deleted_at ?? null,
     deletedBy: row.deleted_by ?? null,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -628,6 +662,8 @@ export function mapDiscussionClaimRow(row: DbDiscussionClaimRow): DiscussionClai
     userVote: row.user_vote,
     deletedAt: row.deleted_at ?? null,
     deletedBy: row.deleted_by ?? null,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -840,6 +876,8 @@ export interface DbDiscussionEvidenceRow {
   disagree_count?: number;
   consensus_ratio?: number | null;
   user_vote?: "agree" | "disagree" | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export function mapDiscussionEvidenceRow(row: DbDiscussionEvidenceRow): DiscussionEvidence {
@@ -866,6 +904,8 @@ export function mapDiscussionEvidenceRow(row: DbDiscussionEvidenceRow): Discussi
     disagreeCount: row.disagree_count,
     consensusRatio: row.consensus_ratio,
     userVote: row.user_vote,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -1255,6 +1295,8 @@ export interface DbDiscussionArgumentRow {
   created_by: string | null;
   username: string | null;
   avatar_url: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
 }
 
 export function mapDiscussionArgumentRow(row: DbDiscussionArgumentRow): DiscussionArgument {
@@ -1266,13 +1308,15 @@ export function mapDiscussionArgumentRow(row: DbDiscussionArgumentRow): Discussi
     stance: row.stance,
     identityMode: row.identity_mode,
     isRetracted: row.is_retracted,
-    deletedAt: row.deleted_at,
-    deletedBy: row.deleted_by,
+    deletedAt: row.deleted_at ?? null,
+    deletedBy: row.deleted_by ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     createdBy: row.created_by,
     username: row.username,
     avatarUrl: row.avatar_url,
+    isEdited: row.is_edited ?? false,
+    editedAt: row.edited_at ?? null,
   };
 }
 
@@ -1287,12 +1331,14 @@ export async function getRoomArguments(
 ): Promise<DiscussionArgument[]> {
   const supabase = getClient(overrideClient);
 
+  // NOTE: discussion_arguments hard-filters soft-deleted rows in the view
+  // definition and does not expose a deleted_at column, so no deleted_at
+  // predicate is applied here.
   const { data, error } = await supabase
     .from("discussion_arguments")
     .select("*")
     .eq("room_id", roomId)
     .eq("is_retracted", false)
-    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -2330,4 +2376,200 @@ export async function getMyClaimRequests(
     set.add(row.message_id);
   }
   return set;
+}
+
+export async function editMessage(
+  messageId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("messages")
+    .update({ content })
+    .eq("id", messageId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit message"));
+  }
+}
+
+export async function deleteMessage(
+  messageId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_message", {
+    p_message_id: messageId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete message"));
+  }
+}
+
+export async function editClaim(
+  claimId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("claims")
+    .update({ content })
+    .eq("id", claimId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit claim"));
+  }
+}
+
+export async function deleteClaim(
+  claimId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_claim", {
+    p_claim_id: claimId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete claim"));
+  }
+}
+
+export async function editEvidence(
+  evidenceId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("evidence")
+    .update({ content })
+    .eq("id", evidenceId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit evidence"));
+  }
+}
+
+export async function deleteEvidence(
+  evidenceId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_evidence", {
+    p_evidence_id: evidenceId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete evidence"));
+  }
+}
+
+export async function editQuestion(
+  questionId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("questions")
+    .update({ content })
+    .eq("id", questionId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit question"));
+  }
+}
+
+export async function deleteQuestion(
+  questionId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_question", {
+    p_question_id: questionId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete question"));
+  }
+}
+
+export async function editArgument(
+  argumentId: string,
+  content: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { data: updated, error } = await supabase
+    .from("arguments")
+    .update({ content })
+    .eq("id", argumentId)
+    .select("id")
+    .single();
+
+  if (error || !updated) {
+    throw new Error(mapSupabaseError(error, "Failed to edit argument"));
+  }
+}
+
+export async function deleteArgument(
+  argumentId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("soft_delete_argument", {
+    p_argument_id: argumentId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to delete argument"));
+  }
+}
+
+export async function editDiscussionRoom(
+  data: {
+    roomId: string;
+    title: string;
+    description?: string;
+    openingStatement?: string;
+  },
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("edit_discussion_room", {
+    p_room_id: data.roomId,
+    p_title: data.title,
+    p_description: data.description ?? null,
+    p_opening_statement: data.openingStatement ?? null,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to edit discussion room"));
+  }
+}
+
+export async function archiveRoomByOwner(
+  roomId: string,
+  overrideClient?: SupabaseClient
+): Promise<void> {
+  const supabase = getClient(overrideClient);
+  const { error } = await supabase.rpc("archive_room_by_owner", {
+    p_room_id: roomId,
+  });
+
+  if (error) {
+    throw new Error(mapSupabaseError(error, "Failed to archive room"));
+  }
 }

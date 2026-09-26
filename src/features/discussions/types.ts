@@ -8,6 +8,8 @@ export interface Discussion {
   summary: string | null;
   createdAt: string;
   updatedAt: string;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface Message {
@@ -21,6 +23,8 @@ export interface Message {
   convertedClaimId?: string | null;
   createdAt: string;
   updatedAt: string;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 // Representing the row fetched from the public.discussion_messages database view
@@ -38,6 +42,8 @@ export interface DiscussionMessage {
   username: string | null; // 'Anonymous' if identity_mode = 'anonymous', 'Deleted User' if user_id is null
   avatarUrl: string | null; // null if identity_mode = 'anonymous' or user_id is null
   isModerated: boolean;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface Question {
@@ -50,6 +56,8 @@ export interface Question {
   isRetracted: boolean;
   createdAt: string;
   updatedAt: string;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface DiscussionQuestion {
@@ -64,6 +72,8 @@ export interface DiscussionQuestion {
   createdBy: string | null;
   username: string | null;
   avatarUrl: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface Debate {
@@ -130,6 +140,8 @@ export interface Claim {
   userVote?: "agree" | "disagree" | null;
   deletedAt?: string | null;
   deletedBy?: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface DiscussionClaim {
@@ -154,6 +166,8 @@ export interface DiscussionClaim {
   userVote?: "agree" | "disagree" | null;
   deletedAt?: string | null;
   deletedBy?: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface Source {
@@ -181,6 +195,8 @@ export interface Evidence {
   disagreeCount?: number;
   consensusRatio?: number | null;
   userVote?: "agree" | "disagree" | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export interface DiscussionEvidence {
@@ -206,6 +222,8 @@ export interface DiscussionEvidence {
   disagreeCount?: number;
   consensusRatio?: number | null;
   userVote?: "agree" | "disagree" | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
 }
 
 export type ClaimContextType =
@@ -335,6 +353,8 @@ export interface Argument {
   isRetracted: boolean;
   deletedAt: string | null;
   deletedBy: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -349,6 +369,8 @@ export interface DiscussionArgument {
   isRetracted: boolean;
   deletedAt: string | null;
   deletedBy: string | null;
+  isEdited?: boolean;
+  editedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy: string | null;

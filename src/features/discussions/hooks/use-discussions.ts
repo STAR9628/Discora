@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, useInfiniteQuery, type QueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useMemo } from "react";
-import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag, getClaimRelations, createClaimRelation, deleteClaimRelation, getClaimsPaginated, getClaimsMinimal, getClaimById, getClaimsByIds, getEvidencePaginated, getEvidenceById, getMessagesPaginated, getMessageById, getMessageRoots, getMessageSubtreeDescendants, getRoomMessageCount, resolveMessageThread, getQuestionsPaginated, getQuestionById, getEvidenceMetadataForRoom, getClaimRelationCounts, toggleReaction, getReactionsForTargets, createClaimRequest, decideClaimRequest, getClaimRequestsForMessages, getMyClaimRequests, convertMessageToClaim, getRoomArguments, createArgument, retractArgument } from "@/features/discussions/services/discussion-service";
+import { getTopics, createDiscussion, getDiscussions, getMessages, postMessage, updateMessage, getClaims, createClaim, retractClaim, retractEvidence, getEvidenceForClaim, createEvidence, getEvidenceForRoom, castClaimVote, encodeDiscussionFeedCursor, getQuestions, createQuestion, retractQuestion, flagEntity, getPendingFlags, getModerationHistory, resolveFlag, getClaimRelations, createClaimRelation, deleteClaimRelation, getClaimsPaginated, getClaimsMinimal, getClaimById, getClaimsByIds, getEvidencePaginated, getEvidenceById, getMessagesPaginated, getMessageById, getMessageRoots, getMessageSubtreeDescendants, getRoomMessageCount, resolveMessageThread, getQuestionsPaginated, getQuestionById, getEvidenceMetadataForRoom, getClaimRelationCounts, toggleReaction, getReactionsForTargets, createClaimRequest, decideClaimRequest, getClaimRequestsForMessages, getMyClaimRequests, convertMessageToClaim, getRoomArguments, createArgument, retractArgument, deleteMessage, editClaim, deleteClaim, editEvidence, deleteEvidence, editQuestion, deleteQuestion, editArgument, deleteArgument, editDiscussionRoom, archiveRoomByOwner } from "@/features/discussions/services/discussion-service";
 import type { QuestionType, ClaimContextType } from "@/types/domain";
 import type { ClaimRelationCount, EvidenceMetadata, SectionPage } from "@/features/discussions/services/discussion-service";
 import type { ClaimRelationType, DiscussionArgument, DiscussionClaim, DiscussionClaimRelation, DiscussionEvidence, DiscussionMessage, DiscussionQuestion, ReactionTargetType, ReactionType } from "@/features/discussions/types";
@@ -1112,6 +1112,167 @@ export function useConvertMessageToClaim(roomId: string) {
       queryClient.invalidateQueries({ queryKey: ["discussionOverview", roomId] });
       queryClient.invalidateQueries({ queryKey: ["claimRequests", "aggregated", roomId], exact: false });
       queryClient.invalidateQueries({ queryKey: ["claimRequests", "my", roomId], exact: false });
+    },
+  });
+}
+
+/**
+ * Mutation hook to soft-delete a message (within 5 minutes)
+ */
+export function useDeleteMessage(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageId: string) => deleteMessage(messageId),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "messages", roomId);
+    },
+  });
+}
+
+/**
+ * Mutation hook to edit a claim (within 5 minutes)
+ */
+export function useEditClaim(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ claimId, content }: { claimId: string; content: string }) =>
+      editClaim(claimId, content),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "claims", roomId);
+      queryClient.invalidateQueries({ queryKey: ["discussionOverview", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to soft-delete a claim (within 5 minutes, preserves children)
+ */
+export function useDeleteClaim(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (claimId: string) => deleteClaim(claimId),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "claims", roomId);
+      queryClient.invalidateQueries({ queryKey: ["discussionOverview", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to edit evidence (within 5 minutes)
+ */
+export function useEditEvidence(roomId: string, claimId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ evidenceId, content }: { evidenceId: string; content: string }) =>
+      editEvidence(evidenceId, content),
+    onSuccess: () => {
+      if (claimId) {
+        queryClient.invalidateQueries({ queryKey: ["evidence", claimId] });
+      }
+      invalidateRoomQueries(queryClient, "evidence", roomId);
+    },
+  });
+}
+
+/**
+ * Mutation hook to soft-delete evidence (within 5 minutes)
+ */
+export function useDeleteEvidence(roomId: string, claimId?: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (evidenceId: string) => deleteEvidence(evidenceId),
+    onSuccess: () => {
+      if (claimId) {
+        queryClient.invalidateQueries({ queryKey: ["evidence", claimId] });
+      }
+      invalidateRoomQueries(queryClient, "evidence", roomId);
+    },
+  });
+}
+
+/**
+ * Mutation hook to edit question (within 5 minutes)
+ */
+export function useEditQuestion(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ questionId, content }: { questionId: string; content: string }) =>
+      editQuestion(questionId, content),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "questions", roomId);
+    },
+  });
+}
+
+/**
+ * Mutation hook to soft-delete question (within 5 minutes)
+ */
+export function useDeleteQuestion(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (questionId: string) => deleteQuestion(questionId),
+    onSuccess: () => {
+      invalidateRoomQueries(queryClient, "questions", roomId);
+    },
+  });
+}
+
+/**
+ * Mutation hook to edit argument (within 5 minutes)
+ */
+export function useEditArgument(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ argumentId, content }: { argumentId: string; content: string }) =>
+      editArgument(argumentId, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["arguments", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to soft-delete argument (within 5 minutes)
+ */
+export function useDeleteArgument(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (argumentId: string) => deleteArgument(argumentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["arguments", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to edit room metadata by owner (within 5 minutes)
+ */
+export function useEditDiscussionRoom(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { title: string; description?: string; openingStatement?: string }) =>
+      editDiscussionRoom({ roomId, ...data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["discussionOverview", roomId] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to archive room by owner (within 1 hour)
+ */
+export function useArchiveRoomByOwner(roomId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => archiveRoomByOwner(roomId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["room", roomId] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["discussions"] });
+      queryClient.invalidateQueries({ queryKey: ["debates"] });
     },
   });
 }
